@@ -5,6 +5,7 @@
 #include "LinearAlgebra/Models/Point.h"
 #include "LinearAlgebra/Models/LILCSR.h"
 #include "FEM/Controller/PlaneStrain.h"
+#include "FEM/Controller/Dirichlet.h"
 #include "LinearAlgebra/Solvers/CG.h"
 
 
@@ -36,13 +37,9 @@ int main() {
 	}
 
 	//----------Dirichlet境界条件の適用----------
-	double alpha = 1.0e20;
-	F[0] = alpha * K.get(0, 0)*0.0;
-	K.set(0, 0, alpha*K.get(0, 0));
-	F[1] = alpha * K.get(1, 1)*0.0;
-	K.set(1, 1, K.get(1, 1)*alpha);
-	F[10] = alpha * K.get(10, 10)*0.0;
-	K.set(10, 10, K.get(10, 10)*alpha);
+	std::vector<int> isufixed = { 0, 1, 10 };
+	std::vector<double> ufixed = { 0.0, 0.0, 0.0 };
+	SetDirichlet(K, F, isufixed, ufixed, 1.0e20);
 
 	//----------Neumann境界条件の適用----------
 	F[7] = -100.0;

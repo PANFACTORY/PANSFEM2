@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FEM\Controller\Dirichlet.h" />
     <ClInclude Include="FEM\Controller\PlaneStrain.h" />
     <ClInclude Include="LinearAlgebra\Models\CSR.h" />
     <ClInclude Include="LinearAlgebra\Models\LILCSR.h" />

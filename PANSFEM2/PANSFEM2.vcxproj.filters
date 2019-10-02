@@ -8,6 +8,7 @@
     <ClInclude Include="PrePost\ImportExport\Import.h" />
     <ClInclude Include="LinearAlgebra\Models\Point.h" />
     <ClInclude Include="FEM\Controller\PlaneStrain.h" />
+    <ClInclude Include="FEM\Controller\Dirichlet.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

@@ -1,12 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="LinearAlgebra\Models\Point.h" />
     <ClInclude Include="LinearAlgebra\Models\CSR.h" />
     <ClInclude Include="LinearAlgebra\Models\LILCSR.h" />
     <ClInclude Include="LinearAlgebra\Solvers\CG.h" />
-    <ClInclude Include="FEM\Models\Mesh.h" />
-    <ClInclude Include="FEM\Models\Field.h" />
+    <ClInclude Include="PrePost\ImportExport\Export.h" />
+    <ClInclude Include="PrePost\ImportExport\Import.h" />
+    <ClInclude Include="LinearAlgebra\Models\Point.h" />
+    <ClInclude Include="FEM\Controller\PlaneStrain.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

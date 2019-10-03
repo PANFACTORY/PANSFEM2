@@ -1,5 +1,5 @@
 //*****************************************************************************
-//Title		:PANSFEM2/FEM/Controller/PlaneStrain.h
+//Title		:PANSFEM2/FEM/Equation/PlaneStrain.h
 //Author	:Tanabe Yuta
 //Date		:2019/10/02
 //Copyright	:(C)2019 TanabeYuta
@@ -10,18 +10,18 @@
 #include <vector>
 
 
-#include "../../LinearAlgebra/Models/Point.h"
+#include "../../LinearAlgebra/Models/Vector.h"
 #include "../../LinearAlgebra/Models/LILCSR.h"
 
 
 namespace PANSFEM2 {
-	//******************************平面ひずみモデル三角形一次要素******************************
+	//******************************平面ひずみモデルの剛性マトリクスを生成******************************
 	template<class T>
-	void PlaneStrainTri(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Point<T> >& _nodes, std::vector<int>& _nodestoelement, T _E, T _V, T _t) {
+	void PlaneStrainTri(LILCSR<T>& _K, std::vector<Vector<T> >& _nodes, std::vector<int>& _nodestoelement, T _E, T _V, T _t) {
 		//.....節点座標.....
-		Point<double> p0 = _nodes[_nodestoelement[0]];
-		Point<double> p1 = _nodes[_nodestoelement[1]];
-		Point<double> p2 = _nodes[_nodestoelement[2]];
+		Vector<double> p0 = _nodes[_nodestoelement[0]];
+		Vector<double> p1 = _nodes[_nodestoelement[1]];
+		Vector<double> p2 = _nodes[_nodestoelement[2]];
 		
 		//.....要素面積.....
 		double A = 0.5*((p0.x[0] - p2.x[0])*(p1.x[1] - p2.x[1]) - (p2.x[1] - p0.x[1])*(p2.x[0] - p1.x[0]));

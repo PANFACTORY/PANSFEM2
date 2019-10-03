@@ -1,5 +1,5 @@
 //*****************************************************************************
-//Title		:PANSFEM2/LinearAlgebra/Models/Point.h
+//Title		:PANSFEM2/LinearAlgebra/Models/Vector.h
 //Author	:Tanabe Yuta
 //Date		:2019/10/02
 //Copyright	:(C)2019 TanabeYuta
@@ -13,13 +13,14 @@
 
 namespace PANSFEM2 {
 	template<class T>
-	class Point
+	class Vector
 	{
 	public:
-		Point();
-		~Point();
+		Vector();
+		~Vector();
 		template<class... Ts>
-		Point(Ts... _xs);
+		Vector(Ts... _xs);
+		Vector(std::vector<T> _xs);
 
 
 		const int DOX;
@@ -27,47 +28,53 @@ namespace PANSFEM2 {
 
 
 		template<class F>
-		friend std::ostream& operator << (std::ostream &_out, const Point<F> &_p);
+		friend std::ostream& operator << (std::ostream &_out, const Vector<F> &_p);
 
 
 	private:
-		void point(T _x);
+		void vector(T _x);
 		template<class... Ts>
-		void point(T _x, Ts... _xs);
+		void vector(T _x, Ts... _xs);
 	};
 
 
 	template<class T>
-	inline Point<T>::Point() : DOX(0) {}
+	inline Vector<T>::Vector() : DOX(0) {}
 
 
 	template<class T>
-	inline Point<T>::~Point() {}
+	inline Vector<T>::~Vector() {}
+
+
+	template<class T>
+	inline Vector<T>::Vector(std::vector<T> _xs) : DOX(_xs.size()) {
+		x = _xs;
+	}
 
 	
 	template<class T>
 	template<class ...Ts>
-	inline Point<T>::Point(Ts ..._xs) : DOX(sizeof...(Ts)) {
-		point(_xs...);
+	inline Vector<T>::Vector(Ts ..._xs) : DOX(sizeof...(Ts)) {
+		vector(_xs...);
 	}
 
 
 	template<class T>
-	inline void Point<T>::point(T _x) {
+	inline void Vector<T>::vector(T _x) {
 		this->x.push_back(_x);
 	}
 
 
 	template<class T>
 	template<class ...Ts>
-	inline void Point<T>::point(T _x, Ts ..._xs) {
+	inline void Vector<T>::vector(T _x, Ts ..._xs) {
 		this->x.push_back(_x);
-		point(_xs...);
+		vector(_xs...);
 	}
 
 
 	template<class F>
-	std::ostream & operator<<(std::ostream & _out, const Point<F>& _p) {
+	std::ostream & operator<<(std::ostream & _out, const Vector<F>& _p) {
 		for (auto xi : _p.x) {
 			_out << xi << "\t";
 		}

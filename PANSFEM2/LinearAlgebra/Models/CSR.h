@@ -10,7 +10,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <thread>
+#include <cassert>
 #include <omp.h>
 
 
@@ -35,7 +35,19 @@ public:
 	const int COLS;				//列数
 
 
-	const std::vector<T> operator*(const std::vector<T> &_vec);			//ベクトルとの積
+	const std::vector<T> operator*(const std::vector<T> &_vec);					//ベクトルとの積
+
+
+	template<class T1, class T2>
+	friend const CSR<T1> operator+(const CSR<T1>& _m1, const CSR<T2>& _m2);		//行列との和
+	template<class T1, class T2>
+	friend const CSR<T1> operator-(const CSR<T1>& _m1, const CSR<T2>& _m2);		//行列との差
+	template<class T1, class T2>
+	friend const CSR<T2> operator*(T1 _a, const CSR<T2>& _m);					//実数との積
+	template<class T1, class T2>
+	friend const CSR<T1> operator*(const CSR<T1>& _m, T2 _a);					//実数との積
+	template<class T1, class T2>
+	friend const CSR<T1> operator/(const CSR<T1>& _m, T2 _a);					//実数との商
 	template<class F>
 	friend std::ostream& operator << (std::ostream &_out, const CSR<F> &_mat);	//streamに出力
 
@@ -152,6 +164,80 @@ inline T CSR<T>::get(int _row, int _col) const {
 	else {
 		return T();
 	}
+}
+
+
+template<class F>
+inline CSR<F> operator*(F _a, const CSR<F>& _m) {
+	CSR<F> m = CSR<F>(_m);
+	for (auto& datai : m.data) {
+		datai *= _a;
+	}
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const CSR<T1> operator+(const CSR<T1>& _m1, const CSR<T2>& _m2) {
+	assert(_m1.ROWS == _m2.ROWS && _m1.COLS == _m2.COLS);
+
+	CSR<T1> m = CSR<T1>(_m1);
+
+	for (int i = 0; i < _m2.ROWS; i++) {
+		for (int k = _m2.indptr[i]; k < _m2.indptr[i + 1]; k++) {
+			int j = _m2.indices[k];
+			m.set(i, j, m.get(i, j) + _m2.data[k]);
+		}
+	}
+
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const CSR<T1> operator-(const CSR<T1>& _m1, const CSR<T2>& _m2) {
+	assert(_m1.ROWS == _m2.ROWS && _m1.COLS == _m2.COLS);
+
+	CSR<T1> m = CSR<T1>(_m1);
+
+	for (int i = 0; i < _m2.ROWS; i++) {
+		for (int k = _m2.indptr[i]; k < _m2.indptr[i + 1]; k++) {
+			int j = _m2.indices[k];
+			m.set(i, j, m.get(i, j) - _m2.data[k]);
+		}
+	}
+
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const CSR<T2> operator*(T1 _a, const CSR<T2>& _m) {
+	CSR<T2> m = CSR<T2>(_m);
+	for (auto& datai : m.data) {
+		datai *= _a;
+	}
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const CSR<T1> operator*(const CSR<T1>& _m, T2 _a) {
+	CSR<T1> m = CSR<T1>(_m);
+	for (auto& datai : m.data) {
+		datai *= _a;
+	}
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const CSR<T1> operator/(const CSR<T1>& _m, T2 _a) {
+	CSR<T1> m = CSR<T1>(_m);
+	for (auto& datai : m.data) {
+		datai /= _a;
+	}
+	return m;
 }
 
 

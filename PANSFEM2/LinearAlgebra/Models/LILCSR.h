@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 
 
 #include "CSR.h"
@@ -26,8 +27,20 @@ public:
 
 
 	const std::vector<T> operator*(const std::vector<T> &_vec);		//ベクトルとの積
+	
+
+	template<class T1, class T2>
+	friend const LILCSR<T1> operator+(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//行列との和
+	template<class T1, class T2>
+	friend const LILCSR<T1> operator-(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//行列との差
+	template<class T1, class T2>
+	friend const LILCSR<T2> operator*(T1 _a, const LILCSR<T2>& _m);	//実数との積
+	template<class T1, class T2>
+	friend const LILCSR<T1> operator*(const LILCSR<T1>& _m, T2 _a);	//実数との積
+	template<class T1, class T2>
+	friend const LILCSR<T1> operator/(const LILCSR<T1>& _m, T2 _a);	//実数との商
 	template<class F>
-	friend std::ostream& operator << (std::ostream &_out, const LILCSR<F> &_mat);	//streamに出力
+	friend std::ostream& operator << (std::ostream &_out, const LILCSR<F> &_mat);		//streamに出力
 
 
 	bool set(int _row, int _col, T _data);		//値のセット
@@ -70,6 +83,8 @@ inline LILCSR<T>::LILCSR(CSR<T> _matrix) : ROWS(_matrix.ROWS), COLS(_matrix.COLS
 
 template<class T>
 inline const std::vector<T> LILCSR<T>::operator*(const std::vector<T>& _vec) {
+	assert(this->COLS == _vec.size());
+	
 	std::vector<T> v(this->ROWS, T());
 
 	//#pragma omp parallel for 
@@ -106,6 +121,74 @@ inline T LILCSR<T>::get(int _row, int _col) const {
 	}
 
 	return T();
+}
+
+
+template<class T1, class T2>
+inline const LILCSR<T1> operator+(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2) {
+	assert(_m1.ROWS == _m2.ROWS && _m1.COLS == _m2.COLS);
+
+	LILCSR<T1> m = LILCSR<T1>(_m1);
+	for (int i = 0; i < _m2.ROWS; i++) {
+		for (auto dataij : _m2.data[i]) {
+			int j = dataij.first;
+			m.set(i, j, m.get(i, j) + dataij.second);
+		}
+	}
+
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const LILCSR<T1> operator-(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2) {
+	assert(_m1.ROWS == _m2.ROWS && _m1.COLS == _m2.COLS);
+
+	LILCSR<T1> m = LILCSR<T1>(_m1);
+	for (int i = 0; i < _m2.ROWS; i++) {
+		for (auto dataij : _m2.data[i]) {
+			int j = dataij.first;
+			m.set(i, j, m.get(i, j) - dataij.second);
+		}
+	}
+
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const LILCSR<T2> operator*(T1 _a, const LILCSR<T2>& _m) {
+	LILCSR<T2> m = LILCSR<T2>(_m);
+	for (auto& row : m.data) {
+		for (auto& col : row) {
+			col.second *= _a;
+		}
+	}
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const LILCSR<T1> operator*(const LILCSR<T1>& _m, T2 _a) {
+	LILCSR<T1> m = LILCSR<T1>(_m);
+	for (auto& row : m.data) {
+		for (auto& col : row) {
+			col.second *= _a;
+		}
+	}
+	return m;
+}
+
+
+template<class T1, class T2>
+inline const LILCSR<T1> operator/(const LILCSR<T1>& _m, T2 _a) {
+	LILCSR<T1> m = LILCSR<T1>(_m);
+	for (auto& row : m.data) {
+		for (auto& col : row) {
+			col.second /= _a;
+		}
+	}
+	return m;
 }
 
 

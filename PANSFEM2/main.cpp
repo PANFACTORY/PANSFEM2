@@ -2,10 +2,11 @@
 #include <vector>
 
 
-#include "LinearAlgebra/Models/Point.h"
+#include "LinearAlgebra/Models/Vector.h"
 #include "LinearAlgebra/Models/LILCSR.h"
-#include "FEM/Controller/PlaneStrain.h"
-#include "FEM/Controller/Dirichlet.h"
+#include "PrePost/ImportExport/Import.h"
+#include "FEM/Equation/PlaneStrain.h"
+#include "FEM/Controller/BoundaryCondition.h"
 #include "LinearAlgebra/Solvers/CG.h"
 
 
@@ -13,27 +14,22 @@ using namespace PANSFEM2;
 
 
 int main() {
-	//----------節点追加----------
-	std::vector<Point<double> > nodes;
-	nodes.push_back(Point<double>(0.0, 0.0));
-	nodes.push_back(Point<double>(1.0, 0.0));
-	nodes.push_back(Point<double>(2.0, 0.0));
-	nodes.push_back(Point<double>(2.0, 1.0));
-	nodes.push_back(Point<double>(1.0, 1.0));
-	nodes.push_back(Point<double>(0.0, 1.0));
+	//----------Add Nodes----------
+	std::vector<Vector<double> > nodes;
+	ImportNodesFromCSV(nodes, "Data/Solid/TriangleBeam/Node.csv");
 	
-	//----------要素―節点関係----------
-	std::vector<std::vector<int> > nodestoelements;
-	nodestoelements.push_back({ 0, 1, 4 });
-	nodestoelements.push_back({ 1, 2, 3 });
-	nodestoelements.push_back({ 3, 4, 1 });
-	nodestoelements.push_back({ 4, 5, 0 });
+	//----------Add Elements----------
+	std::vector<std::vector<int> > elements;
+	ImportElementsFromCSV(elements, "Data/Solid/TriangleBeam/Element.csv");
+
+	//----------全体―節点関係----------
+	
 
 	//----------アセンブリング----------
 	LILCSR<double> K = LILCSR<double>(12, 12);
 	std::vector<double> F = std::vector<double>(12, 0.0);
-	for (auto nodestoelement : nodestoelements) {
-		PlaneStrainTri(K, F, nodes, nodestoelement, 210000.0, 0.3, 1.0);
+	for (auto element : elements) {
+		PlaneStrainTri(K, nodes, element, 210000.0, 0.3, 1.0);
 	}
 
 	//----------Dirichlet境界条件の適用----------
@@ -42,7 +38,9 @@ int main() {
 	SetDirichlet(K, F, isufixed, ufixed, 1.0e20);
 
 	//----------Neumann境界条件の適用----------
-	F[7] = -100.0;
+	std::vector<int> isqfixed = { 7 };
+	std::vector<double> qfixed = { -100.0 };
+	SetNeumann(F, isqfixed, qfixed);
 
 	//----------全体―節点方程式を解く----------
 	CSR<double> Kmod = CSR<double>(K);
@@ -52,6 +50,6 @@ int main() {
 	for (auto ui : u) {
 		std::cout << ui << std::endl;
 	}
-
+	
 	return 0;
 }

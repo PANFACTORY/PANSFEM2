@@ -36,6 +36,7 @@
   <ItemGroup>
     <None Include="Data\Solid\TriangleBeam\Element.csv" />
     <None Include="Data\Solid\TriangleBeam\Node.csv" />
+    <None Include="Data\Solid\TriangleBeam\System.csv" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

@@ -5,6 +5,7 @@
 #include "LinearAlgebra/Models/Vector.h"
 #include "LinearAlgebra/Models/LILCSR.h"
 #include "PrePost/ImportExport/Import.h"
+#include "FEM/Controller/Assembling.h"
 #include "FEM/Equation/PlaneStrain.h"
 #include "FEM/Controller/BoundaryCondition.h"
 #include "LinearAlgebra/Solvers/CG.h"
@@ -23,30 +24,40 @@ int main() {
 	ImportElementsFromCSV(elements, "Data/Solid/TriangleBeam/Element.csv");
 
 	//----------全体―節点関係----------
-	
+	std::vector<std::pair<int, int> > systemindex;
+	systemindex.push_back(std::make_pair(0, 2));
+	systemindex.push_back(std::make_pair(2, 2));
+	systemindex.push_back(std::make_pair(4, 2));
+	systemindex.push_back(std::make_pair(6, 2));
+	systemindex.push_back(std::make_pair(8, 2));
+	systemindex.push_back(std::make_pair(10, 2));
 
-	//----------アセンブリング----------
+	//----------Culculate Ke and Assembling----------
 	LILCSR<double> K = LILCSR<double>(12, 12);
 	std::vector<double> F = std::vector<double>(12, 0.0);
 	for (auto element : elements) {
-		PlaneStrainTri(K, nodes, element, 210000.0, 0.3, 1.0);
+		std::vector<std::vector<double> > Ke;
+		PlaneStrainTri(Ke, nodes, element, 210000.0, 0.3, 1.0);
+		Assembling(K, Ke, element, systemindex);
 	}
 
-	//----------Dirichlet境界条件の適用----------
+	std::cout << K << std::endl;
+
+	//----------Set Dirichlet Boundary Condition----------
 	std::vector<int> isufixed = { 0, 1, 10 };
 	std::vector<double> ufixed = { 0.0, 0.0, 0.0 };
 	SetDirichlet(K, F, isufixed, ufixed, 1.0e20);
 
-	//----------Neumann境界条件の適用----------
+	//----------Set Neumann Boundary Condition----------
 	std::vector<int> isqfixed = { 7 };
 	std::vector<double> qfixed = { -100.0 };
 	SetNeumann(F, isqfixed, qfixed);
 
-	//----------全体―節点方程式を解く----------
+	//----------Solve System Equation----------
 	CSR<double> Kmod = CSR<double>(K);
 	std::vector<double> u = CG(Kmod, F, 100, 1.0e-10);
 
-	//----------解の出力----------
+	//----------Post Process----------
 	for (auto ui : u) {
 		std::cout << ui << std::endl;
 	}

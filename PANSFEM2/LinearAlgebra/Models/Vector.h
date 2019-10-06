@@ -18,9 +18,8 @@ namespace PANSFEM2 {
 	public:
 		Vector();
 		~Vector();
-		template<class... Ts>
-		Vector(Ts... _xs);
 		Vector(std::vector<T> _xs);
+		Vector(int _size);
 
 
 		const int DOX;
@@ -29,12 +28,6 @@ namespace PANSFEM2 {
 
 		template<class F>
 		friend std::ostream& operator << (std::ostream &_out, const Vector<F> &_p);
-
-
-	private:
-		void vector(T _x);
-		template<class... Ts>
-		void vector(T _x, Ts... _xs);
 	};
 
 
@@ -51,28 +44,13 @@ namespace PANSFEM2 {
 		x = _xs;
 	}
 
+
+	template<class T>
+	inline Vector<T>::Vector(int _size) : DOX(_size) {
+		x = std::vector<T>(_size, T());
+	}
+
 	
-	template<class T>
-	template<class ...Ts>
-	inline Vector<T>::Vector(Ts ..._xs) : DOX(sizeof...(Ts)) {
-		vector(_xs...);
-	}
-
-
-	template<class T>
-	inline void Vector<T>::vector(T _x) {
-		this->x.push_back(_x);
-	}
-
-
-	template<class T>
-	template<class ...Ts>
-	inline void Vector<T>::vector(T _x, Ts ..._xs) {
-		this->x.push_back(_x);
-		vector(_xs...);
-	}
-
-
 	template<class F>
 	std::ostream & operator<<(std::ostream & _out, const Vector<F>& _p) {
 		for (auto xi : _p.x) {

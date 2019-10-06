@@ -4,13 +4,13 @@
     <ClInclude Include="LinearAlgebra\Models\CSR.h" />
     <ClInclude Include="LinearAlgebra\Models\LILCSR.h" />
     <ClInclude Include="LinearAlgebra\Solvers\CG.h" />
-    <ClInclude Include="PrePost\ImportExport\Export.h" />
-    <ClInclude Include="PrePost\ImportExport\Import.h" />
     <ClInclude Include="FEM\Controller\BoundaryCondition.h" />
     <ClInclude Include="LinearAlgebra\Models\Vector.h" />
     <ClInclude Include="FEM\Equation\PlaneStrain.h" />
     <ClInclude Include="FEM\Controller\Assembling.h" />
     <ClInclude Include="FEM\Equation\HeatTransfer.h" />
+    <ClInclude Include="PrePost\ImportExport\ImportFromCSV.h" />
+    <ClInclude Include="PrePost\ImportExport\ExportToVTK.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -18,6 +18,8 @@
   <ItemGroup>
     <None Include="Data\Solid\TriangleBeam\Node.csv" />
     <None Include="Data\Solid\TriangleBeam\Element.csv" />
-    <None Include="Data\Solid\TriangleBeam\System.csv" />
+    <None Include="Data\Solid\TriangleBeam\Field.csv" />
+    <None Include="Data\Solid\TriangleBeam\Dirichlet.csv" />
+    <None Include="Data\Solid\TriangleBeam\Neumann.csv" />
   </ItemGroup>
 </Project>

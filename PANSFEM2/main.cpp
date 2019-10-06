@@ -4,7 +4,7 @@
 
 #include "LinearAlgebra/Models/Vector.h"
 #include "LinearAlgebra/Models/LILCSR.h"
-#include "PrePost/ImportExport/Import.h"
+#include "PrePost/ImportExport/ImportFromCSV.h"
 #include "FEM/Controller/Assembling.h"
 #include "FEM/Equation/PlaneStrain.h"
 #include "FEM/Controller/BoundaryCondition.h"
@@ -23,34 +23,31 @@ int main() {
 	std::vector<std::vector<int> > elements;
 	ImportElementsFromCSV(elements, "Data/Solid/TriangleBeam/Element.csv");
 
-	//----------ëSëÃÅ\êﬂì_ä÷åW----------
-	std::vector<std::pair<int, int> > systemindex;
-	systemindex.push_back(std::make_pair(0, 2));
-	systemindex.push_back(std::make_pair(2, 2));
-	systemindex.push_back(std::make_pair(4, 2));
-	systemindex.push_back(std::make_pair(6, 2));
-	systemindex.push_back(std::make_pair(8, 2));
-	systemindex.push_back(std::make_pair(10, 2));
+	//----------Add Field----------
+	std::vector<int> field;
+	int KDEGREE = 0;
+	ImportFieldFromCSV(field, KDEGREE, nodes.size(), "Data/Solid/TriangleBeam/Field.csv");
 
 	//----------Culculate Ke and Assembling----------
-	LILCSR<double> K = LILCSR<double>(12, 12);
-	std::vector<double> F = std::vector<double>(12, 0.0);
+	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 	for (auto element : elements) {
-		std::vector<std::vector<double> > Ke;
-		PlaneStrainTri(Ke, nodes, element, 210000.0, 0.3, 1.0);
-		Assembling(K, Ke, element, systemindex);
+		std::vector<std::vector<double> > Ke = PlaneStrainTri(nodes, element, 210000.0, 0.3, 1.0);
+		Assembling(K, Ke, element, field);
 	}
 
 	std::cout << K << std::endl;
 
 	//----------Set Dirichlet Boundary Condition----------
-	std::vector<int> isufixed = { 0, 1, 10 };
-	std::vector<double> ufixed = { 0.0, 0.0, 0.0 };
+	std::vector<int> isufixed;
+	std::vector<double> ufixed;
+	ImportDirichletFromCSV(isufixed, ufixed, field, "Data/Solid/TriangleBeam/Dirichlet.csv");
 	SetDirichlet(K, F, isufixed, ufixed, 1.0e20);
 
 	//----------Set Neumann Boundary Condition----------
-	std::vector<int> isqfixed = { 7 };
-	std::vector<double> qfixed = { -100.0 };
+	std::vector<int> isqfixed;
+	std::vector<double> qfixed;
+	ImportNeumannFromCSV(isqfixed, qfixed, field, "Data/Solid/TriangleBeam/Neumann.csv");
 	SetNeumann(F, isqfixed, qfixed);
 
 	//----------Solve System Equation----------

@@ -17,9 +17,9 @@
 namespace PANSFEM2 {
 	//******************************平面ひずみモデルの剛性マトリクスを生成******************************
 	template<class T>
-	void PlaneStrainTri(std::vector<std::vector<T> >& _Ke, std::vector<Vector<T> >& _nodes, std::vector<int>& _element, T _E, T _V, T _t) {
+	std::vector<std::vector<T> > PlaneStrainTri(std::vector<Vector<T> >& _nodes, std::vector<int>& _element, T _E, T _V, T _t) {
 		//.....要素剛性マトリクスの確保.....
-		_Ke = std::vector<std::vector<double> >(6, std::vector<double>(6, T()));
+		std::vector<std::vector<T> > Ke = std::vector<std::vector<double> >(6, std::vector<double>(6, T()));
 		
 		//.....要素面積.....
 		double A = 0.5*((_nodes[_element[0]].x[0] - _nodes[_element[2]].x[0])*(_nodes[_element[1]].x[1] - _nodes[_element[2]].x[1]) - (_nodes[_element[2]].x[1] - _nodes[_element[0]].x[1])*(_nodes[_element[2]].x[0] - _nodes[_element[1]].x[0]));
@@ -52,10 +52,12 @@ namespace PANSFEM2 {
 		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < 6; j++) {
 				for (int k = 0; k < 3; k++) {
-					_Ke[i][j] += B[k][i] * DB[k][j];
+					Ke[i][j] += B[k][i] * DB[k][j];
 				}
-				_Ke[i][j] *= A * _t;
+				Ke[i][j] *= A * _t;
 			}
 		}
+
+		return Ke;
 	}
 }

@@ -11,6 +11,7 @@
     <ClInclude Include="FEM\Equation\HeatTransfer.h" />
     <ClInclude Include="PrePost\Import\ImportFromCSV.h" />
     <ClInclude Include="PrePost\Export\ExportToVTK.h" />
+    <ClInclude Include="FEM\Equation\Advection.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

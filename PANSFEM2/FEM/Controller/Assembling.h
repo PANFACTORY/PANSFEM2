@@ -17,7 +17,7 @@
 namespace PANSFEM2 {
 	//********************Assembling K Matrix from Ke Matrix********************
 	template<class T>
-	void Assembling(LILCSR<T>& _K, std::vector<std::vector<T> >& _Ke, std::vector<int>& _element, std::vector<int>& _field) {
+	void Assembling(LILCSR<T>& _K, const std::vector<std::vector<T> >& _Ke, const std::vector<int>& _element, const std::vector<int>& _field) {
 		int ei = 0;
 		for (auto ni : _element) {
 			for (int si = _field[ni]; si < _field[ni + 1]; si++) {
@@ -34,14 +34,29 @@ namespace PANSFEM2 {
 	}
 
 
-	//********************FieldResultToNodeValue********************
+	//********************FieldResultToNodeVector********************
 	template<class T>
-	void FieldResultToNodeValue(std::vector<T>& _result, std::vector<Vector<T> >& _values, std::vector<int>& _field) {
+	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<Vector<T> >& _values, const std::vector<int>& _field) {
 		int resultindex = 0;
 		for (int i = 0; i < _field.size() - 1; i++) {
 			std::vector<T> value;
 			for (int k = _field[i]; k < _field[i + 1]; k++) {
 				value.push_back(_result[resultindex]);
+				resultindex++;
+			}
+			_values.push_back(Vector<T>(value));
+		}
+	}
+
+
+	//********************FieldResultToNodeScaler********************
+	template<class T>
+	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<T>& _values, const std::vector<int>& _field) {
+		int resultindex = 0;
+		for (int i = 0; i < _field.size() - 1; i++) {
+			T value = T();
+			for (int k = _field[i]; k < _field[i + 1]; k++) {
+				value = _result[resultindex];
 				resultindex++;
 			}
 			_values.push_back(value);

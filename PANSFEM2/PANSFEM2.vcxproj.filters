@@ -14,7 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Samples\Solid\TriangleBeam\TriangleBeamSample.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Samples\Solid\TriangleBeam\Dirichlet.csv" />

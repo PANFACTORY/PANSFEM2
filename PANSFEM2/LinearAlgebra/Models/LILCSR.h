@@ -26,9 +26,8 @@ public:
 	const int COLS;			//列数
 
 
-	const std::vector<T> operator*(const std::vector<T> &_vec);		//ベクトルとの積
-	
-
+	template<class T1, class T2>
+	friend const std::vector<T1> operator*(const LILCSR<T1>& _m, const std::vector<T2> &_vec);		//ベクトルとの積
 	template<class T1, class T2>
 	friend const LILCSR<T1> operator+(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//行列との和
 	template<class T1, class T2>
@@ -82,23 +81,6 @@ inline LILCSR<T>::LILCSR(CSR<T> _matrix) : ROWS(_matrix.ROWS), COLS(_matrix.COLS
 
 
 template<class T>
-inline const std::vector<T> LILCSR<T>::operator*(const std::vector<T>& _vec) {
-	assert(this->COLS == _vec.size());
-	
-	std::vector<T> v(this->ROWS, T());
-
-	//#pragma omp parallel for 
-	for (int i = 0; i < this->ROWS; i++) {
-		for (auto dataj : this->data[i]) {
-			v[i] += dataj.second * _vec[dataj.first];
-		}
-	}
-
-	return v;
-}
-
-
-template<class T>
 inline bool LILCSR<T>::set(int _row, int _col, T _data) {
 	for (auto& dataj : this->data[_row]) {
 		if (dataj.first == _col) {
@@ -121,6 +103,23 @@ inline T LILCSR<T>::get(int _row, int _col) const {
 	}
 
 	return T();
+}
+
+
+template<class T1, class T2>
+inline const std::vector<T1> operator*(const LILCSR<T1>& _m, const std::vector<T2>& _vec) {
+	assert(_m.COLS == _vec.size());
+
+	std::vector<T1> v(_m.ROWS, T1());
+
+	//#pragma omp parallel for 
+	for (int i = 0; i < _m.ROWS; i++) {
+		for (auto dataj : _m.data[i]) {
+			v[i] += dataj.second * _vec[dataj.first];
+		}
+	}
+
+	return v;
 }
 
 

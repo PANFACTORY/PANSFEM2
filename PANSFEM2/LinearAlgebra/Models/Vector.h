@@ -12,6 +12,7 @@
 
 
 namespace PANSFEM2 {
+	//********************Vector Class********************
 	template<class T>
 	class Vector
 	{
@@ -58,5 +59,12 @@ namespace PANSFEM2 {
 		}
 		//_out << std::endl;
 		return _out;
+	}
+
+
+	//********************Vector Operations********************
+	template<class T>
+	T Triangle2DSpace(const Vector<T>& _p0, const Vector<T>& _p1, const Vector<T>& _p2) {
+		return 0.5*((_p0.x[0] - _p2.x[0])*(_p1.x[1] - _p2.x[1]) - (_p2.x[1] - _p0.x[1])*(_p2.x[0] - _p1.x[0]));
 	}
 }

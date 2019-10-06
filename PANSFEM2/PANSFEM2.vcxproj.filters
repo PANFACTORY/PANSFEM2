@@ -9,17 +9,18 @@
     <ClInclude Include="FEM\Equation\PlaneStrain.h" />
     <ClInclude Include="FEM\Controller\Assembling.h" />
     <ClInclude Include="FEM\Equation\HeatTransfer.h" />
-    <ClInclude Include="PrePost\ImportExport\ImportFromCSV.h" />
-    <ClInclude Include="PrePost\ImportExport\ExportToVTK.h" />
+    <ClInclude Include="PrePost\Import\ImportFromCSV.h" />
+    <ClInclude Include="PrePost\Export\ExportToVTK.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Samples\Solid\TriangleBeam\TriangleBeamSample.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Data\Solid\TriangleBeam\Node.csv" />
-    <None Include="Data\Solid\TriangleBeam\Element.csv" />
-    <None Include="Data\Solid\TriangleBeam\Field.csv" />
-    <None Include="Data\Solid\TriangleBeam\Dirichlet.csv" />
-    <None Include="Data\Solid\TriangleBeam\Neumann.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Dirichlet.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Element.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Field.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Neumann.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Node.csv" />
   </ItemGroup>
 </Project>

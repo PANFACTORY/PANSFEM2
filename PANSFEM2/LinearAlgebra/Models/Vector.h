@@ -56,7 +56,7 @@ namespace PANSFEM2 {
 		for (auto xi : _p.x) {
 			_out << xi << "\t";
 		}
-		_out << std::endl;
+		//_out << std::endl;
 		return _out;
 	}
 }

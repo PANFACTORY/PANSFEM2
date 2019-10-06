@@ -27,18 +27,19 @@
     <ClInclude Include="LinearAlgebra\Models\LILCSR.h" />
     <ClInclude Include="LinearAlgebra\Models\Vector.h" />
     <ClInclude Include="LinearAlgebra\Solvers\CG.h" />
-    <ClInclude Include="PrePost\ImportExport\ExportToVTK.h" />
-    <ClInclude Include="PrePost\ImportExport\ImportFromCSV.h" />
+    <ClInclude Include="PrePost\Export\ExportToVTK.h" />
+    <ClInclude Include="PrePost\Import\ImportFromCSV.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Samples\Solid\TriangleBeam\TriangleBeamSample.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Data\Solid\TriangleBeam\Dirichlet.csv" />
-    <None Include="Data\Solid\TriangleBeam\Element.csv" />
-    <None Include="Data\Solid\TriangleBeam\Neumann.csv" />
-    <None Include="Data\Solid\TriangleBeam\Node.csv" />
-    <None Include="Data\Solid\TriangleBeam\Field.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Dirichlet.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Element.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Neumann.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Node.csv" />
+    <None Include="Samples\Solid\TriangleBeam\Field.csv" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

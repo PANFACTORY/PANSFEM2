@@ -35,7 +35,6 @@ int main() {
 		std::vector<std::vector<double> > Ke = PlaneStrainTri(nodes, element, 210000.0, 0.3, 1.0);
 		Assembling(K, Ke, element, field);
 	}
-
 	std::cout << K << std::endl;
 
 	//----------Set Dirichlet Boundary Condition----------
@@ -52,11 +51,13 @@ int main() {
 
 	//----------Solve System Equation----------
 	CSR<double> Kmod = CSR<double>(K);
-	std::vector<double> u = CG(Kmod, F, 100, 1.0e-10);
+	std::vector<double> result = CG(Kmod, F, 100, 1.0e-10);
 
 	//----------Post Process----------
+	std::vector<Vector<double> > u;
+	FieldResultToNodeValue(result, u, field);
 	for (auto ui : u) {
-		std::cout << ui << std::endl;
+		std::cout << ui;
 	}
 	
 	return 0;

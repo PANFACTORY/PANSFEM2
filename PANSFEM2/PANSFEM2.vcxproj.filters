@@ -5,16 +5,17 @@
     <ClInclude Include="LinearAlgebra\Models\LILCSR.h" />
     <ClInclude Include="LinearAlgebra\Solvers\CG.h" />
     <ClInclude Include="FEM\Controller\BoundaryCondition.h" />
-    <ClInclude Include="LinearAlgebra\Models\Vector.h" />
     <ClInclude Include="FEM\Equation\PlaneStrain.h" />
     <ClInclude Include="FEM\Controller\Assembling.h" />
     <ClInclude Include="FEM\Equation\HeatTransfer.h" />
     <ClInclude Include="PrePost\Import\ImportFromCSV.h" />
     <ClInclude Include="PrePost\Export\ExportToVTK.h" />
     <ClInclude Include="FEM\Equation\Advection.h" />
+    <ClInclude Include="LinearAlgebra\Models\LAOperation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Samples\Advection\AdvectionSample.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Samples\Solid\TriangleBeam\Dirichlet.csv" />

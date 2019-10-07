@@ -10,23 +10,24 @@
 #include <vector>
 
 
-#include "../../LinearAlgebra/Models/Vector.h"
+#include "../../LinearAlgebra/Models/LAOperation.h"
 
 
 namespace PANSFEM2 {
 	//******************************二次元移流方程式の移流マトリクスを生成******************************
 	template<class T>
-	std::vector<std::vector<T> > AdvectionTri(std::vector<Vector<T> >& _nodes, std::vector<int>& _element, T _cx, T _cy, T _t) {
+	std::vector<std::vector<T> > AdvectionTri(std::vector<std::vector<T> >& _nodes, std::vector<int>& _element, T _cx, T _cy, T _t) {
 		//.....移流マトリクスの確保.....
 		std::vector<std::vector<T> > Se = std::vector<std::vector<T> >(3, std::vector<T>(3, T()));
 		
 		//.....要素面積.....
-		T A = Triangle2DSpace(_nodes[_element[0]], _nodes[_element[1]], _nodes[_element[2]]);
-		
+		T A = 0.5*((_nodes[_element[0]][0] - _nodes[_element[2]][0])*(_nodes[_element[1]][1] - _nodes[_element[2]][1]) - (_nodes[_element[2]][1] - _nodes[_element[0]][1])*(_nodes[_element[2]][0] - _nodes[_element[1]][0]));
+
 		//.....Bマトリクス.....
-		T B[2][3];
-		B[0][0] = 0.5*(_nodes[_element[1]].x[1] - _nodes[_element[2]].x[1]) / A;	B[0][1] = 0.5*(_nodes[_element[2]].x[1] - _nodes[_element[0]].x[1]) / A;	B[0][2] = 0.5*(_nodes[_element[0]].x[1] - _nodes[_element[1]].x[1]) / A;
-		B[1][0] = 0.5*(_nodes[_element[2]].x[0] - _nodes[_element[1]].x[0]) / A;	B[1][1] = 0.5*(_nodes[_element[0]].x[0] - _nodes[_element[2]].x[0]) / A;	B[1][2] = 0.5*(_nodes[_element[1]].x[0] - _nodes[_element[0]].x[0]) / A;
+		std::vector<std::vector<T> > B = std::vector<std::vector<T> >(2, std::vector<T>(3));
+		B[0][0] = _nodes[_element[1]][1] - _nodes[_element[2]][1];	B[0][1] = _nodes[_element[2]][1] - _nodes[_element[0]][1];	B[0][2] = _nodes[_element[0]][1] - _nodes[_element[1]][1];
+		B[1][0] = _nodes[_element[2]][0] - _nodes[_element[1]][0];	B[1][1] = _nodes[_element[0]][0] - _nodes[_element[2]][0];	B[1][2] = _nodes[_element[1]][0] - _nodes[_element[0]][0];
+		B = B / (2.0*A);
 
 		//.....Seマトリクス.....
 		for (int i = 0; i < 3; i++) {
@@ -41,17 +42,16 @@ namespace PANSFEM2 {
 
 	//******************************二次元質量マトリクスを生成******************************
 	template<class T>
-	std::vector<std::vector<T> > MassTri(std::vector<Vector<T> >& _nodes, std::vector<int>& _element, T _t) {
-		//.....質量マトリクスの確保.....
-		std::vector<std::vector<T> > Me = std::vector<std::vector<T> >(3, std::vector<T>(3, T()));
-
+	std::vector<std::vector<T> > MassTri(std::vector<std::vector<T> >& _nodes, std::vector<int>& _element, T _t) {
 		//.....要素面積.....
-		T A = Triangle2DSpace(_nodes[_element[0]], _nodes[_element[1]], _nodes[_element[2]]);
+		T A = 0.5*((_nodes[_element[0]][0] - _nodes[_element[2]][0])*(_nodes[_element[1]][1] - _nodes[_element[2]][1]) - (_nodes[_element[2]][1] - _nodes[_element[0]][1])*(_nodes[_element[2]][0] - _nodes[_element[1]][0]));
 
 		//.....Meマトリクス.....
-		Me[0][0] = A*_t / 6.0;	Me[0][1] = A*_t / 12.0;	Me[0][2] = A*_t / 12.0;
-		Me[1][0] = A*_t / 12.0;	Me[1][1] = A*_t / 6.0;	Me[1][2] = A*_t / 12.0;
-		Me[2][0] = A*_t / 12.0;	Me[2][1] = A*_t / 12.0;	Me[2][2] = A*_t / 6.0;
+		std::vector<std::vector<T> > Me = std::vector<std::vector<T> >(3, std::vector<T>(3, T()));
+		Me[0][0] = 1.0 / 6.0;	Me[0][1] = 1.0 / 12.0;	Me[0][2] = 1.0 / 12.0;
+		Me[1][0] = 1.0 / 12.0;	Me[1][1] = 1.0 / 6.0;	Me[1][2] = 1.0 / 12.0;
+		Me[2][0] = 1.0 / 12.0;	Me[2][1] = 1.0 / 12.0;	Me[2][2] = 1.0 / 6.0;
+		Me = Me * (A*_t);
 
 		return Me;
 	}

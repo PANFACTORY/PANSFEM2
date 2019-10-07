@@ -11,7 +11,6 @@
 
 
 #include "../../LinearAlgebra/Models/LILCSR.h"
-#include "../../LinearAlgebra/Models/Vector.h"
 
 
 namespace PANSFEM2 {
@@ -36,7 +35,7 @@ namespace PANSFEM2 {
 
 	//********************FieldResultToNodeVector********************
 	template<class T>
-	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<Vector<T> >& _values, const std::vector<int>& _field) {
+	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<std::vector<T> >& _values, const std::vector<int>& _field) {
 		int resultindex = 0;
 		for (int i = 0; i < _field.size() - 1; i++) {
 			std::vector<T> value;
@@ -44,7 +43,7 @@ namespace PANSFEM2 {
 				value.push_back(_result[resultindex]);
 				resultindex++;
 			}
-			_values.push_back(Vector<T>(value));
+			_values.push_back(value);
 		}
 	}
 

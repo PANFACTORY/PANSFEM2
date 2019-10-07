@@ -14,13 +14,10 @@
 #include <string>
 
 
-#include "../../LinearAlgebra/Models/Vector.h"
-
-
 namespace PANSFEM2 {
 	//********************ImportNodesFromCSV********************
 	template<class T>
-	bool ImportNodesFromCSV(std::vector<Vector<T> >& _nodes, std::string _fname) {
+	bool ImportNodesFromCSV(std::vector<std::vector<T> >& _nodes, std::string _fname) {
 		std::ifstream ifs(_fname);
 
 		if (!ifs.is_open()) {
@@ -43,13 +40,13 @@ namespace PANSFEM2 {
 			std::getline(sbuf, str, ',');
 			if (!str.empty()) {
 				//.....Read values of a node.....
-				std::vector<double> xs;
+				std::vector<T> x;
 				while(std::getline(sbuf, str, ',')) {
-					xs.push_back(stod(str));
+					x.push_back(stod(str));
 				}
 
 				//.....Add a node.....
-				_nodes.push_back(Vector<T>(xs));
+				_nodes.push_back(x);
 			}
 		}
 

@@ -1,27 +1,26 @@
-#pragma once
+/*#pragma once
 #include <iostream>
 #include <vector>
 
 
-#include "../../../LinearAlgebra/Models/Vector.h"
-#include "../../../LinearAlgebra/Models/LILCSR.h"
-#include "../../../PrePost/Import/ImportFromCSV.h"
-#include "../../../FEM/Controller/Assembling.h"
-#include "../../../FEM/Equation/PlaneStrain.h"
-#include "../../../FEM/Controller/BoundaryCondition.h"
-#include "../../../LinearAlgebra/Solvers/CG.h"
-#include "../../../PrePost/Export/ExportToVTK.h"
+#include "LinearAlgebra/Models/LILCSR.h"
+#include "PrePost/Import/ImportFromCSV.h"
+#include "FEM/Controller/Assembling.h"
+#include "FEM/Equation/PlaneStrain.h"
+#include "FEM/Controller/BoundaryCondition.h"
+#include "LinearAlgebra/Solvers/CG.h"
+#include "PrePost/Export/ExportToVTK.h"
 
 
 using namespace PANSFEM2;
 
 
-void TriangleBeamSample() {
+int main() {
 	//----------Model Path----------
 	std::string model_path = "Samples/Solid/TriangleBeam/";
 
 	//----------Add Nodes----------
-	std::vector<Vector<double> > nodes;
+	std::vector<std::vector<double> > nodes;
 	ImportNodesFromCSV(nodes, model_path + "Node.csv");
 
 	//----------Add Elements----------
@@ -59,7 +58,7 @@ void TriangleBeamSample() {
 	std::vector<double> result = CG(Kmod, F, 100, 1.0e-10);
 
 	//----------Post Process----------
-	std::vector<Vector<double> > u;
+	std::vector<std::vector<double> > u;
 	FieldResultToNodeValue(result, u, field);
 
 	//----------Save file----------
@@ -70,4 +69,6 @@ void TriangleBeamSample() {
 	AddElementTypes({ 5, 5, 5, 5 }, fout);
 	AddPointVectors(u, "u", fout);
 	fout.close();
-}
+
+	return 0;
+}*/

@@ -24,7 +24,7 @@ namespace PANSFEM2 {
 		std::vector<std::vector<T> > B = std::vector<std::vector<T> >(2, std::vector<T>(3));
 		B[0][0] = _nodes[_element[1]][1] - _nodes[_element[2]][1];	B[0][1] = _nodes[_element[2]][1] - _nodes[_element[0]][1];	B[0][2] = _nodes[_element[0]][1] - _nodes[_element[1]][1];
 		B[1][0] = _nodes[_element[2]][0] - _nodes[_element[1]][0];	B[1][1] = _nodes[_element[0]][0] - _nodes[_element[2]][0];	B[1][2] = _nodes[_element[1]][0] - _nodes[_element[0]][0];
-		B = B / (2.0*A);
+		B /= (2.0*A);
 
 		return _alpha * Transpose(B)*B*_t;
 	}
@@ -41,7 +41,7 @@ namespace PANSFEM2 {
 		Ce[0][0] = 1.0 / 6.0;	Ce[0][1] = 1.0 / 12.0;	Ce[0][2] = 1.0 / 12.0;
 		Ce[1][0] = 1.0 / 12.0;	Ce[1][1] = 1.0 / 6.0;	Ce[1][2] = 1.0 / 12.0;
 		Ce[2][0] = 1.0 / 12.0;	Ce[2][1] = 1.0 / 12.0;	Ce[2][2] = 1.0 / 6.0;
-		Ce = Ce * (_rho * _c*A*_t);
+		Ce *= (_rho * _c*A*_t);
 	
 		return Ce;
 	}

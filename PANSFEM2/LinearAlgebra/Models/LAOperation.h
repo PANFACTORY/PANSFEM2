@@ -23,9 +23,8 @@ namespace PANSFEM2 {
 	std::vector<T1> operator+(const std::vector<T1>& _a, const std::vector<T2>& _b) {
 		assert(_a.size() == _b.size());
 
-		std::vector<T1> c;
-		c.reserve(_a.size());
-		std::transform(_a.begin(), _a.end(), _b.begin(), std::back_inserter(c), [](T1 _ai, T2 _bi) {return _ai + _bi; });
+		std::vector<T1> c(_a.size());
+		std::transform(_a.begin(), _a.end(), _b.begin(), c.begin(), [](T1 _ai, T2 _bi) {return _ai + _bi; });
 		return c;
 	}
 
@@ -35,9 +34,8 @@ namespace PANSFEM2 {
 	std::vector<T1> operator-(const std::vector<T1>& _a, const std::vector<T2>& _b) {
 		assert(_a.size() == _b.size());
 
-		std::vector<T1> c;
-		c.reserve(_a.size());
-		std::transform(_a.begin(), _a.end(), _b.begin(), std::back_inserter(c), [](T1 _ai, T2 _bi) {return _ai - _bi; });
+		std::vector<T1> c(_a.size());
+		std::transform(_a.begin(), _a.end(), _b.begin(), c.begin(), [](T1 _ai, T2 _bi) {return _ai - _bi; });
 		return c;
 	}
 
@@ -45,9 +43,8 @@ namespace PANSFEM2 {
 	//********************ƒ¿*{a}********************
 	template<class T1, class T2>
 	std::vector<T2> operator*(T1 _alpha, const std::vector<T2>& _a) {
-		std::vector<T2> c;
-		c.reserve(_a.size());
-		std::transform(_a.begin(), _a.end(), std::back_inserter(c), [=](T2 _ai) {return _alpha * _ai; });
+		std::vector<T2> c(_a.size());
+		std::transform(_a.begin(), _a.end(), c.begin(), [=](T2 _ai) {return _alpha * _ai; });
 		return c;
 	}
 
@@ -55,9 +52,8 @@ namespace PANSFEM2 {
 	//********************{a}*ƒ¿********************
 	template<class T1, class T2>
 	std::vector<T1> operator*(const std::vector<T1>& _a, T2 _alpha) {
-		std::vector<T1> c;
-		c.reserve(_a.size());
-		std::transform(_a.begin(), _a.end(), std::back_inserter(c), [=](T1 _ai) {return _alpha * _ai; });
+		std::vector<T1> c(_a.size());
+		std::transform(_a.begin(), _a.end(), c.begin(), [=](T1 _ai) {return _alpha * _ai; });
 		return c;
 	}
 
@@ -65,10 +61,45 @@ namespace PANSFEM2 {
 	//********************{a}/ƒ¿********************
 	template<class T1, class T2>
 	std::vector<T1> operator/(const std::vector<T1>& _a, T2 _alpha) {
-		std::vector<T1> c;
-		c.reserve(_a.size());
-		std::transform(_a.begin(), _a.end(), std::back_inserter(c), [=](T1 _ai) {return _ai / _alpha; });
+		std::vector<T1> c(_a.size());
+		std::transform(_a.begin(), _a.end(), c.begin(), [=](T1 _ai) {return _ai / _alpha; });
 		return c;
+	}
+
+
+	//********************{a}+={b}********************
+	template<class T1, class T2>
+	std::vector<T1>& operator+=(std::vector<T1>& _a, const std::vector<T2>& _b) {
+		assert(_a.size() == _b.size());
+
+		std::transform(_a.begin(), _a.end(), _b.begin(), _a.begin(), [](T1 _ai, T2 _bi) {return _ai + _bi; });
+		return _a;
+	}
+
+
+	//********************{a}-={b}********************
+	template<class T1, class T2>
+	std::vector<T1>& operator-=(std::vector<T1>& _a, const std::vector<T2>& _b) {
+		assert(_a.size() == _b.size());
+
+		std::transform(_a.begin(), _a.end(), _b.begin(), _a.begin(), [](T1 _ai, T2 _bi) {return _ai - _bi; });
+		return _a;
+	}
+
+
+	//********************{a}*={b}********************
+	template<class T1, class T2>
+	std::vector<T1>& operator*=(std::vector<T1>& _a, T2 _alpha) {
+		std::transform(_a.begin(), _a.end(), _a.begin(), [=](T1 _ai) {return _ai * _alpha; });
+		return _a;
+	}
+
+
+	//********************{a}*={b}********************
+	template<class T1, class T2>
+	std::vector<T1>& operator/=(std::vector<T1>& _a, T2 _alpha) {
+		std::transform(_a.begin(), _a.end(), _a.begin(), [=](T1 _ai) {return _ai / _alpha; });
+		return _a;
 	}
 
 
@@ -111,9 +142,8 @@ namespace PANSFEM2 {
 	//********************[A]*{b}********************
 	template<class T1, class T2>
 	std::vector<T1> operator*(const std::vector<std::vector<T1> >& _A, const std::vector<T2>& _b) {
-		std::vector<T1> c;
-		c.reserve(_A.size());
-		std::transform(_A.begin(), _A.end(), std::back_inserter(c), [&](const std::vector<T1>& _a) {return _a * _b;	});
+		std::vector<T1> c(_A.size());
+		std::transform(_A.begin(), _A.end(), c.begin(), [&](const std::vector<T1>& _a) {return _a * _b;	});
 		return c;
 	}
 

@@ -17,9 +17,6 @@ namespace PANSFEM2 {
 	//******************************二次元移流方程式の移流マトリクスを生成******************************
 	template<class T>
 	std::vector<std::vector<T> > AdvectionTri(std::vector<std::vector<T> >& _nodes, std::vector<int>& _element, T _cx, T _cy, T _t) {
-		//.....移流マトリクスの確保.....
-		std::vector<std::vector<T> > Se = std::vector<std::vector<T> >(3, std::vector<T>(3, T()));
-		
 		//.....要素面積.....
 		T A = 0.5*((_nodes[_element[0]][0] - _nodes[_element[2]][0])*(_nodes[_element[1]][1] - _nodes[_element[2]][1]) - (_nodes[_element[2]][1] - _nodes[_element[0]][1])*(_nodes[_element[2]][0] - _nodes[_element[1]][0]));
 
@@ -27,16 +24,19 @@ namespace PANSFEM2 {
 		std::vector<std::vector<T> > B = std::vector<std::vector<T> >(2, std::vector<T>(3));
 		B[0][0] = _nodes[_element[1]][1] - _nodes[_element[2]][1];	B[0][1] = _nodes[_element[2]][1] - _nodes[_element[0]][1];	B[0][2] = _nodes[_element[0]][1] - _nodes[_element[1]][1];
 		B[1][0] = _nodes[_element[2]][0] - _nodes[_element[1]][0];	B[1][1] = _nodes[_element[0]][0] - _nodes[_element[2]][0];	B[1][2] = _nodes[_element[1]][0] - _nodes[_element[0]][0];
-		B = B / (2.0*A);
+		B /= (2.0*A);
 
-		//.....Seマトリクス.....
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				Se[i][j] = (_cx*B[0][j] + _cy * B[1][j])*A / 3.0;
-			}
-		}
-		
-		return Se;
+		//.....Nマトリクス.....
+		std::vector<std::vector<T> > N = std::vector<std::vector<T> >(3, std::vector<T>(1));
+		N[0][0] = A / 3.0;
+		N[1][0] = A / 3.0;
+		N[2][0] = A / 3.0;
+
+		//.....移流速度マトリクス.....
+		std::vector<T> c = { _cx, _cy };
+		std::vector<std::vector<T> > C = Transpose(c);	
+
+		return N*C*B*_t;
 	}
 
 
@@ -51,7 +51,7 @@ namespace PANSFEM2 {
 		Me[0][0] = 1.0 / 6.0;	Me[0][1] = 1.0 / 12.0;	Me[0][2] = 1.0 / 12.0;
 		Me[1][0] = 1.0 / 12.0;	Me[1][1] = 1.0 / 6.0;	Me[1][2] = 1.0 / 12.0;
 		Me[2][0] = 1.0 / 12.0;	Me[2][1] = 1.0 / 12.0;	Me[2][2] = 1.0 / 6.0;
-		Me = Me * (A*_t);
+		Me *= (A*_t);
 
 		return Me;
 	}

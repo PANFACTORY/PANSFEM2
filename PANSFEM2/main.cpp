@@ -5,7 +5,8 @@
 #include "LinearAlgebra/Models/LILCSR.h"
 #include "PrePost/Import/ImportFromCSV.h"
 #include "FEM/Controller/Assembling.h"
-#include "FEM/Equation/Advection.h"
+#include "FEM/Equation/TotalLagrange.h"
+#include "FEM/Equation/Solid.h"
 #include "FEM/Controller/BoundaryCondition.h"
 #include "LinearAlgebra/Solvers/CG.h"
 #include "PrePost/Export/ExportToVTK.h"
@@ -16,7 +17,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "Samples/Advection/";
+	std::string model_path = "Samples/TotalLagrange/";
 
 	//----------Add Nodes----------
 	std::vector<std::vector<double> > nodes;
@@ -36,51 +37,55 @@ int main() {
 	std::vector<double> ufixed;
 	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
 
+	//----------Add Neumann Condition----------
+	std::vector<int> isqfixed;
+	std::vector<double> qfixed;
+	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
+
 	//----------Add Initial Condition----------
-	std::vector<double> u = std::vector<double>(nodes.size(), 0.0);
-	u[12] = 100.0;
+	std::vector<std::vector<double> > u = std::vector<std::vector<double> >(nodes.size(), std::vector<double>(3, 0.0));
 
-	//----------Time Step----------
-	double dt = 0.01;
-	double theta = 0.5;
-	for (int k = 0; k < 1000; k++) {
-		//----------Culculate Ke Ce and Assembling----------
+	//----------Newton-Raphson Step----------
+	for (int k = 0; k < 20; k++) {
+		//----------Culculate Ke Fe and Assembling----------
 		LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
-		LILCSR<double> C = LILCSR<double>(KDEGREE, KDEGREE);
+		std::vector<double> Q = std::vector<double>(KDEGREE, 0.0);
+		std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 		for (auto element : elements) {
-			std::vector<std::vector<double> > Ke = AdvectionTri(nodes, element, 1.0, 1.0, 1.0);
-			Assembling(K, Ke, element, field);
-			std::vector<std::vector<double> > Ce = MassTri(nodes, element, 1.0);
-			Assembling(C, Ce, element, field);
+			std::vector<std::vector<double> > Ke;
+			std::vector<double> Qe;
+			TotalLagrange(Ke, Qe, nodes, u, element, 1000.0, 0.3);
+			Assembling(K, Q, Ke, Qe, element, field);
 		}
-
-		//----------Make Equation----------
-		LILCSR<double> KC = (1.0 / dt)*C + theta * K;
-		std::vector<double> F = ((1.0 / dt)*C - (1.0 - theta) * K) * u;
-		//std::cout << KC << std::endl;
+			
+		//----------Set Neumann Boundary Condition----------
+		SetNeumann(F, isqfixed, qfixed);
+		std::vector<double> R = F - Q;
+		std::cout << Norm(R) << std::endl;
 
 		//----------Set Dirichlet Boundary Condition----------
-		SetDirichlet(KC, F, isufixed, ufixed, 1.0e3);
+		SetDirichlet(K, R, isufixed, ufixed, 1.0e10);
 
 		//----------Solve System Equation----------
-		CSR<double> Kmod = CSR<double>(KC);
+		CSR<double> Kmod = CSR<double>(K);
 		CSR<double> M = ILU0(Kmod);
-		std::vector<double> result = ILU0BiCGSTAB(Kmod, M, F, 10000, 1.0e-10);
+		std::vector<double> result = ILU0CG(Kmod, M, R, 10000, 1.0e-10);
 
 		//----------Post Process----------
-		u.clear();
-		FieldResultToNodeValue(result, u, field);
-
-		//----------Save file----------
-		std::ofstream fout(model_path + "result" + std::to_string(k) + ".vtk");
-		MakeHeadderToVTK(fout);
-		AddPointsToVTK(nodes, fout);
-		AddElementToVTK(elements, fout);
-		std::vector<int> et = std::vector<int>(32, 5);
-		AddElementTypes(et, fout);
-		AddPointScalers(u, "u", fout);
-		fout.close();
+		std::vector<std::vector<double> > du;
+		FieldResultToNodeValue(result, du, field);
+		u += du;
 	}
 
+	//----------Save file----------
+	std::ofstream fout(model_path + "result.vtk");
+	MakeHeadderToVTK(fout);
+	AddPointsToVTK(nodes, fout);
+	AddElementToVTK(elements, fout);
+	std::vector<int> et = std::vector<int>(10, 12);
+	AddElementTypes(et, fout);
+	AddPointVectors(u, "u", fout);
+	fout.close();
+	
 	return 0;
 }

@@ -12,6 +12,8 @@
     <ClInclude Include="PrePost\Export\ExportToVTK.h" />
     <ClInclude Include="FEM\Equation\Advection.h" />
     <ClInclude Include="LinearAlgebra\Models\LAOperation.h" />
+    <ClInclude Include="FEM\Equation\TotalLagrange.h" />
+    <ClInclude Include="FEM\Equation\Solid.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

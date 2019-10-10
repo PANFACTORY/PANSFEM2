@@ -84,7 +84,7 @@ namespace PANSFEM2 {
 			//----------Green-LagrangeひずみEから第二Piola-Kirchhoff応力Sを求める----------
 			std::vector<T> Ev = { E[0][0], E[1][1], E[2][2], E[0][1] + E[1][0], E[1][2] + E[2][1], E[2][0] + E[0][2] };
 			std::vector<T> Sv = C * Ev;
-
+			
 			//----------変位勾配テンソルFからひずみ―変位関係行列Bを求める----------
 			std::vector<std::vector<T> > I = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 			std::vector<std::vector<T> > F = I + Z;

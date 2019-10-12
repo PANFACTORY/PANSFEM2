@@ -5,7 +5,6 @@
 #include "LinearAlgebra/Models/LILCSR.h"
 #include "PrePost/Import/ImportFromCSV.h"
 #include "FEM/Controller/Assembling.h"
-#include "FEM/Equation/TotalLagrange.h"
 #include "FEM/Equation/Solid.h"
 #include "FEM/Controller/BoundaryCondition.h"
 #include "LinearAlgebra/Solvers/CG.h"
@@ -56,11 +55,11 @@ int main() {
 	fout.close();
 
 	//----------Inclement Load----------
-	for (int finc = 1, fincmax = 100; finc <= fincmax; finc++) {
+	for (int finc = 1, fincmax = 1000; finc <= fincmax; finc++) {
 		std::cout << "finc = " << finc << "\t";
 
 		//----------Newton-Raphson Step----------
-		for (int k = 0; k < 10; k++) {
+		for (int k = 0; k < 100; k++) {
 			//----------Culculate Ke Fe and Assembling----------
 			LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
 			std::vector<double> Q = std::vector<double>(KDEGREE, 0.0);
@@ -68,7 +67,7 @@ int main() {
 			for (auto element : elements) {
 				std::vector<std::vector<double> > Ke;
 				std::vector<double> Qe;
-				TotalLagrange(Ke, Qe, nodes, u, element, 1000.0, 0.3);
+				TotalLagrangeSolid3(Ke, Qe, nodes, u, element, 1000.0, 0.3);
 				Assembling(K, Q, Ke, Qe, element, field);
 			}
 
@@ -86,7 +85,7 @@ int main() {
 			//----------Solve System Equation----------
 			CSR<double> Kmod = CSR<double>(K);
 			//CSR<double> M = ILU0(Kmod);
-			std::vector<double> result = ScalingCG(Kmod, R, 10000, 1.0e-10);
+			std::vector<double> result = ScalingCG(Kmod, R, 100000, 1.0e-10);
 
 			//----------Post Process----------
 			std::vector<std::vector<double> > du;

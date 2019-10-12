@@ -21,11 +21,12 @@
   <ItemGroup>
     <ClInclude Include="FEM\Controller\Assembling.h" />
     <ClInclude Include="FEM\Controller\BoundaryCondition.h" />
+    <ClInclude Include="FEM\Controller\IntegrationConstant.h" />
+    <ClInclude Include="FEM\Controller\ShapeFunction.h" />
     <ClInclude Include="FEM\Equation\Advection.h" />
     <ClInclude Include="FEM\Equation\HeatTransfer.h" />
     <ClInclude Include="FEM\Equation\PlaneStrain.h" />
     <ClInclude Include="FEM\Equation\Solid.h" />
-    <ClInclude Include="FEM\Equation\TotalLagrange.h" />
     <ClInclude Include="LinearAlgebra\Models\CSR.h" />
     <ClInclude Include="LinearAlgebra\Models\LAOperation.h" />
     <ClInclude Include="LinearAlgebra\Models\LILCSR.h" />

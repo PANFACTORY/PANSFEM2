@@ -11,6 +11,7 @@
 
 
 #include "../../LinearAlgebra/Models/LILCSR.h"
+#include "../../LinearAlgebra/Models/Matrix.h"
 
 
 namespace PANSFEM2 {
@@ -24,6 +25,24 @@ namespace PANSFEM2 {
 				for (auto nj : _element) {
 					for (int sj = _field[nj]; sj < _field[nj + 1]; sj++) {
 						_K.set(si, sj, _K.get(si, sj) + _Ke[ei][ej]);
+						ej++;
+					}
+				}
+				ei++;
+			}
+		}
+	}
+
+
+	template<class T>
+	void Assembling(LILCSR<T>& _K, Matrix<T>& _Ke, const std::vector<int>& _element, const std::vector<int>& _field) {
+		int ei = 0;
+		for (auto ni : _element) {
+			for (int si = _field[ni]; si < _field[ni + 1]; si++) {
+				int ej = 0;
+				for (auto nj : _element) {
+					for (int sj = _field[nj]; sj < _field[nj + 1]; sj++) {
+						_K.set(si, sj, _K.get(si, sj) + _Ke(ei, ej));
 						ej++;
 					}
 				}

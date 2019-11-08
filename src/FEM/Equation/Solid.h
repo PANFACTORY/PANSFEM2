@@ -16,20 +16,23 @@
 #include "../Controller/IntegrationConstant.h"
 
 
+#include "../../LinearAlgebra/Models/Matrix.h"
+
+
 namespace PANSFEM2 {
 	//********************Linear Isotropic Elastic Solid 3D********************
 	template<class T>
 	void LinearIsotropicElasticSolid3(std::vector<std::vector<T> >& _Ke, std::vector<std::vector<T> >& _x, std::vector<int>& _element, T _E, T _V) {
-		//----------Úü„«s—ñC“™‰¿ß“_“à—ÍƒxƒNƒgƒ‹‚ÌŠm•Û----------
+		//----------ï¿½Úï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½ß“_ï¿½ï¿½ï¿½Íƒxï¿½Nï¿½gï¿½ï¿½ï¿½ÌŠmï¿½ï¿½----------
 		_Ke = std::vector<std::vector<T> >(3 * _element.size(), std::vector<T>(3 * _element.size(), T()));
 
-		//----------À•Ws—ñ‚ğ‹‚ß‚é----------
+		//----------ï¿½ï¿½ï¿½Wï¿½sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 		std::vector<std::vector<T> > X;
 		for (auto nodeid : _element) {
 			X.push_back(_x[nodeid]);
 		}
 
-		//----------\¬‘¥‚ğ‹‚ß‚é----------
+		//----------ï¿½\ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 		std::vector<std::vector<T> > C = std::vector<std::vector<T> >(6, std::vector<T>(6));
 		C[0][0] = 1.0 - _V;	C[0][1] = _V;		C[0][2] = _V;		C[0][3] = 0.0;					C[0][4] = 0.0;					C[0][5] = 0.0;
 		C[1][0] = _V;		C[1][1] = 1.0 - _V;	C[1][2] = _V;		C[1][3] = 0.0;					C[1][4] = 0.0;					C[1][5] = 0.0;
@@ -39,21 +42,21 @@ namespace PANSFEM2 {
 		C[5][0] = 0.0;		C[5][1] = 0.0;		C[5][2] = 0.0;		C[5][3] = 0.0;					C[5][4] = 0.0;					C[5][5] = 0.5*(1.0 - 2.0*_V);
 		C *= _E / ((1.0 + _V)*(1.0 - 2.0*_V));
 
-		//----------ƒKƒEƒXÏ•ª—p‚Ì’è”----------
+		//----------ï¿½Kï¿½Eï¿½Xï¿½Ï•ï¿½ï¿½pï¿½Ì’è”----------
 		std::vector<std::vector<T> > GP = GP3D8<T>;
 		std::vector<std::vector<T> > GW = GW3D8<T>;
 		
-		//----------”’lÏ•ªƒ‹[ƒv“à----------
+		//----------ï¿½ï¿½ï¿½lï¿½Ï•ï¿½ï¿½ï¿½ï¿½[ï¿½vï¿½ï¿½----------
 		for (int g = 0; g < 8; g++) {
-			//----------Œ`óŠÖ”s—ñ‚ğ‹‚ß‚é----------
+			//----------ï¿½`ï¿½ï¿½Öï¿½ï¿½sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			std::vector<std::vector<T> > dNdr = dNdr20I3<T>(GP[g]);
 
-			//----------À•WŠÖ˜A‚ÌŒvZ----------
+			//----------ï¿½ï¿½ï¿½Wï¿½Ö˜Aï¿½ÌŒvï¿½Z----------
 			std::vector<std::vector<T> > dXdr = dNdr * X;
 			T J = Determinant3(dXdr);
 			std::vector<std::vector<T> > dNdX = Inverse3(dXdr) * dNdr;
 
-			//----------•ÏˆÊŒù”zƒeƒ“ƒ\ƒ‹F‚©‚ç‚Ğ‚¸‚İ\•ÏˆÊŠÖŒWs—ñB‚ğ‹‚ß‚é----------
+			//----------ï¿½ÏˆÊŒï¿½ï¿½zï¿½eï¿½ï¿½ï¿½\ï¿½ï¿½Fï¿½ï¿½ï¿½ï¿½Ğ‚ï¿½ï¿½İ\ï¿½ÏˆÊŠÖŒWï¿½sï¿½ï¿½Bï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			std::vector<std::vector<T> > B = std::vector<std::vector<T> >(6, std::vector<T>(3 * _element.size()));
 			for (int n = 0; n < _element.size(); n++) {
 				B[0][3 * n] = dNdX[0][n];	B[0][3 * n + 1] = 0.0;			B[0][3 * n + 2] = 0.0;
@@ -64,32 +67,107 @@ namespace PANSFEM2 {
 				B[5][3 * n] = dNdX[2][n];	B[5][3 * n + 1] = 0.0;			B[5][3 * n + 2] = dNdX[0][n];
 			}
 
-			//----------‰Šú•ÏˆÊƒ}ƒgƒŠƒNƒX‚ğ‹‚ß‚é----------
+			//----------ï¿½ï¿½ï¿½ï¿½ï¿½ÏˆÊƒ}ï¿½gï¿½ï¿½ï¿½Nï¿½Xï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			_Ke += Transpose(B)*C*B*J*GW[g][0] * GW[g][1] * GW[g][2];
+
+
+			std::cout << _Ke << std::endl;
 		}
 	}
 
 
-	//********************Total Lagrange Solid 3D********************
+
+
+
+
+
+
+
 	template<class T>
+	void LinearIsotropicElasticSolid3(Matrix<T>& _Ke, std::vector<std::vector<T> >& _x, std::vector<int>& _element, T _E, T _V) {
+		//----------   ----------
+		_Ke = Matrix<T>(3 * _element.size(), 3 * _element.size());
+		for(int i = 0; i < 3 * _element.size(); i++){
+			for(int j = 0; j < 3 * _element.size(); j++){
+				_Ke(i, j) = 0.0;
+			}
+		}
+
+		//----------   ----------
+		Matrix<T> X = Matrix<T>(_element.size(), 3);
+		for(int i = 0; i < _element.size(); i++){
+			for(int j = 0; j < 3; j++){
+				X(i, j) = _x[_element[i]][j];
+			}
+		}
+
+		//----------   ----------
+		Matrix<T> C = Matrix<T>(6, 6);
+		C(0, 0) = 1.0 - _V;	C(0, 1) = _V;		C(0, 2) = _V;		C(0, 3) = 0.0;					C(0, 4) = 0.0;					C(0, 5) = 0.0;
+		C(1, 0) = _V;		C(1, 1) = 1.0 - _V;	C(1, 2) = _V;		C(1, 3) = 0.0;					C(1, 4) = 0.0;					C(1, 5) = 0.0;
+		C(2, 0) = _V;		C(2, 1) = _V;		C(2, 2) = 1.0 - _V;	C(2, 3) = 0.0;					C(2, 4) = 0.0;					C(2, 5) = 0.0;
+		C(3, 0) = 0.0;		C(3, 1) = 0.0;		C(3, 2) = 0.0;		C(3, 3) = 0.5*(1.0 - 2.0*_V);	C(3, 4) = 0.0;					C(3, 5) = 0.0;
+		C(4, 0) = 0.0;		C(4, 1) = 0.0;		C(4, 2) = 0.0;		C(4, 3) = 0.0;					C(4, 4) = 0.5*(1.0 - 2.0*_V);	C(4, 5) = 0.0;
+		C(5, 0) = 0.0;		C(5, 1) = 0.0;		C(5, 2) = 0.0;		C(5, 3) = 0.0;					C(5, 4) = 0.0;					C(5, 5) = 0.5*(1.0 - 2.0*_V);
+		C *= _E / ((1.0 + _V)*(1.0 - 2.0*_V));
+
+		//----------   ----------
+		std::vector<std::vector<T> > GP = GP3D8<T>;
+		std::vector<std::vector<T> > GW = GW3D8<T>;
+		
+		//----------   ----------
+		for (int g = 0; g < 8; g++) {
+			//----------   ----------
+			Matrix<T> dNdr = dNdr8I3<T>(GP[g]);
+
+			//----------   ----------
+			Matrix<T> dXdr = dNdr * X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse() * dNdr;
+
+			//----------   ----------
+			Matrix<T> B = Matrix<T>(6, 3 * _element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 3 * n) = dNdX(0, n);	B(0, 3 * n + 1) = 0.0;			B(0, 3 * n + 2) = 0.0;
+				B(1, 3 * n) = 0.0;			B(1, 3 * n + 1) = dNdX(1, n);	B(1, 3 * n + 2) = 0.0;
+				B(2, 3 * n) = 0.0;			B(2, 3 * n + 1) = 0.0;			B(2, 3 * n + 2) = dNdX(2, n);
+				B(3, 3 * n) = dNdX(1, n);	B(3, 3 * n + 1) = dNdX(0, n);	B(3, 3 * n + 2) = 0.0;
+				B(4, 3 * n) = 0.0;			B(4, 3 * n + 1) = dNdX(2, n);	B(4, 3 * n + 2) = dNdX(1, n);
+				B(5, 3 * n) = dNdX(2, n);	B(5, 3 * n + 1) = 0.0;			B(5, 3 * n + 2) = dNdX(0, n);
+			}
+
+			//----------   ----------
+			_Ke = _Ke + B.Transpose()*C*B*J*GW[g][0] * GW[g][1] * GW[g][2];
+			
+			//std::cout << _Ke << std::endl;
+
+		}
+	}
+
+
+
+
+
+	//********************Total Lagrange Solid 3D********************
+	/*template<class T>
 	void TotalLagrangeSolid3(std::vector<std::vector<T> >& _Ke, std::vector<T>& _Fe, std::vector<std::vector<T> >& _x, std::vector<std::vector<T> >& _u, std::vector<int>& _element, T _E, T _V) {
-		//----------Úü„«s—ñC“™‰¿ß“_“à—ÍƒxƒNƒgƒ‹‚ÌŠm•Û----------
+		//----------ï¿½Úï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½ß“_ï¿½ï¿½ï¿½Íƒxï¿½Nï¿½gï¿½ï¿½ï¿½ÌŠmï¿½ï¿½----------
 		_Ke = std::vector<std::vector<T> >(3 * _element.size(), std::vector<T>(3 * _element.size(), T()));
 		_Fe = std::vector<T>(3 * _element.size(), T());
 
-		//----------À•Ws—ñ‚ğ‹‚ß‚é----------
+		//----------ï¿½ï¿½ï¿½Wï¿½sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 		std::vector<std::vector<T> > X;
 		for (auto nodeid : _element) {
 			X.push_back(_x[nodeid]);
 		}
 
-		//----------•ÏˆÊs—ñ‚ğ‹‚ß‚é----------
+		//----------ï¿½ÏˆÊsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 		std::vector<std::vector<T> > U;
 		for (auto nodeid : _element) {
 			U.push_back(_u[nodeid]);
 		}
 
-		//----------\¬‘¥‚ğ‹‚ß‚é----------
+		//----------ï¿½\ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 		std::vector<std::vector<T> > C = std::vector<std::vector<T> >(6, std::vector<T>(6));
 		C[0][0] = 1.0 - _V;	C[0][1] = _V;		C[0][2] = _V;		C[0][3] = 0.0;					C[0][4] = 0.0;					C[0][5] = 0.0;
 		C[1][0] = _V;		C[1][1] = 1.0 - _V;	C[1][2] = _V;		C[1][3] = 0.0;					C[1][4] = 0.0;					C[1][5] = 0.0;
@@ -99,31 +177,31 @@ namespace PANSFEM2 {
 		C[5][0] = 0.0;		C[5][1] = 0.0;		C[5][2] = 0.0;		C[5][3] = 0.0;					C[5][4] = 0.0;					C[5][5] = 0.5*(1.0 - 2.0*_V);
 		C *= _E / ((1.0 + _V)*(1.0 - 2.0*_V));
 
-		//----------ƒKƒEƒXÏ•ª—p‚Ì’è”---------
+		//----------ï¿½Kï¿½Eï¿½Xï¿½Ï•ï¿½ï¿½pï¿½Ì’è”---------
 		std::vector<std::vector<T> > GP = GP3D8<T>;
 		std::vector<std::vector<T> > GW = GW3D8<T>;
 
-		//----------”’lÏ•ªƒ‹[ƒv“à----------
+		//----------ï¿½ï¿½ï¿½lï¿½Ï•ï¿½ï¿½ï¿½ï¿½[ï¿½vï¿½ï¿½----------
 		for (int g = 0; g < 8; g++) {
-			//----------Œ`óŠÖ”s—ñ‚ğ‹‚ß‚é----------
+			//----------ï¿½`ï¿½ï¿½Öï¿½ï¿½sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			std::vector<std::vector<T> > dNdr = dNdr20I3<T>(GP[g]);
 
-			//----------À•WŠÖ˜A‚ÌŒvZ----------
+			//----------ï¿½ï¿½ï¿½Wï¿½Ö˜Aï¿½ÌŒvï¿½Z----------
 			std::vector<std::vector<T> > dXdr = dNdr * X;
 			T J = Determinant3(dXdr);
 			std::vector<std::vector<T> > dNdX = Inverse3(dXdr) * dNdr;
 
-			//----------•ÏˆÊŒù”zƒeƒ“ƒ\ƒ‹Z‚ğ‹‚ß‚é----------
+			//----------ï¿½ÏˆÊŒï¿½ï¿½zï¿½eï¿½ï¿½ï¿½\ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			std::vector<std::vector<T> > Z = Transpose(dNdX * U);
 
-			//----------•ÏˆÊŒù”zƒeƒ“ƒ\ƒ‹Z‚©‚çGreen-Lagrange‚Ğ‚¸‚İE‚ğ‹‚ß‚é----------
+			//----------ï¿½ÏˆÊŒï¿½ï¿½zï¿½eï¿½ï¿½ï¿½\ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½Green-Lagrangeï¿½Ğ‚ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			std::vector<std::vector<T> > E = 0.5 * (Z + Transpose(Z) + Transpose(Z)*Z);
 
-			//----------Green-Lagrange‚Ğ‚¸‚İE‚©‚ç‘æ“ñPiola-Kirchhoff‰—ÍS‚ğ‹‚ß‚é----------
+			//----------Green-Lagrangeï¿½Ğ‚ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Piola-Kirchhoffï¿½ï¿½ï¿½ï¿½Sï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			std::vector<T> Ev = { E[0][0], E[1][1], E[2][2], E[0][1] + E[1][0], E[1][2] + E[2][1], E[2][0] + E[0][2] };
 			std::vector<T> Sv = C * Ev;
 
-			//----------•ÏˆÊŒù”zƒeƒ“ƒ\ƒ‹F‚©‚ç‚Ğ‚¸‚İ\•ÏˆÊŠÖŒWs—ñB‚ğ‹‚ß‚é----------
+			//----------ï¿½ÏˆÊŒï¿½ï¿½zï¿½eï¿½ï¿½ï¿½\ï¿½ï¿½Fï¿½ï¿½ï¿½ï¿½Ğ‚ï¿½ï¿½İ\ï¿½ÏˆÊŠÖŒWï¿½sï¿½ï¿½Bï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			std::vector<std::vector<T> > I = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 			std::vector<std::vector<T> > F = I + Z;
 			std::vector<std::vector<T> > BL = std::vector<std::vector<T> >(6, std::vector<T>(3 * _element.size()));
@@ -136,10 +214,10 @@ namespace PANSFEM2 {
 				BL[5][3 * n] = F[0][0] * dNdX[2][n] + F[0][2] * dNdX[0][n];	BL[5][3 * n + 1] = F[1][0] * dNdX[2][n] + F[1][2] * dNdX[0][n];	BL[5][3 * n + 2] = F[2][0] * dNdX[2][n] + F[2][2] * dNdX[0][n];
 			}
 
-			//----------‰Šú•ÏˆÊƒ}ƒgƒŠƒNƒX‚ğ‹‚ß‚é----------
+			//----------ï¿½ï¿½ï¿½ï¿½ï¿½ÏˆÊƒ}ï¿½gï¿½ï¿½ï¿½Nï¿½Xï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			_Ke += Transpose(BL)*C*BL*J*GW[g][0] * GW[g][1] * GW[g][2];
 
-			//----------‰Šú‰—Íƒ}ƒgƒŠƒNƒX‚ğ‹‚ß‚é----------
+			//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íƒ}ï¿½gï¿½ï¿½ï¿½Nï¿½Xï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			std::vector<std::vector<T> > BNL = std::vector<std::vector<T> >(9, std::vector<T>(3 * _element.size()));
 			for (int n = 0; n < _element.size(); n++) {
 				BNL[0][3 * n] = dNdX[0][n];	BNL[0][3 * n + 1] = 0.0;		BNL[0][3 * n + 2] = 0.0;
@@ -168,10 +246,10 @@ namespace PANSFEM2 {
 
 			_Ke += Transpose(BNL)*S*BNL*J*GW[g][0] * GW[g][1] * GW[g][2];
 
-			//----------‘æ“ñPiola-Kirchhoff‰—ÍS‚Æ‚Ğ‚¸‚İ\•ÏˆÊŠÖŒWs—ñB‚©‚ç—v‘fß“_“™‰¿“à—ÍƒxƒNƒgƒ‹‚ğ‹‚ß‚é----------
+			//----------ï¿½ï¿½ï¿½Piola-Kirchhoffï¿½ï¿½ï¿½ï¿½Sï¿½Æ‚Ğ‚ï¿½ï¿½İ\ï¿½ÏˆÊŠÖŒWï¿½sï¿½ï¿½Bï¿½ï¿½ï¿½ï¿½vï¿½fï¿½ß“_ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß‚ï¿½----------
 			_Fe += Transpose(BL)*Sv*J*GW[g][0] * GW[g][1] * GW[g][2];
 		}
-	}
+	}*/
 
 
 	//********************Updated Lagrange Solid 3D********************

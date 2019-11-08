@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 #include <cassert>
+#include <numeric>
 
 
 namespace PANSFEM2 {
@@ -40,7 +41,7 @@ namespace PANSFEM2 {
 	}
 
 
-	//********************ƒ¿*{a}********************
+	//********************ï¿½ï¿½*{a}********************
 	template<class T1, class T2>
 	std::vector<T2> operator*(T1 _alpha, const std::vector<T2>& _a) {
 		std::vector<T2> c(_a.size());
@@ -49,7 +50,7 @@ namespace PANSFEM2 {
 	}
 
 
-	//********************{a}*ƒ¿********************
+	//********************{a}*ï¿½ï¿½********************
 	template<class T1, class T2>
 	std::vector<T1> operator*(const std::vector<T1>& _a, T2 _alpha) {
 		std::vector<T1> c(_a.size());
@@ -58,7 +59,7 @@ namespace PANSFEM2 {
 	}
 
 
-	//********************{a}/ƒ¿********************
+	//********************{a}/ï¿½ï¿½********************
 	template<class T1, class T2>
 	std::vector<T1> operator/(const std::vector<T1>& _a, T2 _alpha) {
 		std::vector<T1> c(_a.size());

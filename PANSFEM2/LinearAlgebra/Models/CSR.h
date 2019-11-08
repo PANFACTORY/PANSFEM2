@@ -27,41 +27,41 @@ class CSR
 public:
 	CSR();
 	~CSR();
-	CSR(int _rows, int _cols);	//_rowsFs”C_colsF—ñ”
-	CSR(LILCSR<T> _matrix);		//LILCSR‚©‚çCSR‚ğ¶¬
+	CSR(int _rows, int _cols);	//_rowsï¿½Fï¿½sï¿½ï¿½ï¿½C_colsï¿½Fï¿½ï¿½
+	CSR(LILCSR<T> _matrix);		//LILCSRï¿½ï¿½ï¿½ï¿½CSRï¿½ğ¶ï¿½
 
 
-	const int ROWS;				//s”
-	const int COLS;				//—ñ”
+	const int ROWS;				//ï¿½sï¿½ï¿½
+	const int COLS;				//ï¿½ï¿½
 
 
-	const std::vector<T> operator*(const std::vector<T> &_vec);					//ƒxƒNƒgƒ‹‚Æ‚ÌÏ
+	const std::vector<T> operator*(const std::vector<T> &_vec);					//ï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½Æ‚Ìï¿½
 
 
 	template<class T1, class T2>
-	friend const CSR<T1> operator+(const CSR<T1>& _m1, const CSR<T2>& _m2);		//s—ñ‚Æ‚Ì˜a
+	friend const CSR<T1> operator+(const CSR<T1>& _m1, const CSR<T2>& _m2);		//ï¿½sï¿½ï¿½Æ‚Ì˜a
 	template<class T1, class T2>
-	friend const CSR<T1> operator-(const CSR<T1>& _m1, const CSR<T2>& _m2);		//s—ñ‚Æ‚Ì·
+	friend const CSR<T1> operator-(const CSR<T1>& _m1, const CSR<T2>& _m2);		//ï¿½sï¿½ï¿½Æ‚Ìï¿½
 	template<class T1, class T2>
-	friend const CSR<T2> operator*(T1 _a, const CSR<T2>& _m);					//À”‚Æ‚ÌÏ
+	friend const CSR<T2> operator*(T1 _a, const CSR<T2>& _m);					//ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚Ìï¿½
 	template<class T1, class T2>
-	friend const CSR<T1> operator*(const CSR<T1>& _m, T2 _a);					//À”‚Æ‚ÌÏ
+	friend const CSR<T1> operator*(const CSR<T1>& _m, T2 _a);					//ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚Ìï¿½
 	template<class T1, class T2>
-	friend const CSR<T1> operator/(const CSR<T1>& _m, T2 _a);					//À”‚Æ‚Ì¤
+	friend const CSR<T1> operator/(const CSR<T1>& _m, T2 _a);					//ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚Ìï¿½
 	template<class F>
-	friend std::ostream& operator << (std::ostream &_out, const CSR<F> &_mat);	//stream‚Éo—Í
+	friend std::ostream& operator << (std::ostream &_out, const CSR<F> &_mat);	//streamï¿½Éoï¿½ï¿½
 
 
-	bool set(int _row, int _col, T _data);		//’l‚ÌƒZƒbƒg
-	T get(int _row, int _col) const;			//’l‚Ìæ“¾
+	bool set(int _row, int _col, T _data);		//ï¿½lï¿½ÌƒZï¿½bï¿½g
+	T get(int _row, int _col) const;			//ï¿½lï¿½Ìæ“¾
 
 
 	template<class F>
-	friend CSR<F> ILU0(CSR<F>& _A);				//•sŠ®‘SLU(0)•ª‰ğ
+	friend CSR<F> ILU0(CSR<F>& _A);				//ï¿½sï¿½ï¿½ï¿½SLU(0)ï¿½ï¿½ï¿½ï¿½
 	template<class F>
-	friend std::vector<F> PreILU0(CSR<F> &_A, std::vector<F> &_b);		//•sŠ®‘SLU(0)•ª‰ğ‘Oˆ—
-	template<class T>
-	friend std::vector<T> SOR(CSR<T> &_A, std::vector<T> &_b, T _w, int _itrmax, T _eps);	//SOR–@
+	friend std::vector<F> PreILU0(CSR<F> &_A, std::vector<F> &_b);		//ï¿½sï¿½ï¿½ï¿½SLU(0)ï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½ï¿½
+	template<class F>
+	friend std::vector<F> SOR(CSR<F> &_A, std::vector<F> &_b, F _w, int _itrmax, F _eps);	//SORï¿½@
 
 
 	template<class F>
@@ -69,9 +69,9 @@ public:
 
 
 private:
-	std::vector<int> indptr;	//indptr[i]<=j<indptr[i+1]‚Ìdata[j],indices[j]‚Íis–Ú‚Ì—v‘f‚Å‚ ‚éiƒTƒCƒY‚Ís”+1j
-	std::vector<int> indices;	//indices[j]‚Ídata[j]‚ª‰½—ñ–Ú‚Ì—v‘f‚©‚ğ¦‚·idata‚ÌƒTƒCƒY‚É“™‚µ‚¢j
-	std::vector<T> data;		//Ši”[ƒf[ƒ^i”ñƒ[ƒ—v‘f‚Ì”‚É“™‚µ‚¢j
+	std::vector<int> indptr;	//indptr[i]<=j<indptr[i+1]ï¿½ï¿½data[j],indices[j]ï¿½ï¿½iï¿½sï¿½Ú‚Ì—vï¿½fï¿½Å‚ï¿½ï¿½ï¿½iï¿½Tï¿½Cï¿½Yï¿½Ísï¿½ï¿½+1ï¿½j
+	std::vector<int> indices;	//indices[j]ï¿½ï¿½data[j]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú‚Ì—vï¿½fï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½idataï¿½ÌƒTï¿½Cï¿½Yï¿½É“ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½j
+	std::vector<T> data;		//ï¿½iï¿½[ï¿½fï¿½[ï¿½^ï¿½iï¿½ï¿½[ï¿½ï¿½ï¿½vï¿½fï¿½Ìï¿½ï¿½É“ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½j
 };
 
 

@@ -16,46 +16,75 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "Samples/TotalLagrange/";
+	std::string model_path = "PANSFEM2/Samples/TotalLagrange/";
+	std::cout << "a" << std::endl;
 
 	//----------Add Nodes----------
 	std::vector<std::vector<double> > nodes;
 	ImportNodesFromCSV(nodes, model_path + "Node.csv");
+	std::cout << "a" << std::endl;
 
 	//----------Add Elements----------
 	std::vector<std::vector<int> > elements;
 	ImportElementsFromCSV(elements, model_path + "Element.csv");
+	std::cout << "a" << std::endl;
 
 	//----------Add Field----------
 	std::vector<int> field;
 	int KDEGREE = 0;
 	ImportFieldFromCSV(field, KDEGREE, nodes.size(), model_path + "Field.csv");
+	std::cout << "a" << std::endl;
 
 	//----------Add Dirichlet Condition----------
 	std::vector<int> isufixed;
 	std::vector<double> ufixed;
 	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
+	std::cout << "a" << std::endl;
 
 	//----------Add Neumann Condition----------
 	std::vector<int> isqfixed;
 	std::vector<double> qfixed;
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
+	std::cout << "a" << std::endl;
 
-	//----------Add Initial Condition----------
-	std::vector<std::vector<double> > u = std::vector<std::vector<double> >(nodes.size(), std::vector<double>(3, 0.0));
+	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
+	for (auto element : elements) {
+		std::vector<std::vector<double> > Ke;
+		std::vector<double> Qe;
+		LinearIsotropicElasticSolid3(Ke, nodes, element, 210000.0, 0.3);
+		Assembling(K, Ke, element, field);
+	}
+	std::cout << "a" << std::endl;
+
+	//----------Set Neumann Boundary Condition----------
+	SetNeumann(F, isqfixed, qfixed);
+	
+	//----------Set Dirichlet Boundary Condition----------
+	SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
+	
+	//----------Solve System Equation----------
+	CSR<double> Kmod = CSR<double>(K);
+	std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
+	std::cout << "a" << std::endl;
+
+	//----------Post Process----------
+	std::vector<std::vector<double> > u;
+	FieldResultToNodeValue(result, u, field);
+	std::cout << "a" << std::endl;
 	
 	//----------Save file----------
 	std::ofstream fout(model_path + "result" + std::to_string(0) + ".vtk");
 	MakeHeadderToVTK(fout);
 	AddPointsToVTK(nodes, fout);
 	AddElementToVTK(elements, fout);
-	std::vector<int> et = std::vector<int>(1250, 12);
+	std::vector<int> et = std::vector<int>(elements.size(), 12);
 	AddElementTypes(et, fout);
 	AddPointVectors(u, "u", fout);
 	fout.close();
 
 	//----------Inclement Load----------
-	for (int finc = 1, fincmax = 1000; finc <= fincmax; finc++) {
+	/*for (int finc = 1, fincmax = 1000; finc <= fincmax; finc++) {
 		std::cout << "finc = " << finc << "\t";
 
 		//----------Newton-Raphson Step----------
@@ -101,7 +130,7 @@ int main() {
 		AddElementTypes(et, fout);
 		AddPointVectors(u, "u", fout);
 		fout.close();
-	}
+	}*/
 	
 	return 0;
 }

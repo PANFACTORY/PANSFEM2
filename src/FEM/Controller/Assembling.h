@@ -1,5 +1,5 @@
 //*****************************************************************************
-//Title		:PANSFEM2/FEM/Controller/Assembling.h
+//Title		:src/FEM/Controller/Assembling.h
 //Author	:Tanabe Yuta
 //Date		:2019/10/04
 //Copyright	:(C)2019 TanabeYuta
@@ -16,24 +16,6 @@
 
 namespace PANSFEM2 {
 	//********************Assembling K Matrix from Ke Matrix********************
-	template<class T>
-	void Assembling(LILCSR<T>& _K, const std::vector<std::vector<T> >& _Ke, const std::vector<int>& _element, const std::vector<int>& _field) {
-		int ei = 0;
-		for (auto ni : _element) {
-			for (int si = _field[ni]; si < _field[ni + 1]; si++) {
-				int ej = 0;
-				for (auto nj : _element) {
-					for (int sj = _field[nj]; sj < _field[nj + 1]; sj++) {
-						_K.set(si, sj, _K.get(si, sj) + _Ke[ei][ej]);
-						ej++;
-					}
-				}
-				ei++;
-			}
-		}
-	}
-
-
 	template<class T>
 	void Assembling(LILCSR<T>& _K, Matrix<T>& _Ke, const std::vector<int>& _element, const std::vector<int>& _field) {
 		int ei = 0;

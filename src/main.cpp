@@ -45,8 +45,7 @@ int main() {
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 	for (auto element : elements) {
 		Matrix<double> Ke;
-		//std::vector<std::vector<double> > Ke;
-		LinearIsotropicElasticSolid3(Ke, nodes, element, 210000.0, 0.3);
+		LinearIsotropicElasticSolid(Ke, nodes, element, 210000.0, 0.3);
 		Assembling(K, Ke, element, field);
 	}
 	

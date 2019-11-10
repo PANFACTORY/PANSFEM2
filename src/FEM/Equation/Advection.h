@@ -1,5 +1,5 @@
 //*****************************************************************************
-//Title		:PANSFEM2/FEM/Equation/HeatTransfer.h
+//Title		:src/FEM/Equation/HeatTransfer.h
 //Author	:Tanabe Yuta
 //Date		:2019/10/03
 //Copyright	:(C)2019 TanabeYuta
@@ -10,29 +10,30 @@
 #include <vector>
 
 
-#include "../../LinearAlgebra/Models/LAOperation.h"
+#include "../../LinearAlgebra/Models/Matrix.h"
+#include "../../LinearAlgebra/Models/Vector.h"
 
 
 namespace PANSFEM2 {
-	//******************************“ñŸŒ³ˆÚ—¬•û’ö®‚ÌˆÚ—¬ƒ}ƒgƒŠƒNƒX‚ğ¶¬******************************
+	//******************************ï¿½ñŸŒï¿½ï¿½Ú—ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÌˆÚ—ï¿½ï¿½}ï¿½gï¿½ï¿½ï¿½Nï¿½Xï¿½ğ¶ï¿½******************************
 	template<class T>
 	std::vector<std::vector<T> > AdvectionTri(std::vector<std::vector<T> >& _nodes, std::vector<int>& _element, T _cx, T _cy, T _t) {
-		//.....—v‘f–ÊÏ.....
+		//.....ï¿½vï¿½fï¿½Êï¿½.....
 		T A = 0.5*((_nodes[_element[0]][0] - _nodes[_element[2]][0])*(_nodes[_element[1]][1] - _nodes[_element[2]][1]) - (_nodes[_element[2]][1] - _nodes[_element[0]][1])*(_nodes[_element[2]][0] - _nodes[_element[1]][0]));
 
-		//.....Bƒ}ƒgƒŠƒNƒX.....
+		//.....Bï¿½}ï¿½gï¿½ï¿½ï¿½Nï¿½X.....
 		std::vector<std::vector<T> > B = std::vector<std::vector<T> >(2, std::vector<T>(3));
 		B[0][0] = _nodes[_element[1]][1] - _nodes[_element[2]][1];	B[0][1] = _nodes[_element[2]][1] - _nodes[_element[0]][1];	B[0][2] = _nodes[_element[0]][1] - _nodes[_element[1]][1];
 		B[1][0] = _nodes[_element[2]][0] - _nodes[_element[1]][0];	B[1][1] = _nodes[_element[0]][0] - _nodes[_element[2]][0];	B[1][2] = _nodes[_element[1]][0] - _nodes[_element[0]][0];
 		B /= (2.0*A);
 
-		//.....Nƒ}ƒgƒŠƒNƒX.....
+		//.....Nï¿½}ï¿½gï¿½ï¿½ï¿½Nï¿½X.....
 		std::vector<std::vector<T> > N = std::vector<std::vector<T> >(3, std::vector<T>(1));
 		N[0][0] = A / 3.0;
 		N[1][0] = A / 3.0;
 		N[2][0] = A / 3.0;
 
-		//.....ˆÚ—¬‘¬“xƒ}ƒgƒŠƒNƒX.....
+		//.....ï¿½Ú—ï¿½ï¿½ï¿½ï¿½xï¿½}ï¿½gï¿½ï¿½ï¿½Nï¿½X.....
 		std::vector<T> c = { _cx, _cy };
 		std::vector<std::vector<T> > C = Transpose(c);	
 
@@ -40,13 +41,13 @@ namespace PANSFEM2 {
 	}
 
 
-	//******************************“ñŸŒ³¿—Êƒ}ƒgƒŠƒNƒX‚ğ¶¬******************************
+	//******************************ï¿½ñŸŒï¿½ï¿½ï¿½ï¿½Êƒ}ï¿½gï¿½ï¿½ï¿½Nï¿½Xï¿½ğ¶ï¿½******************************
 	template<class T>
 	std::vector<std::vector<T> > MassTri(std::vector<std::vector<T> >& _nodes, std::vector<int>& _element, T _t) {
-		//.....—v‘f–ÊÏ.....
+		//.....ï¿½vï¿½fï¿½Êï¿½.....
 		T A = 0.5*((_nodes[_element[0]][0] - _nodes[_element[2]][0])*(_nodes[_element[1]][1] - _nodes[_element[2]][1]) - (_nodes[_element[2]][1] - _nodes[_element[0]][1])*(_nodes[_element[2]][0] - _nodes[_element[1]][0]));
 
-		//.....Meƒ}ƒgƒŠƒNƒX.....
+		//.....Meï¿½}ï¿½gï¿½ï¿½ï¿½Nï¿½X.....
 		std::vector<std::vector<T> > Me = std::vector<std::vector<T> >(3, std::vector<T>(3, T()));
 		Me[0][0] = 1.0 / 6.0;	Me[0][1] = 1.0 / 12.0;	Me[0][2] = 1.0 / 12.0;
 		Me[1][0] = 1.0 / 12.0;	Me[1][1] = 1.0 / 6.0;	Me[1][2] = 1.0 / 12.0;

@@ -51,7 +51,7 @@ int main() {
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 	for (auto element : elements) {
 		Matrix<double> Ke;
-		LinearIsotropicElasticSolid<double, ShapeFunction8Cubic<double>, Gauss8Cubic<double> >(Ke, nodes, element, 210000.0, 0.3);
+		LinearIsotropicElasticSolid<double, ShapeFunction8Cubic, Gauss8Cubic >(Ke, nodes, element, 210000.0, 0.3);
 		Assembling(K, Ke, element, field);
 	}
 	

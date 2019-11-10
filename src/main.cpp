@@ -72,7 +72,7 @@ int main() {
 			for (auto element : elements) {
 				Matrix<double> Ke;
 				Vector<double> Qe;
-				TotalLagrangeSolid<double, ShapeFunction8Cubic<double>, Gauss8Cubic<double> >(Ke, Qe, nodes, u, element, 1000.0, 0.3);
+				TotalLagrangeSolid<double, ShapeFunction8Cubic, Gauss8Cubic >(Ke, Qe, nodes, u, element, 1000.0, 0.3);
 				Assembling(K, Q, Ke, Qe, element, field);
 			}
 

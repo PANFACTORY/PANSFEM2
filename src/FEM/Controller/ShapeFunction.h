@@ -11,12 +11,36 @@
 
 
 #include "../../LinearAlgebra/Models/Matrix.h"
+#include "../../LinearAlgebra/Models/Vector.h"
 
 
 namespace PANSFEM2 {
 	//********************8NodesIsoParametricElement********************
 	template<class T>
-	Matrix<T> dNdr8I3(std::vector<T>& _r) {
+	class ShapeFunction8Cubic{
+public:
+		static Vector<T> N(const std::vector<T>& _r);
+		static Matrix<T> dNdr(const std::vector<T>& _r);
+	};
+
+
+	template<class T>
+	Vector<T> ShapeFunction8Cubic<T>::N(const std::vector<T>& _r) {
+		Vector<T> N = Vector<T>(8);
+		N(0) = 0.125*(1.0 - _r[0])*(1.0 - _r[1])*(1.0 - _r[2]);
+		N(1) = 0.125*(1.0 + _r[0])*(1.0 - _r[1])*(1.0 - _r[2]);
+		N(2) = 0.125*(1.0 + _r[0])*(1.0 + _r[1])*(1.0 - _r[2]);
+		N(3) = 0.125*(1.0 - _r[0])*(1.0 + _r[1])*(1.0 - _r[2]);
+		N(4) = 0.125*(1.0 - _r[0])*(1.0 - _r[1])*(1.0 + _r[2]);
+		N(5) = 0.125*(1.0 + _r[0])*(1.0 - _r[1])*(1.0 + _r[2]);
+		N(6) = 0.125*(1.0 + _r[0])*(1.0 + _r[1])*(1.0 + _r[2]);
+		N(7) = 0.125*(1.0 - _r[0])*(1.0 + _r[1])*(1.0 + _r[2]);
+		return N;
+	}
+
+
+	template<class T>
+	Matrix<T> ShapeFunction8Cubic<T>::dNdr(const std::vector<T>& _r) {
 		Matrix<T> dNdr = Matrix<T>(3, 8);
 		dNdr(0, 0) = -0.125*(1.0 - _r[1])*(1.0 - _r[2]);	dNdr(0, 1) = 0.125*(1.0 - _r[1])*(1.0 - _r[2]);		dNdr(0, 2) = 0.125*(1.0 + _r[1])*(1.0 - _r[2]);		dNdr(0, 3) = -0.125*(1.0 + _r[1])*(1.0 - _r[2]);
 		dNdr(0, 4) = -0.125*(1.0 - _r[1])*(1.0 + _r[2]);	dNdr(0, 5) = 0.125*(1.0 - _r[1])*(1.0 + _r[2]);		dNdr(0, 6) = 0.125*(1.0 + _r[1])*(1.0 + _r[2]);		dNdr(0, 7) = -0.125*(1.0 + _r[1])*(1.0 + _r[2]);
@@ -28,4 +52,7 @@ namespace PANSFEM2 {
 		dNdr(2, 4) = 0.125*(1.0 - _r[0])*(1.0 - _r[1]);		dNdr(2, 5) = 0.125*(1.0 + _r[0])*(1.0 - _r[1]);		dNdr(2, 6) = 0.125*(1.0 + _r[0])*(1.0 + _r[1]);		dNdr(2, 7) = 0.125*(1.0 - _r[0])*(1.0 + _r[1]);
 		return dNdr;
 	}
+
+
+	//********************20NodesIsoParametricElement********************
 }

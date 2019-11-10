@@ -12,6 +12,8 @@
 #include "FEM/Controller/BoundaryCondition.h"
 #include "LinearAlgebra/Solvers/CG.h"
 #include "PrePost/Export/ExportToVTK.h"
+#include "FEM/Controller/ShapeFunction.h"
+#include "FEM/Controller/IntegrationConstant.h"
 
 
 using namespace PANSFEM2;
@@ -70,7 +72,7 @@ int main() {
 			for (auto element : elements) {
 				Matrix<double> Ke;
 				Vector<double> Qe;
-				TotalLagrangeSolid(Ke, Qe, nodes, u, element, 1000.0, 0.3);
+				TotalLagrangeSolid<double, ShapeFunction8Cubic<double>, Gauss8Cubic<double> >(Ke, Qe, nodes, u, element, 1000.0, 0.3);
 				Assembling(K, Q, Ke, Qe, element, field);
 			}
 

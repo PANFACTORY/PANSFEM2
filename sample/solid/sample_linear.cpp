@@ -1,7 +1,10 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 
+#include "LinearAlgebra/Models/Vector.h"
+#include "LinearAlgebra/Models/Matrix.h"
 #include "LinearAlgebra/Models/LILCSR.h"
 #include "PrePost/Import/ImportFromCSV.h"
 #include "FEM/Controller/Assembling.h"
@@ -9,9 +12,8 @@
 #include "FEM/Controller/BoundaryCondition.h"
 #include "LinearAlgebra/Solvers/CG.h"
 #include "PrePost/Export/ExportToVTK.h"
-
-
-#include "LinearAlgebra/Models/Vector.h"
+#include "FEM/Controller/ShapeFunction.h"
+#include "FEM/Controller/IntegrationConstant.h"
 
 
 using namespace PANSFEM2;
@@ -49,7 +51,7 @@ int main() {
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 	for (auto element : elements) {
 		Matrix<double> Ke;
-		LinearIsotropicElasticSolid(Ke, nodes, element, 210000.0, 0.3);
+		LinearIsotropicElasticSolid<double, ShapeFunction8Cubic<double>, Gauss8Cubic<double> >(Ke, nodes, element, 210000.0, 0.3);
 		Assembling(K, Ke, element, field);
 	}
 	

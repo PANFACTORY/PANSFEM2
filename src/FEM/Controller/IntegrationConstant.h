@@ -14,7 +14,16 @@
 namespace PANSFEM2 {
 	//********************GaussIntegrationConstant3D8Points********************
 	template<class T>
-	const std::vector<std::vector<T> > GP3D8 = { 
+	class Gauss8Cubic{
+public:
+		static const int N = 8;								//Number of integration point
+		static const std::vector<std::vector<T> > Points;	//Cordinate values of integration point
+		static const std::vector<std::vector<T> > Weights;	//Weights of integration point
+	};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss8Cubic<T>::Points = { 
 													{ -1.0 / sqrt(3.0), -1.0 / sqrt(3.0), -1.0 / sqrt(3.0) },
 													{  1.0 / sqrt(3.0), -1.0 / sqrt(3.0), -1.0 / sqrt(3.0) },
 													{  1.0 / sqrt(3.0),  1.0 / sqrt(3.0), -1.0 / sqrt(3.0) },
@@ -24,8 +33,10 @@ namespace PANSFEM2 {
 													{  1.0 / sqrt(3.0),  1.0 / sqrt(3.0),  1.0 / sqrt(3.0) },
 													{ -1.0 / sqrt(3.0),  1.0 / sqrt(3.0),  1.0 / sqrt(3.0) } 
 												};
+
+
 	template<class T>
-	const std::vector<std::vector<T> > GW3D8 = { 
+	const std::vector<std::vector<T> > Gauss8Cubic<T>::Weights = { 
 													{ 1.0, 1.0, 1.0 },
 													{ 1.0, 1.0, 1.0 },
 													{ 1.0, 1.0, 1.0 },

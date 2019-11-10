@@ -11,17 +11,13 @@
 #include <cassert>
 
 
-#include "../Controller/ShapeFunction.h"
-#include "../Controller/IntegrationConstant.h"
-
-
 #include "../../LinearAlgebra/Models/Matrix.h"
 #include "../../LinearAlgebra/Models/Vector.h"
 
 
 namespace PANSFEM2 {
 	//********************Linear Isotropic Elastic Solid 3D********************
-	template<class T>
+	template<class T, class SF, class IC>
 	void LinearIsotropicElasticSolid(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _E, T _V) {
 		//----------Initialize element stiffness matrix----------
 		_Ke = Matrix<T>(3 * _element.size(), 3 * _element.size());
@@ -44,14 +40,10 @@ namespace PANSFEM2 {
 		C(5, 0) = 0.0;		C(5, 1) = 0.0;		C(5, 2) = 0.0;		C(5, 3) = 0.0;					C(5, 4) = 0.0;					C(5, 5) = 0.5*(1.0 - 2.0*_V);
 		C *= _E / ((1.0 + _V)*(1.0 - 2.0*_V));
 
-		//----------Get Gauss integration constant----------
-		std::vector<std::vector<T> > GP = GP3D8<T>;
-		std::vector<std::vector<T> > GW = GW3D8<T>;
-		
 		//----------Loop of Gauss Integration----------
-		for (int g = 0; g < 8; g++) {
+		for (int g = 0; g < IC::N; g++) {
 			//----------Get difference of shape function----------
-			Matrix<T> dNdr = dNdr8I3<T>(GP[g]);
+			Matrix<T> dNdr = SF::dNdr(IC::Points[g]);
 
 			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr * X;
@@ -70,13 +62,13 @@ namespace PANSFEM2 {
 			}
 
 			//----------Update element stiffness matrix----------
-			_Ke = _Ke + B.Transpose()*C*B*J*GW[g][0] * GW[g][1] * GW[g][2];
+			_Ke = _Ke + B.Transpose()*C*B*J*IC::Weights[g][0] * IC::Weights[g][1] * IC::Weights[g][2];
 		}
 	}
 
 
 	//********************Total Lagrange Solid 3D********************
-	template<class T>
+	template<class T, class SF, class IC>
 	void TotalLagrangeSolid(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, std::vector<int>& _element, T _E, T _V) {
 		//----------Initialize element stiffness matrix and load vector----------
 		_Ke = Matrix<T>(3 * _element.size(), 3 * _element.size());
@@ -108,14 +100,10 @@ namespace PANSFEM2 {
 		C(5, 0) = 0.0;		C(5, 1) = 0.0;		C(5, 2) = 0.0;		C(5, 3) = 0.0;					C(5, 4) = 0.0;					C(5, 5) = 0.5*(1.0 - 2.0*_V);
 		C *= _E / ((1.0 + _V)*(1.0 - 2.0*_V));
 
-		//----------Get Gauss integration constant---------
-		std::vector<std::vector<T> > GP = GP3D8<T>;
-		std::vector<std::vector<T> > GW = GW3D8<T>;
-
 		//----------Loop of Gauss Integration----------
-		for (int g = 0; g < 8; g++) {
+		for (int g = 0; g < IC::N; g++) {
 			//----------Get difference of shape function by r----------
-			Matrix<T> dNdr = dNdr8I3<T>(GP[g]);
+			Matrix<T> dNdr = SF::dNdr(IC::Points[g]);
 
 			//----------Get difference of shape function by X----------
 			Matrix<T> dXdr = dNdr * X;
@@ -142,7 +130,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Update element stiffness matrix----------
-			_Ke += BL.Transpose()*C*BL*J*GW[g][0] * GW[g][1] * GW[g][2];
+			_Ke += BL.Transpose()*C*BL*J*IC::Weights[g][0] * IC::Weights[g][1] * IC::Weights[g][2];
 
 			//----------Get Green-Lagrange strain----------
 			Matrix<T> E = (Z + Z.Transpose() + Z.Transpose()*Z) / 2.0;
@@ -178,10 +166,10 @@ namespace PANSFEM2 {
 			S(7, 0) = 0.0;		S(7, 1) = Sv(5);	S(7, 2) = 0.0;			S(7, 3) = 0.0;		S(7, 4) = Sv(4);	S(7, 5) = 0.0;			S(7, 6) = 0.0;		S(7, 7) = Sv(2);	S(7, 8) = 0.0;
 			S(8, 0) = 0.0;		S(8, 1) = 0.0;		S(8, 2) = Sv(5);		S(8, 3) = 0.0;		S(8, 4) = 0.0;		S(8, 5) = Sv(4);		S(8, 6) = 0.0;		S(8, 7) = 0.0;		S(8, 8) = Sv(2);
 
-			_Ke += BNL.Transpose()*S*BNL*J*GW[g][0] * GW[g][1] * GW[g][2];
+			_Ke += BNL.Transpose()*S*BNL*J*IC::Weights[g][0] * IC::Weights[g][1] * IC::Weights[g][2];
 
 			//----------Update load vector----------
-			_Fe += BL.Transpose()*Sv*J*GW[g][0] * GW[g][1] * GW[g][2];
+			_Fe += BL.Transpose()*Sv*J*IC::Weights[g][0] * IC::Weights[g][1] * IC::Weights[g][2];
 		}
 	}
 }

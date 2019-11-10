@@ -12,7 +12,7 @@
 #include "../Models/CSR.h"
 
 
-//********************ƒxƒNƒgƒ‹˜a(a+beta*b)*******************
+//********************ï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½a(a+beta*b)*******************
 template<class T>
 inline std::vector<T> add(std::vector<T> &_a, T _beta, std::vector<T> &_b) {
 	std::vector<T> v(_a.size());
@@ -26,7 +26,7 @@ inline std::vector<T> add(std::vector<T> &_a, T _beta, std::vector<T> &_b) {
 }
 
 
-//********************ƒxƒNƒgƒ‹˜a(a+beta*b+ganma*c)********************
+//********************ï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½a(a+beta*b+ganma*c)********************
 template<class T>
 inline std::vector<T> add(std::vector<T> &_a, T _beta, std::vector<T> &_b, T _ganma, std::vector<T> &_c) {
 	std::vector<T> v(_a.size());
@@ -41,7 +41,7 @@ inline std::vector<T> add(std::vector<T> &_a, T _beta, std::vector<T> &_b, T _ga
 }
 
 
-//********************ƒxƒNƒgƒ‹˜a·(a+beta(b-ganma*c))********************
+//********************ï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½aï¿½ï¿½(a+beta(b-ganma*c))********************
 template<class T>
 inline std::vector<T> addsubstract(std::vector<T> &_a, T _beta, std::vector<T> &_b, T _ganma, std::vector<T> &_c) {
 	std::vector<T> v(_a.size());
@@ -56,7 +56,7 @@ inline std::vector<T> addsubstract(std::vector<T> &_a, T _beta, std::vector<T> &
 }
 
 
-//********************ƒxƒNƒgƒ‹·(a-b)********************
+//********************ï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½(a-b)********************
 template<class T>
 inline std::vector<T> subtract(std::vector<T> _a, std::vector<T> _b) {
 	std::vector<T> v(_b.size());
@@ -70,7 +70,7 @@ inline std::vector<T> subtract(std::vector<T> _a, std::vector<T> _b) {
 }
 
 
-//********************ƒxƒNƒgƒ‹·(a-beta*b)*******************
+//********************ï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½(a-beta*b)*******************
 template<class T>
 inline std::vector<T> subtract(std::vector<T> &_a, T _beta, std::vector<T> &_b) {
 	std::vector<T> v(_a.size());
@@ -84,16 +84,16 @@ inline std::vector<T> subtract(std::vector<T> &_a, T _beta, std::vector<T> &_b) 
 }
 
 
-//********************CG–@‚ÌƒƒCƒ“ƒ‹[ƒ`ƒ“********************
+//********************CGï¿½@ï¿½Ìƒï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½********************
 template<class T>
 std::vector<T> CG(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
-	//----------‰Šú‰»----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> pk = rk;
 	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
 
-	//----------”½•œŒvZ----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Z----------
 	for (int k = 0; k < _itrmax; ++k) {
 		std::vector<T> Apk = _A * pk;
 		T alpha = std::inner_product(rk.begin(), rk.end(), rk.begin(), T()) / std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
@@ -102,12 +102,12 @@ std::vector<T> CG(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
 		T beta = std::inner_product(rkp1.begin(), rkp1.end(), rkp1.begin(), T()) / std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
 		std::vector<T> pkp1 = add(rkp1, beta, pk);
 
-		//----------’l‚ÌXV----------
+		//----------ï¿½lï¿½ÌXï¿½V----------
 		xk = xkp1;
 		rk = rkp1;
 		pk = pkp1;
 
-		//----------û‘©”»’è----------
+		//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
@@ -121,17 +121,17 @@ std::vector<T> CG(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
 }
 
 
-//********************BiCGSTAB–@‚ÌƒƒCƒ“ƒ‹[ƒ`ƒ“********************
+//********************BiCGSTABï¿½@ï¿½Ìƒï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½********************
 template<class T>
 std::vector<T> BiCGSTAB(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
-	//----------‰Šú‰»----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> rdash = rk;
 	std::vector<T> pk = rk;
 	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
 
-	//----------”½•œŒvZ----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Z----------
 	for (int k = 0; k < _itrmax; ++k) {
 		std::vector<T> Apk = _A * pk;
 		T rdashdotrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
@@ -144,12 +144,12 @@ std::vector<T> BiCGSTAB(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
 		T beta = alpha / omega * std::inner_product(rdash.begin(), rdash.end(), rkp1.begin(), T()) / rdashdotrk;
 		std::vector<T> pkp1 = addsubstract(rk, beta, pk, omega, Apk);
 
-		//----------xkCrk, pk‚ÌXV----------
+		//----------xkï¿½Crk, pkï¿½ÌXï¿½V----------
 		xk = xkp1;
 		rk = rkp1;
 		pk = pkp1;
 
-		//----------û‘©”»’è----------
+		//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
@@ -163,7 +163,7 @@ std::vector<T> BiCGSTAB(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
 }
 
 
-//********************•sŠ®‘SLU(0)•ª‰ğ********************
+//********************ï¿½sï¿½ï¿½ï¿½SLU(0)ï¿½ï¿½ï¿½ï¿½********************
 template<class T>
 CSR<T> ILU0(CSR<T> &_A) {
 	LILCSR<T> q = LILCSR<T>(_A);
@@ -195,10 +195,10 @@ CSR<T> ILU0(CSR<T> &_A) {
 }
 
 
-//********************ILU(0)‘Oˆ—*******************
+//********************ILU(0)ï¿½Oï¿½ï¿½ï¿½ï¿½*******************
 template<class T>
 std::vector<T> PreILU0(CSR<T> &_A, std::vector<T> &_b) {
-	//‘OiÁ‹iLy=b‚ğ‰ğ‚­j
+	//ï¿½Oï¿½iï¿½ï¿½ï¿½ï¿½ï¿½iLy=bï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½j
 	std::vector<T> v = std::vector<T>(_b);
 	for (int i = 0; i < _b.size(); i++) {
 		for (int k = _A.indptr[i]; k < _A.indptr[i + 1]; k++) {
@@ -211,7 +211,7 @@ std::vector<T> PreILU0(CSR<T> &_A, std::vector<T> &_b) {
 		}
 	}
 
-	//Œã‘Ş‘ã“üiUx=y‚ğ‰ğ‚­j
+	//ï¿½ï¿½Ş‘ï¿½ï¿½ï¿½iUx=yï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½j
 	for (int i = _b.size() - 1; i >= 0; i--) {
 		for (int k = _A.indptr[i + 1] - 1; k >= _A.indptr[i]; k--) {
 			if (_A.indices[k] > i) {
@@ -228,18 +228,18 @@ std::vector<T> PreILU0(CSR<T> &_A, std::vector<T> &_b) {
 }
 
 
-//*******************ILU(0)•ª‰ğ‘Oˆ—•t‚«CG–@********************
+//*******************ILU(0)ï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½tï¿½ï¿½CGï¿½@********************
 template<class T>
 std::vector<T> ILU0CG(CSR<T> &_A, CSR<T> &_M, std::vector<T> &_b, int _itrmax, T _eps) {
-	//----------‰Šú‰»----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> pk = PreILU0(_M, rk);
-	std::vector<T> Mrk = pk;							//‘Oˆ—
+	std::vector<T> Mrk = pk;							//ï¿½Oï¿½ï¿½ï¿½ï¿½
 	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
 	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
 
-	//----------”½•œŒvZ----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Z----------
 	for (int k = 0; k < _itrmax; ++k) {
 		std::vector<T> Apk = _A * pk;
 
@@ -247,20 +247,20 @@ std::vector<T> ILU0CG(CSR<T> &_A, CSR<T> &_M, std::vector<T> &_b, int _itrmax, T
 		std::vector<T> xkp1 = add(xk, alpha, pk);
 		std::vector<T> rkp1 = subtract(rk, alpha, Apk);
 
-		std::vector<T> Mrkp1 = PreILU0(_M, rkp1);		//‘Oˆ—
+		std::vector<T> Mrkp1 = PreILU0(_M, rkp1);		//ï¿½Oï¿½ï¿½ï¿½ï¿½
 
 		T Mrkp1dotrkp1 = std::inner_product(Mrkp1.begin(), Mrkp1.end(), rkp1.begin(), T());
 		T beta = Mrkp1dotrkp1 / Mrkdotrk;
 		std::vector<T> pkp1 = add(Mrkp1, beta, pk);
 
-		//----------’l‚ÌXV----------
+		//----------ï¿½lï¿½ÌXï¿½V----------
 		xk = xkp1;
 		rk = rkp1;
 		pk = pkp1;
 		Mrk = Mrkp1;
 		Mrkdotrk = Mrkp1dotrkp1;
 
-		//----------û‘©”»’è----------
+		//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
@@ -274,26 +274,26 @@ std::vector<T> ILU0CG(CSR<T> &_A, CSR<T> &_M, std::vector<T> &_b, int _itrmax, T
 }
 
 
-//*******************ILU(0)•ª‰ğ‘Oˆ—•t‚«BiCGSTAB–@*******************
+//*******************ILU(0)ï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½tï¿½ï¿½BiCGSTABï¿½@*******************
 template<class T>
 std::vector<T> ILU0BiCGSTAB(CSR<T> &_A, CSR<T> &_M, std::vector<T> &_b, int _itrmax, T _eps) {
-	//----------‰Šú‰»----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> rdash = rk;
 	std::vector<T> pk = rk;
 	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
 
-	//----------”½•œŒvZ----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Z----------
 	for (int k = 0; k < _itrmax; ++k) {
-		std::vector<T> Mpk = PreILU0(_M, pk);		//‘Oˆ—
+		std::vector<T> Mpk = PreILU0(_M, pk);		//ï¿½Oï¿½ï¿½ï¿½ï¿½
 
 		std::vector<T> AMpk = _A * Mpk;
 		T rdashdotrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
 		T alpha = rdashdotrk / std::inner_product(rdash.begin(), rdash.end(), AMpk.begin(), T());
 		std::vector<T> sk = subtract(rk, alpha, AMpk);
 
-		std::vector<T> Msk = PreILU0(_M, sk);		//‘Oˆ—
+		std::vector<T> Msk = PreILU0(_M, sk);		//ï¿½Oï¿½ï¿½ï¿½ï¿½
 
 		std::vector<T> AMsk = _A * Msk;
 		T omega = std::inner_product(AMsk.begin(), AMsk.end(), sk.begin(), T()) / std::inner_product(AMsk.begin(), AMsk.end(), AMsk.begin(), T());
@@ -302,12 +302,12 @@ std::vector<T> ILU0BiCGSTAB(CSR<T> &_A, CSR<T> &_M, std::vector<T> &_b, int _itr
 		T beta = alpha / omega * std::inner_product(rdash.begin(), rdash.end(), rkp1.begin(), T()) / rdashdotrk;
 		std::vector<T> pkp1 = addsubstract(rk, beta, pk, omega, AMpk);
 
-		//----------xkCrk, pk‚ÌXV----------
+		//----------xkï¿½Crk, pkï¿½ÌXï¿½V----------
 		xk = xkp1;
 		rk = rkp1;
 		pk = pkp1;
 
-		//----------û‘©”»’è----------
+		//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
@@ -321,7 +321,7 @@ std::vector<T> ILU0BiCGSTAB(CSR<T> &_A, CSR<T> &_M, std::vector<T> &_b, int _itr
 }
 
 
-//********************SOR–@********************
+//********************SORï¿½@********************
 template<class T>
 std::vector<T> SOR(CSR<T> &_A, std::vector<T> &_b, T _w, int _itrmax, T _eps) {
 	std::vector<T> x = std::vector<T>(_A.ROWS, T());
@@ -358,7 +358,7 @@ std::vector<T> SOR(CSR<T> &_A, std::vector<T> &_b, T _w, int _itrmax, T _eps) {
 }
 
 
-//********************‘ÎŠps—ñiƒxƒNƒgƒ‹Œ`®j‚Ìæ“¾********************
+//********************ï¿½ÎŠpï¿½sï¿½ï¿½iï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½jï¿½Ìæ“¾********************
 template<class T>
 std::vector<T> GetScaling(CSR<T>& _A) {
 	std::vector<T> v(_A.ROWS);
@@ -369,7 +369,7 @@ std::vector<T> GetScaling(CSR<T>& _A) {
 }
 
 
-//********************‘ÎŠpƒXƒP[ƒŠƒ“ƒO********************
+//********************ï¿½ÎŠpï¿½Xï¿½Pï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½O********************
 template<class T>
 std::vector<T> Scaling(std::vector<T>& _D, std::vector<T>& _b) {
 	std::vector<T> v(_D.size());
@@ -380,38 +380,38 @@ std::vector<T> Scaling(std::vector<T>& _D, std::vector<T>& _b) {
 }
 
 
-//********************‘ÎŠpƒXƒP[ƒŠƒ“ƒO‘Oˆ—•t‚«CG–@********************
+//********************ï¿½ÎŠpï¿½Xï¿½Pï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½tï¿½ï¿½CGï¿½@********************
 template<class T>
 std::vector<T> ScalingCG(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
-	//----------‰Šú‰»----------
-	std::vector<T> D = GetScaling(_A);					//‘Oˆ——p‘ÎŠps—ñ
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
+	std::vector<T> D = GetScaling(_A);					//ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½pï¿½ÎŠpï¿½sï¿½ï¿½
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
-	std::vector<T> pk = Scaling(D, rk);				//‘Oˆ—
+	std::vector<T> pk = Scaling(D, rk);				//ï¿½Oï¿½ï¿½ï¿½ï¿½
 	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
 
-	std::vector<T> Mrk = Scaling(D, rk);			//‘Oˆ—
+	std::vector<T> Mrk = Scaling(D, rk);			//ï¿½Oï¿½ï¿½ï¿½ï¿½
 	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
 
-	//----------”½•œŒvZ----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Z----------
 	for (int k = 0; k < _itrmax; ++k) {
 		std::vector<T> Apk = _A * pk;
 		T alpha = Mrkdotrk / std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
 		std::vector<T> xkp1 = add(xk, alpha, pk);
 		std::vector<T> rkp1 = subtract(rk, alpha, Apk);
-		std::vector<T> Mrkp1 = Scaling(D, rkp1);	//‘Oˆ—
+		std::vector<T> Mrkp1 = Scaling(D, rkp1);	//ï¿½Oï¿½ï¿½ï¿½ï¿½
 		T Mrkp1dotrkp1 = std::inner_product(Mrkp1.begin(), Mrkp1.end(), rkp1.begin(), T());
 		T beta = Mrkp1dotrkp1 / Mrkdotrk;
 		std::vector<T> pkp1 = add(Mrkp1, beta, pk);
 
-		//----------’l‚ÌXV----------
+		//----------ï¿½lï¿½ÌXï¿½V----------
 		xk = xkp1;
 		rk = rkp1;
 		pk = pkp1;
 		Mrk = Mrkp1;
 		Mrkdotrk = Mrkp1dotrkp1;
 
-		//----------û‘©”»’è----------
+		//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
@@ -425,37 +425,37 @@ std::vector<T> ScalingCG(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
 }
 
 
-//********************SOR–@‘Oˆ—•t‚«CG–@********************
+//********************SORï¿½@ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½tï¿½ï¿½CGï¿½@********************
 template<class T>
 std::vector<T> SORCG(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps, T _omega) {
-	//----------‰Šú‰»----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
-	std::vector<T> pk = SOR(_A, rk, _omega, 50, 1.0e-10);				//‘Oˆ—
+	std::vector<T> pk = SOR(_A, rk, _omega, 50, 1.0e-10);				//ï¿½Oï¿½ï¿½ï¿½ï¿½
 	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
 
-	std::vector<T> Mrk = SOR(_A, rk, _omega, 50, 1.0e-10);				//‘Oˆ—
+	std::vector<T> Mrk = SOR(_A, rk, _omega, 50, 1.0e-10);				//ï¿½Oï¿½ï¿½ï¿½ï¿½
 	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
 
-	//----------”½•œŒvZ----------
+	//----------ï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Z----------
 	for (int k = 0; k < _itrmax; ++k) {
 		std::vector<T> Apk = _A * pk;
 		T alpha = Mrkdotrk / std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
 		std::vector<T> xkp1 = add(xk, alpha, pk);
 		std::vector<T> rkp1 = subtract(rk, alpha, Apk);
-		std::vector<T> Mrkp1 = SOR(_A, rkp1, _omega, 50, 1.0e-10);		//‘Oˆ—
+		std::vector<T> Mrkp1 = SOR(_A, rkp1, _omega, 50, 1.0e-10);		//ï¿½Oï¿½ï¿½ï¿½ï¿½
 		T Mrkp1dotrkp1 = std::inner_product(Mrkp1.begin(), Mrkp1.end(), rkp1.begin(), T());
 		T beta = Mrkp1dotrkp1 / Mrkdotrk;
 		std::vector<T> pkp1 = add(Mrkp1, beta, pk);
 
-		//----------’l‚ÌXV----------
+		//----------ï¿½lï¿½ÌXï¿½V----------
 		xk = xkp1;
 		rk = rkp1;
 		pk = pkp1;
 		Mrk = Mrkp1;
 		Mrkdotrk = Mrkp1dotrkp1;
 
-		//----------û‘©”»’è----------
+		//----------ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------
 		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
 		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {

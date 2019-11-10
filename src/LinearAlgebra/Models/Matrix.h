@@ -12,7 +12,14 @@
 #include <cassert>
 
 
+#include "Vector.h"
+
+
 namespace PANSFEM2{
+    template<class T>
+    class Vector;
+
+
     template<class T>
     class Matrix{
 public:
@@ -43,6 +50,8 @@ public:
 
         template<class U>
 	    friend std::ostream& operator << (std::ostream& _out, const Matrix<U>& _mat);
+        template<class U>
+        friend Vector<U> operator*(const Matrix<U>& _mat, const Vector<U>& _vec);
 
 
         Matrix<T> Transpose();
@@ -75,7 +84,7 @@ protected:
     Matrix<T>::Matrix(int _row, int _col) {
         this->row = _row;
         this->col = _col;
-        this->values = new T[this->row * this->col];
+        this->values = new T[this->row * this->col]();
     }
 
 
@@ -232,6 +241,19 @@ protected:
             _out << std::endl;
         }
         return _out;
+    }
+
+
+    template<class U>
+    Vector<U> operator*(const Matrix<U>& _mat, const Vector<U>& _vec){
+        assert(_mat.col == _vec.size);
+        Vector<U> vec = Vector<U>(_mat.row);
+        for(int i = 0; i < vec.size; i++){
+            for(int j = 0; j < _mat.col; j++){
+                vec(i) += _mat.values[i * _mat.col + j] * _vec.values[j];
+            }
+        }
+        return vec;
     }
 
 

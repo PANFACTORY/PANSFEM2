@@ -12,6 +12,7 @@
 
 
 #include "../../LinearAlgebra/Models/LAOperation.h"
+#include "../../LinearAlgebra/Models/Vector.h"
 
 
 namespace PANSFEM2 {
@@ -26,13 +27,17 @@ namespace PANSFEM2 {
 
 	//********************Add Points********************
 	template<class T>
-	void AddPointsToVTK(std::vector<std::vector<T> > _nodes, std::ofstream& _fout) {
+	void AddPointsToVTK(std::vector<Vector<T> > _nodes, std::ofstream& _fout) {
 		_fout << "\nPOINTS\t" << _nodes.size() << "\tfloat\n";
 		for (auto node : _nodes) {
-			for (int i = node.size(); i < 3; i++) {
-				node.push_back(T());
+			int i = 0;
+			for(; i < node.SIZE(); i++){
+				_fout << node(i) << "\t";
 			}
-			_fout << Transpose(node);
+			for(; i < 3; i++){
+				_fout << T() << "\t";
+			}
+			_fout << std::endl;
 		}
 	}
 
@@ -79,15 +84,19 @@ namespace PANSFEM2 {
 
 	//********************Add Point Vectors********************
 	template<class T>
-	void AddPointVectors(std::vector<std::vector<T> > _values, std::string _symbol, std::ofstream& _fout) {
+	void AddPointVectors(std::vector<Vector<T> > _values, std::string _symbol, std::ofstream& _fout) {
 		_fout << "\nPOINT_DATA\t" << _values.size() << "\n";
 		_fout << "VECTORS " << _symbol << " float\n";
 
 		for (auto value : _values) {
-			for (int i = value.size(); i < 3; i++) {
-				value.push_back(T());
+			int i = 0;
+			for(; i < value.SIZE(); i++){
+				_fout << value(i) << "\t";
 			}
-			_fout << Transpose(value);
+			for(; i < 3; i++){
+				_fout << T() << "\t";
+			}
+			_fout << std::endl;
 		}
 	}
 

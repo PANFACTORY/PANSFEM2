@@ -12,6 +12,7 @@
 
 #include "../../LinearAlgebra/Models/LILCSR.h"
 #include "../../LinearAlgebra/Models/Matrix.h"
+#include "../../LinearAlgebra/Models/Vector.h"
 
 
 namespace PANSFEM2 {
@@ -36,18 +37,18 @@ namespace PANSFEM2 {
 
 	//********************Assembling K & F from Ke & Fe********************
 	template<class T>
-	void Assembling(LILCSR<T>& _K, std::vector<T>& _F, const std::vector<std::vector<T> >& _Ke, const std::vector<T>& _Fe, const std::vector<int>& _element, const std::vector<int>& _field) {
+	void Assembling(LILCSR<T>& _K, std::vector<T>& _F, Matrix<T>& _Ke, Vector<T>& _Fe, const std::vector<int>& _element, const std::vector<int>& _field) {
 		int ei = 0;
 		for (auto ni : _element) {
 			for (int si = _field[ni]; si < _field[ni + 1]; si++) {
 				int ej = 0;
 				for (auto nj : _element) {
 					for (int sj = _field[nj]; sj < _field[nj + 1]; sj++) {
-						_K.set(si, sj, _K.get(si, sj) + _Ke[ei][ej]);
+						_K.set(si, sj, _K.get(si, sj) + _Ke(ei, ej));
 						ej++;
 					}
 				}
-				_F[si] += _Fe[ei];
+				_F[si] += _Fe(ei);
 				ei++;
 			}
 		}
@@ -56,7 +57,7 @@ namespace PANSFEM2 {
 
 	//********************FieldResultToNodeVector********************
 	template<class T>
-	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<std::vector<T> >& _values, const std::vector<int>& _field) {
+	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<Vector<T> >& _values, const std::vector<int>& _field) {
 		int resultindex = 0;
 		for (int i = 0; i < _field.size() - 1; i++) {
 			std::vector<T> value;
@@ -64,7 +65,7 @@ namespace PANSFEM2 {
 				value.push_back(_result[resultindex]);
 				resultindex++;
 			}
-			_values.push_back(value);
+			_values.push_back(Vector<T>(value));
 		}
 	}
 

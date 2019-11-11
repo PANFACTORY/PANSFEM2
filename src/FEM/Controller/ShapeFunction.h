@@ -43,6 +43,35 @@ public:
 	}
 
 
+	//********************4NodesSquare********************
+	template<class T>
+	class ShapeFunction4Square {
+public:
+		static Vector<T> N(const std::vector<T>& _r);
+		static Matrix<T> dNdr(const std::vector<T>& _r);
+	};
+
+
+	template<class T>
+	Vector<T> ShapeFunction4Square<T>::N(const std::vector<T>& _r) {
+		Vector<T> N = Vector<T>(4);
+		N(0) = 0.25*(1.0 - _r[0])*(1.0 - _r[1]);
+		N(1) = 0.25*(1.0 + _r[0])*(1.0 - _r[1]);
+		N(2) = 0.25*(1.0 + _r[0])*(1.0 + _r[1]);
+		N(3) = 0.25*(1.0 - _r[0])*(1.0 + _r[1]);
+		return N;
+	}
+
+
+	template<class T>
+	Matrix<T> ShapeFunction4Square<T>::dNdr(const std::vector<T>& _r) {
+		Matrix<T> dNdr = Matrix<T>(2, 4);
+		dNdr(0, 0) = -0.25*(1.0 - _r[1]);	dNdr(0, 1) = 0.25*(1.0 - _r[1]);	dNdr(0, 2) = 0.25*(1.0 - _r[1]);	dNdr(0, 3) = -0.25*(1.0 - _r[1]);	
+		dNdr(1, 0) = -0.25*(1.0 - _r[0]);	dNdr(1, 1) = -0.25*(1.0 - _r[0]);	dNdr(1, 2) = 0.25*(1.0 - _r[0]);	dNdr(1, 3) = 0.25*(1.0 - _r[0]);
+		return dNdr;
+	}
+
+
 	//********************8NodesCubic********************
 	template<class T>
 	class ShapeFunction8Cubic{

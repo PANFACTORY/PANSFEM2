@@ -60,6 +60,12 @@ public:
         Matrix<T> Cofactor(int _i, int _j);
 
 
+        template<class U>
+        friend Matrix<U> Vector<U>::Transpose();
+        template<class U>
+        friend Matrix<U> Vector<U>::operator*(const Matrix<U>& _mat);
+
+
 protected:
         int row;            //Number of row
         int col;            //Number of column

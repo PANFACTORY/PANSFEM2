@@ -16,37 +16,61 @@
 
 namespace PANSFEM2 {
 	//******************************Heat transfer matrix******************************
-	template<class T>
-	HeatTransferTri(Matrix<T>& _Ke, std::vector<Vector<T> >& _nodes, std::vector<int>& _element, T _alpha, T _t) {
-		//.....Get element matrix.....
+	template<class T, template<class>class SF, template<class>class IC>
+	void HeatTransfer(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _alpha, T _t) {
+		//----------Initialize element matrix----------
 		_Ke = Matrix<T>(_element.size(), _element.size());
 
-		//.....Get space of element.....
-		T A = 0.5*((_nodes[_element[0]](0) - _nodes[_element[2]](0))*(_nodes[_element[1]](1) - _nodes[_element[2]](1)) - (_nodes[_element[2]](1) - _nodes[_element[0]](1))*(_nodes[_element[2]](0) - _nodes[_element[1]](0)));
+		//----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			for(int j = 0; j < 2; j++){
+				X(i, j) = _x[_element[i]](j);
+			}
+		}
 
-		//.....Make B matrix.....
-		Matrix<T> B = Matrix<T>(2, 3);
-		B(0, 0) = _nodes[_element[1]](1) - _nodes[_element[2]](1);	B(0, 1) = _nodes[_element[2]](1) - _nodes[_element[0]](1);	B(0, 2) = _nodes[_element[0]](1) - _nodes[_element[1]](1);
-		B(1, 0) = _nodes[_element[2]](0) - _nodes[_element[1]](0);	B(1, 1) = _nodes[_element[0]](0) - _nodes[_element[2]](0);	B(1, 2) = _nodes[_element[1]](0) - _nodes[_element[0]](0);
-		B /= (2.0*A);
+		//----------Loop of Gauss Integration----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get difference of shape function----------
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
-		_Ke += _alpha * B.Transpose()*B*_t;
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr * X;
+			T J = dXdr.Determinant();
+			Matrix<T> B = dXdr.Inverse() * dNdr;
+
+			//----------Update element stiffness matrix----------
+			_Ke += B.Transpose()*B*J*_alpha*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+		}
 	}
 
 
 	//******************************Heat capacity matrix******************************
-	template<class T>
-	HeatCapacityTri(Matrix<T>& _Ce, std::vector<Vector<T> >& _nodes, std::vector<int>& _element, T _rho, T _c, T _t) {
-		//.....Get element matrix.....
+	template<class T, template<class>class SF, template<class>class IC>
+	void HeatCapacity(Matrix<T>& _Ce, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _rho, T _c, T _t) {
+		//----------Get element matrix----------
 		_Ce = Matrix<T>(_element.size(), _element.size());
 		
-		//.....Get space of element.....
-		T A = 0.5*((_nodes[_element[0]][0] - _nodes[_element[2]][0])*(_nodes[_element[1]][1] - _nodes[_element[2]][1]) - (_nodes[_element[2]][1] - _nodes[_element[0]][1])*(_nodes[_element[2]][0] - _nodes[_element[1]][0]));
+		//----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			for(int j = 0; j < 2; j++){
+				X(i, j) = _x[_element[i]](j);
+			}
+		}
 
-		//.....Make C matrix.....
-		_Ce(0, 0) = 1.0 / 6.0;	_Ce(0, 1) = 1.0 / 12.0;	_Ce(0, 2) = 1.0 / 12.0;
-		_Ce(1, 0) = 1.0 / 12.0;	_Ce(1, 1) = 1.0 / 6.0;	_Ce(1, 2) = 1.0 / 12.0;
-		_Ce(2, 0) = 1.0 / 12.0;	_Ce(2, 1) = 1.0 / 12.0;	_Ce(2, 2) = 1.0 / 6.0;
-		_Ce *= (_rho * _c*A*_t);
+		//----------Loop of Gauss Integration----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get shape function and difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr * X;
+			T J = dXdr.Determinant();
+
+			//----------Make C matrix----------
+			_Ce += N*N.Transpose()*J*_rho*_c*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+		}
 	}
 }

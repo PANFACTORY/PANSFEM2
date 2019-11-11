@@ -45,6 +45,7 @@ public:
         Vector<T> operator+(const Vector<T>& _vec);
         Vector<T> operator-(const Vector<T>& _vec);
         T operator*(const Vector<T>& _vec);
+        Matrix<T> operator*(const Matrix<T>& _mat);
         Vector<T> operator*(T _a);
         Vector<T> operator/(T _a);
 
@@ -56,6 +57,7 @@ public:
 
 
         T Norm();
+        Matrix<T> Transpose();
 
 
 protected:
@@ -205,6 +207,19 @@ protected:
 
 
     template<class T>
+    Matrix<T> Vector<T>::operator*(const Matrix<T>& _mat){
+        assert(_mat.row == 1);
+        Matrix<T> mat = Matrix<T>(this->size, _mat.col);
+        for(int i = 0; i < mat.row; i++){
+            for(int j = 0; j < mat.col; j++){
+                mat.values[i * mat.col + j] = this->values[i] * _mat.values[j];
+            }
+        }
+        return mat;
+    }
+
+
+    template<class T>
     Vector<T> Vector<T>::operator*(T _a){
         Vector<T> vec = *this;
         for(int i = 0; i < vec.size; i++){
@@ -240,5 +255,15 @@ protected:
             value += pow(this->values[i], 2.0);
         }
         return sqrt(value);
+    }
+
+
+    template<class T>
+    Matrix<T> Vector<T>::Transpose(){
+        Matrix<T> mat = Matrix<T>(1, this->size);
+        for(int i = 0; i < mat.row * mat.col; i++){
+            mat.values[i] = this->values[i];
+        }
+        return mat;
     }
 }

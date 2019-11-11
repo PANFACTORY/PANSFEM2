@@ -45,7 +45,7 @@ public:
 
 
 	template<class T>
-	const std::vector<std::vector<T> > Gauss1Triangle<T>::Points = { 
+	const std::vector<std::vector<T> > Gauss4Square<T>::Points = { 
 													{ -1.0 / sqrt(3.0), -1.0 / sqrt(3.0) },
 													{  1.0 / sqrt(3.0), -1.0 / sqrt(3.0) },
 													{ -1.0 / sqrt(3.0),  1.0 / sqrt(3.0) },
@@ -54,11 +54,49 @@ public:
 
 
 	template<class T>
-	const std::vector<std::vector<T> > Gauss1Triangle<T>::Weights = { 
+	const std::vector<std::vector<T> > Gauss4Square<T>::Weights = { 
 													{ 1.0, 1.0 },
 													{ 1.0, 1.0 },
 													{ 1.0, 1.0 },
 													{ 1.0, 1.0 }
+												};
+	
+
+	//********************GaussIntegrationConstant2D9Points********************
+	template<class T>
+	class Gauss9Square{
+public:
+		static const int N = 9;								//Number of integration point
+		static const std::vector<std::vector<T> > Points;	//Cordinate values of integration point
+		static const std::vector<std::vector<T> > Weights;	//Weights of integration point
+	};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss9Square<T>::Points = { 
+													{ -sqrt(3.0 / 5.0), -sqrt(3.0 / 5.0) },
+													{ 0.0,				-sqrt(3.0 / 5.0) },
+													{  sqrt(3.0 / 5.0), -sqrt(3.0 / 5.0) },
+													{ -sqrt(3.0 / 5.0), 0.0				 },
+													{ 0.0, 				0.0				 },
+													{  sqrt(3.0 / 5.0), 0.0				 },
+													{ -sqrt(3.0 / 5.0),  sqrt(3.0 / 5.0) },
+													{ 0.0,				 sqrt(3.0 / 5.0) },
+													{  sqrt(3.0 / 5.0),  sqrt(3.0 / 5.0) }
+												};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss9Square<T>::Weights = { 
+													{ 5.0 / 9.0, 5.0 / 9.0 },
+													{ 8.0 / 9.0, 5.0 / 9.0 },
+													{ 5.0 / 9.0, 5.0 / 9.0 },
+													{ 5.0 / 9.0, 8.0 / 9.0 },
+													{ 8.0 / 9.0, 8.0 / 9.0 },
+													{ 5.0 / 9.0, 8.0 / 9.0 },
+													{ 5.0 / 9.0, 5.0 / 9.0 },
+													{ 8.0 / 9.0, 5.0 / 9.0 },
+													{ 5.0 / 9.0, 5.0 / 9.0 }
 												};
 
 

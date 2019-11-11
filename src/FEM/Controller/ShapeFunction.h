@@ -15,7 +15,35 @@
 
 
 namespace PANSFEM2 {
-	//********************8NodesIsoParametricElement********************
+	//********************3NodesTriangle********************
+	template<class T>
+	class ShapeFunction3Triangle {
+public:
+		static Vector<T> N(const std::vector<T>& _r);
+		static Matrix<T> dNdr(const std::vector<T>& _r);
+	};
+
+
+	template<class T>
+	Vector<T> ShapeFunction3Triangle<T>::N(const std::vector<T>& _r) {
+		Vector<T> N = Vector<T>(3);
+		N(0) = _r[0];
+		N(1) = _r[1];
+		N(2) = 1.0 - _r[0] - _r[1];
+		return N;
+	}
+
+
+	template<class T>
+	Matrix<T> ShapeFunction3Triangle<T>::dNdr(const std::vector<T>& _r) {
+		Matrix<T> dNdr = Matrix<T>(2, 3);
+		dNdr(0, 0) = 1.0;	dNdr(0, 1) = 0.0;	dNdr(0, 2) = -1.0;	
+		dNdr(1, 0) = 0.0;	dNdr(1, 1) = 1.0;	dNdr(1, 2) = -1.0;	
+		return dNdr;
+	}
+
+
+	//********************8NodesCubic********************
 	template<class T>
 	class ShapeFunction8Cubic{
 public:

@@ -58,6 +58,7 @@ public:
 
         T Norm();
         Matrix<T> Transpose();
+        Vector<T> Vstack(const Vector<T>& _vec);
 
 
 protected:
@@ -265,5 +266,18 @@ protected:
             mat.values[i] = this->values[i];
         }
         return mat;
+    }
+
+
+    template<class T>
+    Vector<T> Vector<T>::Vstack(const Vector<T>& _vec){
+        Vector<T> vec = Vector<T>(this->size + _vec.size);
+        for(int i = 0; i < this->size; i++){
+            vec.values[i] = this->values[i];
+        }
+        for(int i = 0; i < _vec.size; i++){
+            vec.values[i + this->size] = _vec.values[i];
+        }
+        return vec;
     }
 }

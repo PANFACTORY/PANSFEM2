@@ -1,5 +1,5 @@
 //*****************************************************************************
-//Title		:src/FEM/Equation/HeatTransfer.h
+//Title		:src/FEM/Equation/Advection.h
 //Author	:Tanabe Yuta
 //Date		:2019/10/03
 //Copyright	:(C)2019 TanabeYuta
@@ -15,45 +15,66 @@
 
 
 namespace PANSFEM2 {
-	//******************************�񎟌��ڗ��������̈ڗ��}�g���N�X�𐶐�******************************
-	template<class T>
-	std::vector<std::vector<T> > AdvectionTri(std::vector<std::vector<T> >& _nodes, std::vector<int>& _element, T _cx, T _cy, T _t) {
-		//.....�v�f�ʐ�.....
-		T A = 0.5*((_nodes[_element[0]][0] - _nodes[_element[2]][0])*(_nodes[_element[1]][1] - _nodes[_element[2]][1]) - (_nodes[_element[2]][1] - _nodes[_element[0]][1])*(_nodes[_element[2]][0] - _nodes[_element[1]][0]));
+	//******************************Get element advection matrix******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void Advection(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _cx, T _cy, T _t) {
+		//----------Initialize element matrix----------
+		_Ke = Matrix<T>(_element.size(), _element.size());
 
-		//.....B�}�g���N�X.....
-		std::vector<std::vector<T> > B = std::vector<std::vector<T> >(2, std::vector<T>(3));
-		B[0][0] = _nodes[_element[1]][1] - _nodes[_element[2]][1];	B[0][1] = _nodes[_element[2]][1] - _nodes[_element[0]][1];	B[0][2] = _nodes[_element[0]][1] - _nodes[_element[1]][1];
-		B[1][0] = _nodes[_element[2]][0] - _nodes[_element[1]][0];	B[1][1] = _nodes[_element[0]][0] - _nodes[_element[2]][0];	B[1][2] = _nodes[_element[1]][0] - _nodes[_element[0]][0];
-		B /= (2.0*A);
+		//----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			for(int j = 0; j < 2; j++){
+				X(i, j) = _x[_element[i]](j);
+			}
+		}
 
-		//.....N�}�g���N�X.....
-		std::vector<std::vector<T> > N = std::vector<std::vector<T> >(3, std::vector<T>(1));
-		N[0][0] = A / 3.0;
-		N[1][0] = A / 3.0;
-		N[2][0] = A / 3.0;
+		//----------Loop of Gauss Integration----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get shape function and difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
-		//.....�ڗ����x�}�g���N�X.....
-		std::vector<T> c = { _cx, _cy };
-		std::vector<std::vector<T> > C = Transpose(c);	
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr * X;
+			T J = dXdr.Determinant();
+			Matrix<T> B = dXdr.Inverse() * dNdr;
 
-		return N*C*B*_t;
+			//----------Generate advection velocity----------
+			Vector<T> c = Vector<T>({ _cx, _cy });
+
+			//----------Update element advection matrix----------
+			_Ke += N*c.Transpose()*B*J*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+		}
 	}
 
 
-	//******************************�񎟌����ʃ}�g���N�X�𐶐�******************************
-	template<class T>
-	std::vector<std::vector<T> > MassTri(std::vector<std::vector<T> >& _nodes, std::vector<int>& _element, T _t) {
-		//.....�v�f�ʐ�.....
-		T A = 0.5*((_nodes[_element[0]][0] - _nodes[_element[2]][0])*(_nodes[_element[1]][1] - _nodes[_element[2]][1]) - (_nodes[_element[2]][1] - _nodes[_element[0]][1])*(_nodes[_element[2]][0] - _nodes[_element[1]][0]));
+	//******************************Get element mass matrix******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void Mass(Matrix<T>& _Ce, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _t) {
+		//----------Get element matrix----------
+		_Ce = Matrix<T>(_element.size(), _element.size());
+		
+		//----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			for(int j = 0; j < 2; j++){
+				X(i, j) = _x[_element[i]](j);
+			}
+		}
 
-		//.....Me�}�g���N�X.....
-		std::vector<std::vector<T> > Me = std::vector<std::vector<T> >(3, std::vector<T>(3, T()));
-		Me[0][0] = 1.0 / 6.0;	Me[0][1] = 1.0 / 12.0;	Me[0][2] = 1.0 / 12.0;
-		Me[1][0] = 1.0 / 12.0;	Me[1][1] = 1.0 / 6.0;	Me[1][2] = 1.0 / 12.0;
-		Me[2][0] = 1.0 / 12.0;	Me[2][1] = 1.0 / 12.0;	Me[2][2] = 1.0 / 6.0;
-		Me *= (A*_t);
+		//----------Loop of Gauss Integration----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get shape function and difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
-		return Me;
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr * X;
+			T J = dXdr.Determinant();
+
+			//----------Make C matrix----------
+			_Ce += N*N.Transpose()*J*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+		}
 	}
 }

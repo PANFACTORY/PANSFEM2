@@ -46,11 +46,40 @@ int main() {
 	std::vector<double> qfixed;
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
 
+<<<<<<< Updated upstream:sample/solid/sample_totallagrange.cpp
 	//----------Set initial displacement u----------
 	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size(), Vector<double>(3)); 
 			
 	//----------Save initial value----------
 	std::ofstream fout(model_path + "result" + std::to_string(0) + ".vtk");
+=======
+	//----------Add Initial Condition----------
+	std::vector<std::vector<double> > u = std::vector<std::vector<double> >(nodes.size(), std::vector<double>(3, 0.0));
+
+	//----------Culculate Ke Fe and Assembling----------
+	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
+	for (auto element : elements) {
+		std::vector<std::vector<double> > Ke;
+		std::vector<double> Qe;
+		LinearIsotropicElasticSolid3(Ke, nodes, element, 1000.0, 0.3);
+		Assembling(K, F, Ke, Qe, element, field);
+	}
+
+	//----------Set Neumann Boundary Condition----------
+	SetNeumann(F, isqfixed, qfixed);
+
+	//----------Set Dirichlet Boundary Condition----------
+	SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
+
+	//----------Solve System Equation----------
+	CSR<double> Kmod = CSR<double>(K);
+	//CSR<double> M = ILU0(Kmod);
+	std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
+	
+	//----------Save file----------
+	/*std::ofstream fout(model_path + "result" + std::to_string(0) + ".vtk");
+>>>>>>> Stashed changes:PANSFEM2/main.cpp
 	MakeHeadderToVTK(fout);
 	AddPointsToVTK(nodes, fout);
 	AddElementToVTK(elements, fout);
@@ -121,7 +150,12 @@ int main() {
 		AddElementTypes(et, fout);
 		AddPointVectors(u, "u", fout);
 		fout.close();
+<<<<<<< Updated upstream:sample/solid/sample_totallagrange.cpp
 	}
 
+=======
+	}*/
+	
+>>>>>>> Stashed changes:PANSFEM2/main.cpp
 	return 0;
 }

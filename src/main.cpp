@@ -21,11 +21,11 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/Optimize/";
+	std::string model_path = "sample/optimize/";
 	
 	//----------Add Nodes----------
-	std::vector<Vector<double> > nodes;
-	ImportNodesFromCSV(nodes, model_path + "Node.csv");
+	std::vector<Vector<double> > X;
+	ImportNodesFromCSV(X, model_path + "Node.csv");
 	
 	//----------Add Elements----------
 	std::vector<std::vector<int> > elements;
@@ -34,7 +34,7 @@ int main() {
 	//----------Add Field----------
 	std::vector<int> field;
 	int KDEGREE = 0;
-	ImportFieldFromCSV(field, KDEGREE, nodes.size(), model_path + "Field.csv");
+	ImportFieldFromCSV(field, KDEGREE, X.size(), model_path + "Field.csv");
 
 	//----------Add Dirichlet Condition----------
 	std::vector<int> isufixed;
@@ -47,7 +47,9 @@ int main() {
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
 
 	//----------Initialize design variables----------
-	std::vector<double> s = std::vector<double>(elements.size(), 0.5);
+	std::vector<double> xk = std::vector<double>(elements.size(), 0.5);
+	std::vector<double> xkm1 = std::vector<double>(elements.size());
+	std::vector<double> xkm2 = std::vector<double>(elements.size());
 
 	//----------Define design parameters----------
 	double E0 = 0.001;
@@ -57,6 +59,7 @@ int main() {
 
 	std::vector<double> L = std::vector<double>(elements.size());
 	std::vector<double> U = std::vector<double>(elements.size());
+	double s = 0.7;
 	
 	double weightlimit = 0.5;
 	double compliancebefore = 0.0;
@@ -74,9 +77,9 @@ int main() {
 		LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
 		std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 		for (int i = 0; i < elements.size(); i++) {
-			double E = E1 * pow(s[i], p) + E0 * (1.0 - pow(s[i], p));
+			double E = E1 * pow(xk[i], p) + E0 * (1.0 - pow(xk[i], p));
 			Matrix<double> Ke;
-			LinearIsotropicElasticSolid<double, ShapeFunction20Cubic, Gauss27Cubic >(Ke, nodes, elements[i], E, Poisson);
+			LinearIsotropicElasticSolid<double, ShapeFunction20Cubic, Gauss27Cubic >(Ke, X, elements[i], E, Poisson);
 			Assembling(K, Ke, elements[i], field);
 		}
 		
@@ -97,38 +100,51 @@ int main() {
 		//----------Save file----------
 		std::ofstream fout(model_path + "result" + std::to_string(k) + ".vtk");
 		MakeHeadderToVTK(fout);
-		AddPointsToVTK(nodes, fout);
+		AddPointsToVTK(X, fout);
 		AddElementToVTK(elements, fout);
 		std::vector<int> et = std::vector<int>(elements.size(), 25);
 		AddElementTypes(et, fout);
 		AddPointVectors(u, "u", fout);
-		AddElementScalers(s, "s", fout);
+		AddElementScalers(xk, "s", fout);
 		fout.close();
 
 
 		//**************************************************
-		//	Get sensitivity and update design variables
+		//	Update design variables with MMA
 		//**************************************************
-		double compliance = 0.0;													//Function value of compliance
-		std::vector<double> dcompliances = std::vector<double>(elements.size());	//Sensitivities of compliance
-		double weight = 0.0;														//Function values of weight
-		std::vector<double> dweights = std::vector<double>(elements.size());		//Sensitivities of weight
+		double compliance = 0.0;																				//Function value of compliance
+		std::vector<double> p0 = std::vector<double>(elements.size(), 0.0);										//Positive sensitivities of compliance
+		std::vector<double> q0 = std::vector<double>(elements.size(), 0.0);										//Negative sensitivities of compliance
+		double weight = 0.0;																					//Function values of weight
+		std::vector<Vector<double> > ps = std::vector<Vector<double> >(elements.size(), Vector<double>(1));		//Positive sensitivities of weight
+		std::vector<Vector<double> > qs = std::vector<Vector<double> >(elements.size(), Vector<double>(1));		//Negative sensitivities of weight
 
 		//----------Get function values and sensitivities----------
 		for (int i = 0; i < elements.size(); i++) {
+			//.....Objective function.....
 			Vector<double> ue = Vector<double>();
 			for(int j = 0; j < elements[i].size(); j++){
 				ue = ue.Vstack(u[elements[i][j]]);
 			}
-
 			Matrix<double> Ke;
-			LinearIsotropicElasticSolid<double, ShapeFunction20Cubic, Gauss27Cubic >(Ke, nodes, elements[i], 1.0, Poisson);
+			LinearIsotropicElasticSolid<double, ShapeFunction20Cubic, Gauss27Cubic >(Ke, X, elements[i], 1.0, Poisson);
 			double ueKeue = (ue.Transpose()*Ke*ue)(0);
+			compliance += (E1 * pow(xk[i], p) + E0 * (1.0 - pow(xk[i], p))) * ueKeue;
+			double dcompliance = p * (E1 * pow(xk[i], p - 1.0) - E0 * pow(xk[i], p - 1.0)) * ueKeue;
+			if (dcompliance > 0.0) {
+				p0[i] = dcompliance;
+			} else {
+				q0[i] = dcompliance;
+			}
 
-			compliance += (E1 * pow(s[i], p) + E0 * (1.0 - pow(s[i], p))) * ueKeue;
-			dcompliances[i] += p * (E1 * pow(s[i], p - 1.0) - E0 * pow(s[i], p - 1.0)) * ueKeue;
-			weight += s[i] - weightlimit;
-			dweights[i] = 1.0;
+			//.....Constraint functions.....
+			weight += xk[i] - weightlimit;
+			double dweight = 1.0;
+			if (dweight > 0.0) {
+				ps[i](0) = dweight;
+			} else {
+				qs[i](0) = dweight;
+			}
 		}
 
 		//----------Check convergence----------
@@ -140,57 +156,58 @@ int main() {
 		std::cout << "Compliance:\t" << compliance << "\t";
 		std::cout << "Weight:\t" << weight << "\t";
 
-		//----------Get updated design variables with MMA----------
 		//----------Set parameter U and L----------
 		if(k < 2){
-
+			for(int i = 0; i < elements.size(); i++){
+				L[i] = xk[i] - (1.0 - 0.0);
+				U[i] = xk[i] + (1.0 - 0.0);
+			}
 		} else {
-
+			for(int i = 0; i < elements.size(); i++){
+				if((xk[i] - xkm1[i])*(xkm1[i] - xkm2[i]) < 0.0){
+					L[i] = xk[i] - s*(xkm1[i] - L[i]);
+					U[i] = xk[i] + s*(U[i] - xkm1[i]);
+				} else {
+					L[i] = xk[i] - (xkm1[i] - L[i])/s;
+					U[i] = xk[i] + (U[i] - xkm1[i])/s;
+				}
+			}
 		}
 
 		//----------Set move limit----------
-		std::vector<double> smin = std::vector<double>(elements.size());
-		std::vector<double> smax = std::vector<double>(elements.size());
+		std::vector<double> xmin = std::vector<double>(elements.size());
+		std::vector<double> xmax = std::vector<double>(elements.size());
 		for(int i = 0; i < elements.size(); i++){
-			
+			xmin[i] = 0.9*L[i] + 0.1*xk[i];
+			xmax[i] = 0.9*U[i] + 0.1*xk[i];
 		}
 
+		//----------Loop for solving subproblem----------
+		std::vector<double> xkp1 = std::vector<double>(elements.size());
+		Vector<double> y = Vector<double>(1);
+		for(int t = 0; t < 100; t++){
+			//.....Get x(y).....
+			for(int i = 0; i < elements.size(); i++){
+				double dlmin = (p0[i] + y*ps[i]) / pow(U[i] - xmin[i], 2.0) - (q0[i] + y*qs[i]) / pow(xmin[i] - L[i], 2.0);
+				double dlmax = (p0[i] + y*ps[i]) / pow(U[i] - xmax[i], 2.0) - (q0[i] + y*qs[i]) / pow(xmax[i] - L[i], 2.0);
 
-
-		double lambda0 = lambdamin, lambda1 = lambdamax, lambda;
-		std::vector<double> snext = std::vector<double>(elements.size());
-		while((lambda1 - lambda0) / (lambda1 + lambda0) > lambdaeps){
-			lambda = 0.5 * (lambda1 + lambda0);
-
-			for (int i = 0; i < elements.size(); i++) {
-				snext[i] = pow(dcompliances[i] / (dweights[i] * lambda), iota) * s[i];
-				if(snext[i] < std::max(0.0, (1.0 - movelimit)*s[i])) {
-					snext[i] = std::max(0.0, (1.0 - movelimit)*s[i]);
-				} else if(snext[i] > std::min(1.0, (1.0 + movelimit)*s[i])) {
-					snext[i] = std::min(1.0, (1.0 + movelimit)*s[i]);
+				if (dlmax >= 0.0) {
+					xkp1[i] = xmin[i];
+				} else if (dlmax <= 0.0) {
+					xkp1[i] = xmax[i];
+				} else {
+					xkp1[i] = (sqrt(p0[i] + y*ps[i])*L[i] + sqrt(q0[i] + y*qs[i])*U[i]) / (sqrt(p0[i] + y*ps[i]) + sqrt(q0[i] + y*qs[i]));
 				}
 			}
 
-			double weightnext = 0.0;
-			for (int i = 0; i < elements.size(); i++) {
-				weightnext += snext[i] - weightlimit;
-			}
+			//.....Get y.....
 
-			if (weightnext > 0.0) {
-				lambda0 = lambda;
-			}
-			else {
-				lambda1 = lambda;
-			}
 		}
 
-		std::cout << "Lagrange value:\t" << lambda << std::endl;
+		//----------Update xk----------
+		
 
-		//----------Update design variables and compliance----------
-		for (int i = 0; i < elements.size(); i++) {
-			s[i] = snext[i];
-		}
-		compliancebefore = compliance;
+		
 	}
 	
 	return 0;

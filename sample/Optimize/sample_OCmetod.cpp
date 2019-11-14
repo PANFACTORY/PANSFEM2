@@ -21,7 +21,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/Optimize/";
+	std::string model_path = "sample/optimize/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;

@@ -380,14 +380,14 @@ std::vector<T> Scaling(std::vector<T>& _D, std::vector<T>& _b) {
 }
 
 
-//********************�Ίp�X�P�[�����O�O�����t��CG�@********************
+//********************Scaling preconditioning CG method********************
 template<class T>
 std::vector<T> ScalingCG(CSR<T> &_A, std::vector<T> &_b, int _itrmax, T _eps) {
-	//----------������----------
-	std::vector<T> D = GetScaling(_A);					//�O�����p�Ίp�s��
+	//----------Initialize----------
+	std::vector<T> D = GetScaling(_A);				//Scaling A matrix
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
-	std::vector<T> pk = Scaling(D, rk);				//�O����
+	std::vector<T> pk = Scaling(D, rk);				//Scaling rk
 	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
 
 	std::vector<T> Mrk = Scaling(D, rk);			//�O����

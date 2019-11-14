@@ -102,7 +102,21 @@ namespace PANSFEM2 {
 
 
 	//********************Add Point Tensors********************
+
+
 	//********************Add Element Scalers********************
+	template<class T>
+	void AddElementScalers(std::vector<T> _values, std::string _symbol, std::ofstream& _fout) {
+		_fout << "\nCELL_DATA\t" << _values.size() << "\n";
+		_fout << "SCALARS " << _symbol << " float\n";
+		_fout << "LOOKUP_TABLE default\n";
+
+		for (auto value : _values) {
+			_fout << value << std::endl;
+		}
+	}
+
+
 	//********************Add Element Vectors********************
 	//********************Add Element Tensors********************
 }

@@ -45,6 +45,17 @@ private:
 
         std::vector<T> xkm1;    //Design variables of previous step
         std::vector<T> xkm2;    //Design variables of previous 2 step
+
+
+		T h;					//Constant for line search
+		T epsalpha;				//Self epsilon for line search
+
+
+		T Wy(T _r0, const Vector<T>& _rs, 
+			const std::vector<T>& _p0, const std::vector<Vector<T> >& _ps, 
+			const std::vector<T>& _q0, const std::vector<Vector<T> >& _qs, 
+			const Vector<T>& _y, const std::vector<T>& _x);						//Function value of W(y)
+		Vector<T> dWy(const Vector<T>& _rs, const std::vector<Vector<T> >& _ps,  const std::vector<Vector<T> >& _qs, const std::vector<T>& _x);		//Derivatives of W(y) 
     };
 
 
@@ -64,6 +75,10 @@ private:
 
         this->xkm1 = std::vector<T>(this->n, T());
         this->xkm2 = std::vector<T>(this->n, T());
+
+
+		this->h = 0.01;
+		
     }
 
 
@@ -154,10 +169,7 @@ private:
 			}
 		}
 
-		Vector<T> rk = rs;
-		for(int j = 0; j < this->n; j++){
-			rk += ps[j] / (this->U[j] - xkp1[j]) + qs[j] / (xkp1[j] - this->L[j]);
-		} 
+		Vector<T> rk = dWy(rs, ps, qs, xkp1);
 		Vector<T> pk = rk;
 
 		for(int t = 0; t < 100; t++){
@@ -175,18 +187,33 @@ private:
 				}
 			}
 
-			//.....Get y.....
-			T alpha = 0.01;
-			Vector<T> ykp1 = yk + alpha*pk;
-			Vector<T> rkp1 = rs;
-			for(int j = 0; j < this->n; j++){
-				rkp1 += ps[j] / (this->U[j] - xkp1[j]) + qs[j] / (xkp1[j] - this->L[j]);
+			//.....Line search i.....
+			T alpha = T(), falpha = this->Wy(r0, rs, p0, ps, q0, qs, yk + alpha*pk, xkp1);
+			for(int l = 0; l < 100; l++){
+				alpha += this->h;
+				T falphap1 = this->Wy(r0, rs, p0, ps, q0, qs, yk + alpha*pk, xkp1);
+				if(falphap1 >= falpha){
+					break;
+				}
+				falpha = falphap1;
 			}
+
+			//.....Line serch ii.....
+			T alpha1, alpha2;
+			while((alpha2 - alpha1) / (alpha2 + alpha1) > epsalpha){
+				
+			}
+
+			//.....Update y.....
+			Vector<T> ykp1 = yk + alpha*pk;
+			Vector<T> rkp1 = dWy(rs, ps, qs, xkp1);
 			T beta = (rkp1*rkp1) / (rk*rk);
 			Vector<T> pkp1 = rkp1 + beta*pk;
+
 			yk = ykp1;
 			rk = rkp1;
 			pk = pkp1;
+
 			if(rk.Norm() < 1.0e-5){
 				break;
 			}
@@ -197,4 +224,27 @@ private:
         //----------Update step----------
         this->k++;
     }
+
+
+	template<class T>
+	inline T MMA<T>::Wy(T _r0, const Vector<T>& _rs, 
+			const std::vector<T>& _p0, const std::vector<Vector<T> >& _ps, 
+			const std::vector<T>& _q0, const std::vector<Vector<T> >& _qs, 
+			const Vector<T>& _y, const std::vector<T>& _x) {
+		T value = _r0 + _y*_rs;
+		for(int j = 0; j < this->n; j++){
+			value += (_p0[j] + _y*_ps[j]) / (this->U[j] - _x[j]) + (_q0[j] + _y*_qs[j]) / (_x[j] - this->L[j]);
+		}
+		return value;
+	}
+
+
+	template<class T>
+	inline Vector<T> dWy(const Vector<T>& _rs, const std::vector<Vector<T> >& _ps,  const std::vector<Vector<T> >& _qs, const std::vector<T>& _x) {
+		Vector<T> vec = _rs;
+		for(int j = 0; j < this->n; j++){
+			vec += _ps[j] / (this->U[j] - _x[j]) + _qs[j] / (_x[j] - this->L[j]);
+		}
+		return vec;
+	}
 }

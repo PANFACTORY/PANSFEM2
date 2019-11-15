@@ -23,7 +23,7 @@ public:
 
 
         bool IsConvergence(T _currentf0);
-        void UpdateVariables(std::vector<T>& _xk, T _objective, const std::vector<T>& _dobjective, const Vector<T>& _constraints, const std::vector<Vector<T> >& _dconstraints);
+        void UpdateVariables(std::vector<T>& _xk, T _objective, std::vector<T> _dobjective, Vector<T> _constraints, std::vector<Vector<T> > _dconstraints);
         
 
 private:
@@ -34,11 +34,11 @@ private:
         int k;                  //Count of iteration  
 
 
-        const T epsf0;          //Self epsilon for objective function value
+        T epsf0;				//Self epsilon for objective function value
         T beforef0;             //Objective function value of before step
 
 
-        const T s;              //
+        T s;					//
         std::vector<T> L;       //Parameter for MMA
         std::vector<T> U;       //Parameter for MMA
 
@@ -81,7 +81,7 @@ private:
 
 
     template<class T>
-    void UpdateVariables(std::vector<T>& _xk, T _objective, const std::vector<T>& _dobjective, const Vector<T>& _constraints, const std::vector<Vector<T> >& _dconstraints){
+    void MMA<T>::UpdateVariables(std::vector<T>& _xk, T _objective, std::vector<T> _dobjective, Vector<T> _constraints, std::vector<Vector<T> > _dconstraints){
         //----------Set parameter U and L----------
 		if(this->k < 2){
 			for(int j = 0; j < this->n; j++){
@@ -101,18 +101,31 @@ private:
 		}
 
         //----------Similerize objective function and constraint functions----------
-        T r0 = T();                                                                             //Objective function value at xk
+        T r0 = _objective;                                                                      //Objective function value at xk
         std::vector<T> p0 = std::vector<T>(this->n, T());                                       //Positive sensitivities of objective function
         std::vector<T> q0 = std::vector<T>(this->n, T());                                       //Negative sensitivities of objective function
-        Vector<T> bs = Vector<T>(this->m);                                                      //Constraint function values at xk
-        std::vector<Vector<T> > ps = std::vector<Vector<T> >(this->n, Vector<T>(this->m));      //Positive sensitivities of objective function
-        std::vector<Vector<T> > qs = std::vector<Vector<T> >(this->n, Vector<T>(this->m));      //Negative sensitivities of objective function
-        for(int j = 0; j < this->n; j++){
+		Vector<T> rs = _constraints;                                                 		    //Constraint function values at xk
+		std::vector<Vector<T> > ps = std::vector<Vector<T> >(this->n, Vector<T>(this->m));      //Positive sensitivities of objective function
+        std::vector<Vector<T> > qs = std::vector<Vector<T> >(this->n, Vector<T>(this->m));      //Negative sensitivities of objective function      
+		for(int j = 0; j < this->n; j++){
             //.....Objective function.....
+			if (_dobjective[j] > T()) {
+				p0[j] = pow(this->U[j] - _xk[j], 2.0)*_dobjective[j];
+				r0 -= p0[j] / (this->U[j] - _xk[j]);
+			} else {
+				q0[j] = -pow(_xk[j] - this->L[j], 2.0)*_dobjective[j];
+				r0 -= q0[j] / (_xk[j] - this->L[j]);
+			}
 
             //.....Constraint functions.....
             for(int i = 0; i < this->m; i++){
-                
+                if (_dconstraints[j](i) > T()) {
+					ps[j](i) = pow(this->U[j] - _xk[j], 2.0)*_dconstraints[j](i);
+					rs(i) -= ps[j](i) / (this->U[j] - _xk[j]);
+				} else {
+					qs[j](i) = -pow(_xk[j] - this->L[j], 2.0)*_dconstraints[j](i);
+					rs(i) -= qs[j](i) / (_xk[j] - this->L[j]);
+				}
             }
         }
 
@@ -120,44 +133,57 @@ private:
         std::vector<T> xmin = std::vector<T>(this->n);
 		std::vector<T> xmax = std::vector<T>(this->n);
 		for(int j = 0; j < this->n; j++){
-			xmin[j] = std::max(0.9*this->L[i] + 0.1*_xk[i], 0.0);
-			xmax[j] = std::min(0.9*this->U[i] + 0.1*_xk[i], 1.0);
+			xmin[j] = std::max(0.9*this->L[j] + 0.1*_xk[j], 0.0);
+			xmax[j] = std::min(0.9*this->U[j] + 0.1*_xk[j], 1.0);
 		}
 
         //----------Loop for solving subproblem----------
 		std::vector<T> xkp1 = std::vector<T>(this->n);
 		Vector<T> yk = Vector<T>(this->m);
 
-		Vector<T> rk = -b;
 		for(int j = 0; j < this->n; j++){
-			rk += ps[j] / (this->U[j] - _xk[j]) + qs[j] / (_xk[j] - this->L[j]);
+			T dlmin = (p0[j] + yk*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yk*qs[j]) / pow(xmin[j] - this->L[j], 2.0);
+			T dlmax = (p0[j] + yk*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yk*qs[j]) / pow(xmax[j] - this->L[j], 2.0);
+
+			if (dlmin >= T()) {
+				xkp1[j] = xmin[j];
+			} else if (dlmax <= T()) {
+				xkp1[j] = xmax[j];
+			} else {
+				xkp1[j] = (sqrt(p0[j] + yk*ps[j])*this->L[j] + sqrt(q0[j] + yk*qs[j])*this->U[j]) / (sqrt(p0[j] + yk*ps[j]) + sqrt(q0[j] + yk*qs[j]));
+			}
+		}
+
+		Vector<T> rk = rs;
+		for(int j = 0; j < this->n; j++){
+			rk += ps[j] / (this->U[j] - xkp1[j]) + qs[j] / (xkp1[j] - this->L[j]);
 		} 
-		Vector<double> pk = rk;
+		Vector<T> pk = rk;
 
 		for(int t = 0; t < 100; t++){
 			//.....Get x(y).....
-			for(int i = 0; i < elements.size(); i++){
-				double dlmin = (p0[i] + yk*ps[i]) / pow(U[i] - xmin[i], 2.0) - (q0[i] + yk*qs[i]) / pow(xmin[i] - L[i], 2.0);
-				double dlmax = (p0[i] + yk*ps[i]) / pow(U[i] - xmax[i], 2.0) - (q0[i] + yk*qs[i]) / pow(xmax[i] - L[i], 2.0);
+			for(int j = 0; j < this->n; j++){
+				T dlmin = (p0[j] + yk*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yk*qs[j]) / pow(xmin[j] - this->L[j], 2.0);
+				T dlmax = (p0[j] + yk*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yk*qs[j]) / pow(xmax[j] - this->L[j], 2.0);
 
-				if (dlmin >= 0.0) {
-					xkp1[i] = xmin[i];
-				} else if (dlmax <= 0.0) {
-					xkp1[i] = xmax[i];
+				if (dlmin >= T()) {
+					xkp1[j] = xmin[j];
+				} else if (dlmax <= T()) {
+					xkp1[j] = xmax[j];
 				} else {
-					xkp1[i] = (sqrt(p0[i] + yk*ps[i])*L[i] + sqrt(q0[i] + yk*qs[i])*U[i]) / (sqrt(p0[i] + yk*ps[i]) + sqrt(q0[i] + yk*qs[i]));
+					xkp1[j] = (sqrt(p0[j] + yk*ps[j])*this->L[j] + sqrt(q0[j] + yk*qs[j])*this->U[j]) / (sqrt(p0[j] + yk*ps[j]) + sqrt(q0[j] + yk*qs[j]));
 				}
 			}
 
 			//.....Get y.....
-			double alpha = 1;
-			Vector<double> ykp1 = yk + alpha*pk;
-			Vector<double> rkp1 = -b;
-			for(int i = 0; i < elements.size(); i++){
-				rkp1 += ps[i] / (U[i] - xkp1[i]) + qs[i] / (xkp1[i] - L[i]);
+			T alpha = 0.01;
+			Vector<T> ykp1 = yk + alpha*pk;
+			Vector<T> rkp1 = rs;
+			for(int j = 0; j < this->n; j++){
+				rkp1 += ps[j] / (this->U[j] - xkp1[j]) + qs[j] / (xkp1[j] - this->L[j]);
 			}
-			double beta = (rkp1*rkp1) / (rk*rk);
-			Vector<double> pkp1 = rkp1 + beta*pk;
+			T beta = (rkp1*rkp1) / (rk*rk);
+			Vector<T> pkp1 = rkp1 + beta*pk;
 			yk = ykp1;
 			rk = rkp1;
 			pk = pkp1;
@@ -165,7 +191,7 @@ private:
 				break;
 			}
 
-			std::cout << rk; 
+			std::cout << yk;
 		}
 
         //----------Update step----------

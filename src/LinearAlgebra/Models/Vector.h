@@ -44,6 +44,7 @@ public:
 
         Vector<T> operator+(const Vector<T>& _vec);
         Vector<T> operator-(const Vector<T>& _vec);
+        Vector<T> operator-();
         T operator*(const Vector<T>& _vec);
         Matrix<T> operator*(const Matrix<T>& _mat);
         Vector<T> operator*(T _a);
@@ -54,6 +55,8 @@ public:
 	    friend std::ostream& operator << (std::ostream& _out, const Vector<U>& _vec);
         template<class U>
         friend Vector<U> operator*(const Matrix<U>& _mat, const Vector<U>& _vec);
+        template<class U>
+        friend Vector<U> operator*(U _a, const Vector<U>& _vec);
 
 
         T Norm();
@@ -197,6 +200,16 @@ protected:
 
 
     template<class T>
+    Vector<T> Vector<T>::operator-(){
+        Vector<T> vec = *this;
+        for(int i = 0; i < vec.size; i++){
+            vec.values[i] *= -1;
+        }
+        return vec;
+    }
+
+
+    template<class T>
     T Vector<T>::operator*(const Vector<T>& _vec){
         assert(this->size == _vec.size);
         T value = T();
@@ -277,6 +290,16 @@ protected:
         }
         for(int i = 0; i < _vec.size; i++){
             vec.values[i + this->size] = _vec.values[i];
+        }
+        return vec;
+    }
+
+
+    template<class U>
+    Vector<U> operator*(U _a, const Vector<U>& _vec){
+        Vector<U> vec = _vec;
+        for(int i = 0; i < vec.size; i++){
+            vec.values[i] *= _a;
         }
         return vec;
     }

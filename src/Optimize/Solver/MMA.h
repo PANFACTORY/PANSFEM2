@@ -81,6 +81,7 @@ private:
 
 
 		this->alpha0 = 1.0;
+		this->rho = 0.5;
 		
 
 		this->V = 1.0e-5;

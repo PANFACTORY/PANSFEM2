@@ -47,15 +47,18 @@ private:
         std::vector<T> xkm2;    //Design variables of previous 2 step
 
 
-		T h;					//Constant for line search
-		T epsalpha;				//Self epsilon for line search
+		T alpha0;				//Constant for line search
+		T rho;					//Self epsilon for line search
 
 
-		T Wy(T _r0, const Vector<T>& _rs, 
-			const std::vector<T>& _p0, const std::vector<Vector<T> >& _ps, 
-			const std::vector<T>& _q0, const std::vector<Vector<T> >& _qs, 
-			const Vector<T>& _y, const std::vector<T>& _x);						//Function value of W(y)
-		Vector<T> dWy(const Vector<T>& _rs, const std::vector<Vector<T> >& _ps,  const std::vector<Vector<T> >& _qs, const std::vector<T>& _x);		//Derivatives of W(y) 
+		T V;					//Constant for penalty
+
+
+		T Wy(T _r0, Vector<T> _rs, 
+			std::vector<T> _p0, std::vector<Vector<T> > _ps, 
+			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
+			Vector<T> _y, std::vector<T> _x);						//Function value of W(y)
+		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, Vector<T> _y, std::vector<T> _x);		//Derivatives of W(y) 
     };
 
 
@@ -77,8 +80,10 @@ private:
         this->xkm2 = std::vector<T>(this->n, T());
 
 
-		this->h = 0.01;
+		this->alpha0 = 1.0;
 		
+
+		this->V = 1.0e-5;
     }
 
 
@@ -153,98 +158,94 @@ private:
 		}
 
         //----------Loop for solving subproblem----------
-		std::vector<T> xkp1 = std::vector<T>(this->n);
-		Vector<T> yk = Vector<T>(this->m);
-
+		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));					
+		
 		for(int j = 0; j < this->n; j++){
-			T dlmin = (p0[j] + yk*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yk*qs[j]) / pow(xmin[j] - this->L[j], 2.0);
-			T dlmax = (p0[j] + yk*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yk*qs[j]) / pow(xmax[j] - this->L[j], 2.0);
-
-			if (dlmin >= T()) {
-				xkp1[j] = xmin[j];
-			} else if (dlmax <= T()) {
-				xkp1[j] = xmax[j];
+			if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
+				_xk[j] = xmin[j];
+			} else if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
+				_xk[j] = xmax[j];
 			} else {
-				xkp1[j] = (sqrt(p0[j] + yk*ps[j])*this->L[j] + sqrt(q0[j] + yk*qs[j])*this->U[j]) / (sqrt(p0[j] + yk*ps[j]) + sqrt(q0[j] + yk*qs[j]));
+				_xk[j] = (sqrt(p0[j] + yl*ps[j])*this->L[j] + sqrt(q0[j] + yl*qs[j])*this->U[j]) / (sqrt(p0[j] + yl*ps[j]) + sqrt(q0[j] + yl*qs[j]));
 			}
 		}
 
-		Vector<T> rk = dWy(rs, ps, qs, xkp1);
-		Vector<T> pk = rk;
+		Vector<T> rl = -this->dWy(rs, ps, qs, yl, _xk);		//Derivatives of W(y) at xkp1
+		Vector<T> dl = rl;								//Direction for moving
 
-		for(int t = 0; t < 100; t++){
+		for(int l = 0; l < 100; l++){
 			//.....Get x(y).....
 			for(int j = 0; j < this->n; j++){
-				T dlmin = (p0[j] + yk*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yk*qs[j]) / pow(xmin[j] - this->L[j], 2.0);
-				T dlmax = (p0[j] + yk*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yk*qs[j]) / pow(xmax[j] - this->L[j], 2.0);
-
-				if (dlmin >= T()) {
-					xkp1[j] = xmin[j];
-				} else if (dlmax <= T()) {
-					xkp1[j] = xmax[j];
+				if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
+					_xk[j] = xmin[j];
+				} else if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
+					_xk[j] = xmax[j];
 				} else {
-					xkp1[j] = (sqrt(p0[j] + yk*ps[j])*this->L[j] + sqrt(q0[j] + yk*qs[j])*this->U[j]) / (sqrt(p0[j] + yk*ps[j]) + sqrt(q0[j] + yk*qs[j]));
+					_xk[j] = (sqrt(p0[j] + yl*ps[j])*this->L[j] + sqrt(q0[j] + yl*qs[j])*this->U[j]) / (sqrt(p0[j] + yl*ps[j]) + sqrt(q0[j] + yl*qs[j]));
 				}
 			}
 
-			//.....Line search i.....
-			T alpha = T(), falpha = this->Wy(r0, rs, p0, ps, q0, qs, yk + alpha*pk, xkp1);
-			for(int l = 0; l < 100; l++){
-				alpha += this->h;
-				T falphap1 = this->Wy(r0, rs, p0, ps, q0, qs, yk + alpha*pk, xkp1);
+			//.....Get step size with Armijo condition.....
+			T alpha = this->alpha0;
+			T falpha = this->Wy(r0, rs, p0, ps, q0, qs, yl + alpha*dl, _xk);
+			for(int l = 0; l < 1000000; l++){
+				alpha *= this->rho;
+				T falphap1 = this->Wy(r0, rs, p0, ps, q0, qs, yl + alpha*dl, _xk);
 				if(falphap1 >= falpha){
 					break;
 				}
 				falpha = falphap1;
 			}
 
-			//.....Line serch ii.....
-			T alpha1, alpha2;
-			while((alpha2 - alpha1) / (alpha2 + alpha1) > epsalpha){
-				
-			}
-
-			//.....Update y.....
-			Vector<T> ykp1 = yk + alpha*pk;
-			Vector<T> rkp1 = dWy(rs, ps, qs, xkp1);
-			T beta = (rkp1*rkp1) / (rk*rk);
-			Vector<T> pkp1 = rkp1 + beta*pk;
-
-			yk = ykp1;
-			rk = rkp1;
-			pk = pkp1;
-
-			if(rk.Norm() < 1.0e-5){
+			//.....Update yl and betal.....
+			yl += alpha*dl;
+			Vector<T> rlp1 = -this->dWy(rs, ps, qs, yl, _xk);
+			T beta = (rlp1*rlp1) / (rl*rl);
+			dl = rlp1 + beta*dl;
+			rl = rlp1;
+			
+			//.....Check KKT satisfied.....
+			if(yl.Norm() < 1.0e-5 || rl.Norm() < 1.0e-5){
+				std::cout << std::endl;
 				break;
 			}
 
-			std::cout << yk;
+			std::cout << std::endl << yl(0) << "\t" << rl(0) << "\t" << alpha;			
 		}
+		
 
         //----------Update step----------
         this->k++;
+		this->xkm2 = this->xkm1;
+		this->xkm1 = _xk;
     }
 
 
 	template<class T>
-	inline T MMA<T>::Wy(T _r0, const Vector<T>& _rs, 
-			const std::vector<T>& _p0, const std::vector<Vector<T> >& _ps, 
-			const std::vector<T>& _q0, const std::vector<Vector<T> >& _qs, 
-			const Vector<T>& _y, const std::vector<T>& _x) {
+	T MMA<T>::Wy(T _r0, Vector<T> _rs, 
+			std::vector<T> _p0, std::vector<Vector<T> > _ps, 
+			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
+			Vector<T> _y, std::vector<T> _x) {
 		T value = _r0 + _y*_rs;
 		for(int j = 0; j < this->n; j++){
 			value += (_p0[j] + _y*_ps[j]) / (this->U[j] - _x[j]) + (_q0[j] + _y*_qs[j]) / (_x[j] - this->L[j]);
 		}
-		return value;
+		for(int i = 0; i < this->m; i++){
+			value -= this->V*log(_y(i)); 
+		}
+		return -value;
 	}
 
 
 	template<class T>
-	inline Vector<T> dWy(const Vector<T>& _rs, const std::vector<Vector<T> >& _ps,  const std::vector<Vector<T> >& _qs, const std::vector<T>& _x) {
+	Vector<T> MMA<T>::dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, Vector<T> _y, std::vector<T> _x) {
 		Vector<T> vec = _rs;
 		for(int j = 0; j < this->n; j++){
 			vec += _ps[j] / (this->U[j] - _x[j]) + _qs[j] / (_x[j] - this->L[j]);
 		}
-		return vec;
+		for(int i = 0; i < this->m; i++){
+			vec(i) -= this->V/_y(i);
+		}
+		return -vec;
 	}
 }

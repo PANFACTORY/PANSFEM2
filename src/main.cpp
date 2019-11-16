@@ -59,7 +59,7 @@ int main() {
 	MMA<double> optimizer = MMA<double>(elements.size(), 1);
 	
 	//----------Optimize loop----------
-	for(int k = 0; k < 1; k++){
+	for(int k = 0; k < 50; k++){
 		std::cout << "k = " << k << "\t";
 
 		//**************************************************
@@ -121,7 +121,7 @@ int main() {
 			LinearIsotropicElasticSolid<double, ShapeFunction20Cubic, Gauss27Cubic >(Ke, X, elements[i], 1.0, Poisson);
 			double ueKeue = (ue.Transpose()*Ke*ue)(0);
 			compliance += (E1 * pow(s[i], p) + E0 * (1.0 - pow(s[i], p))) * ueKeue;
-			dcompliance[i] = p * (E1 * pow(s[i], p - 1.0) - E0 * pow(s[i], p - 1.0)) * ueKeue;
+			dcompliance[i] = -p * (E1 * pow(s[i], p - 1.0) - E0 * pow(s[i], p - 1.0)) * ueKeue;
 			
 			//.....Constraint functions.....
 			constraints(0) += s[i] - weightlimit;

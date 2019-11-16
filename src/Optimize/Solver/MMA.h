@@ -84,7 +84,7 @@ private:
 		this->rho = 0.5;
 		
 
-		this->V = 1.0e-5;
+		this->V = 1.0e-3;
     }
 
 
@@ -206,12 +206,12 @@ private:
 			rl = rlp1;
 			
 			//.....Check KKT satisfied.....
-			if(yl.Norm() < 1.0e-5 || rl.Norm() < 1.0e-5){
+			if(yl.Norm() < 1.0e-8 || rl.Norm() < 1.0e-8){
 				std::cout << std::endl;
 				break;
 			}
 
-			std::cout << std::endl << yl(0) << "\t" << rl(0) << "\t" << alpha;			
+			std::cout << std::endl << l << "\t" << yl(0) << "\t" << rl(0) << "\t" << alpha;			
 		}
 		
 

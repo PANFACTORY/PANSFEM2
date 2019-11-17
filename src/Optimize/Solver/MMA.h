@@ -82,9 +82,6 @@ private:
 
 		this->alpha0 = 1.0;
 		this->rho = 0.5;
-		
-
-		this->V = 1.0e-3;
     }
 
 
@@ -159,9 +156,9 @@ private:
 		}
 
         //----------Loop for solving subproblem----------
-		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));					
+		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0e-10));					
 		Matrix<T> Bl = Identity<T>(this->m);
-		for(int l = 0; l < 1; l++){
+		for(int l = 0; l < 100; l++){
 			//.....Get x(y).....
 			for(int j = 0; j < this->n; j++){
 				if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
@@ -185,20 +182,19 @@ private:
 			Vector<T> dyl = yz.Segment(0, this->m);
 			Vector<T> zlp1 = yz.Segment(this->m, this->m*2);
 
-			std::cout << std::endl << A << b << yz;
+			std::cout << yz.Transpose();
 
 			//.....Check KKT condition.....
-
-
+			if(dyl.Norm() < 1.0e-8){
+				//break;
+			}
+			
 			//.....Get step with Armijo condition.....
-			T alpha;
-
+			T alpha = 0.01;	
 			Vector<T> ylp1 = yl + alpha*dyl;
 
 			//.....Update Bl with BFGS.....
-
-
-			//std::cout << std::endl << l << "\t" << yl(0) << "\t" << rl(0) << "\t" << alpha;			
+			yl = ylp1;
 		}
 		
 

@@ -62,6 +62,7 @@ public:
         T Norm();
         Matrix<T> Transpose();
         Vector<T> Vstack(const Vector<T>& _vec);
+        Vector<T> Segment(int _head, int _tail);
 
 
 protected:
@@ -290,6 +291,17 @@ protected:
         }
         for(int i = 0; i < _vec.size; i++){
             vec.values[i + this->size] = _vec.values[i];
+        }
+        return vec;
+    }
+
+
+    template<class T>
+    Vector<T> Vector<T>::Segment(int _head, int _tail){
+        assert(_head >= 0 && _tail <= this->size && _head < _tail);
+        Vector<T> vec = Vector<T>(_tail - _head);
+        for(int i = 0; i < vec.size; i++){
+            vec.values[i] = this->values[_head + i];
         }
         return vec;
     }

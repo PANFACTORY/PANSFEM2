@@ -58,12 +58,18 @@ public:
         T Determinant();
         Matrix<T> Inverse();
         Matrix<T> Cofactor(int _i, int _j);
+        Matrix<T> Vstack(const Matrix<T>& _mat);
+        Matrix<T> Hstack(const Matrix<T>& _mat);
 
 
         template<class U>
         friend Matrix<U> Vector<U>::Transpose();
         template<class U>
         friend Matrix<U> Vector<U>::operator*(const Matrix<U>& _mat);
+
+
+        template<class U>
+        friend Matrix<U> Identity(int _row);
 
 
 protected:
@@ -328,6 +334,52 @@ protected:
                     }
                 }
             }
+        }
+        return mat;
+    }
+
+
+    template<class T>
+    Matrix<T> Matrix<T>::Vstack(const Matrix<T>& _mat){
+        assert(this->col == _mat.col);
+        Matrix<T> mat = Matrix<T>(this->row + _mat.row, this->col);
+        for(int i = 0; i < this->row; i++){
+            for(int j = 0; j < this->col; j++){
+                mat.values[i * mat.col + j] = this->values[i * this->col + j];
+            }
+        }
+        for(int i = 0; i < _mat.row; i++){
+            for(int j = 0; j < _mat.col; j++){
+                mat.values[(i + this->row) * mat.col + j] = _mat.values[i * _mat.col + j];
+            }
+        }
+        return mat;
+    }
+    
+    
+    template<class T>
+    Matrix<T> Matrix<T>::Hstack(const Matrix<T>& _mat){
+        assert(this->row == _mat.row);
+        Matrix<T> mat = Matrix<T>(this->row, this->col + _mat.col);
+        for(int i = 0; i < this->row; i++){
+            for(int j = 0; j < this->col; j++){
+                mat.values[i * mat.col + j] = this->values[i * this->col + j];
+            }
+        }
+        for(int i = 0; i < _mat.row; i++){
+            for(int j = 0; j < _mat.col; j++){
+                mat.values[i * mat.col + (j + this->col)] = _mat.values[i * _mat.col + j];
+            }
+        }
+        return mat;
+    }
+
+
+    template<class U>
+    Matrix<U> Identity(int _row){
+        Matrix<U> mat = Matrix<U>(_row, _row);
+        for(int i = 0; i < mat.row; i++){
+            mat.values[i * mat.col + i] = 1.0;
         }
         return mat;
     }

@@ -160,20 +160,7 @@ private:
 
         //----------Loop for solving subproblem----------
 		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));					
-		
-		for(int j = 0; j < this->n; j++){
-			if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-				_xk[j] = xmin[j];
-			} else if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-				_xk[j] = xmax[j];
-			} else {
-				_xk[j] = (sqrt(p0[j] + yl*ps[j])*this->L[j] + sqrt(q0[j] + yl*qs[j])*this->U[j]) / (sqrt(p0[j] + yl*ps[j]) + sqrt(q0[j] + yl*qs[j]));
-			}
-		}
-
-		Vector<T> rl = -this->dWy(rs, ps, qs, yl, _xk);		//Derivatives of W(y) at xkp1
-		Vector<T> dl = rl;								//Direction for moving
-
+		Matrix<T> Bl = Identity<T>(this->m);
 		for(int l = 0; l < 100; l++){
 			//.....Get x(y).....
 			for(int j = 0; j < this->n; j++){
@@ -186,32 +173,29 @@ private:
 				}
 			}
 
-			//.....Get step size with Armijo condition.....
-			T alpha = this->alpha0;
-			T falpha = this->Wy(r0, rs, p0, ps, q0, qs, yl + alpha*dl, _xk);
-			for(int l = 0; l < 1000000; l++){
-				alpha *= this->rho;
-				T falphap1 = this->Wy(r0, rs, p0, ps, q0, qs, yl + alpha*dl, _xk);
-				if(falphap1 >= falpha){
-					break;
-				}
-				falpha = falphap1;
-			}
+			//.....Get objective value and constraint at l.....
+			Vector<T> df = this->dWy(rs, ps, qs, yl, _xk);
+			Vector<T> g = -yl;
+			Matrix<T> dg = -Identity<T>(this->m);
 
-			//.....Update yl and betal.....
-			yl += alpha*dl;
-			Vector<T> rlp1 = -this->dWy(rs, ps, qs, yl, _xk);
-			T beta = (rlp1*rlp1) / (rl*rl);
-			dl = rlp1 + beta*dl;
-			rl = rlp1;
+			//.....Solve subproblem.....
+			Matrix<T> A = Bl.Hstack(dg).VStack(dg.Transpose().Hstsck(Matrix<T>(this->m, this->m)));
+			Vector<T> b = -df.Vstack(-g);
+			Vector<T> yz = A.Inverse()*b;
+			Vector<T> dyl = yz.Segment(0, this->m);
+			Vector<T> zlp1 = yz.Segment(this->m, this->m*2);
+
+			//.....Check KKT condition.....
+
+			//.....Get step with Armijo condition.....
+			T alpha;
+
+			Vector<T> ylp1 = yl + alpha*dyl;
+
+			//.....Update Bl with BFGS.....
 			
-			//.....Check KKT satisfied.....
-			if(yl.Norm() < 1.0e-8 || rl.Norm() < 1.0e-8){
-				std::cout << std::endl;
-				break;
-			}
 
-			std::cout << std::endl << l << "\t" << yl(0) << "\t" << rl(0) << "\t" << alpha;			
+			//std::cout << std::endl << l << "\t" << yl(0) << "\t" << rl(0) << "\t" << alpha;			
 		}
 		
 

@@ -21,7 +21,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-	/*//----------Model Path----------
+	//----------Model Path----------
 	std::string model_path = "sample/optimize/";
 	
 	//----------Add Nodes----------
@@ -59,7 +59,7 @@ int main() {
 	MMA<double> optimizer = MMA<double>(elements.size(), 1);
 	
 	//----------Optimize loop----------
-	for(int k = 0; k < 50; k++){
+	for(int k = 0; k < 1; k++){
 		std::cout << "k = " << k << "\t";
 
 		//**************************************************
@@ -139,21 +139,7 @@ int main() {
 
 		//----------Update s----------
 		optimizer.UpdateVariables(s, compliance, dcompliance, constraints, dconstraints);	
-	}*/
+	}
 
-	Matrix<double> A = Matrix<double>(2, 3);
-	A(0, 0) = 1.0;	A(0, 1) = 2.0;	A(0, 2) = 3.0;
-	A(1, 0) = 4.0;	A(1, 1) = 5.0;	A(1, 2) = 6.0;
-
-	Matrix<double> B = Matrix<double>(1, 3);
-	B(0, 0) = 7.0;	B(0, 1) = 8.0;	B(0, 2) = 9.0;
-
-	Matrix<double> C = Matrix<double>(3, 1);
-	C(0, 0) = 10.0;
-	C(1, 0) = 11.0;
-	C(2, 0) = 12.0;
-
-	std::cout << A.Vstack(B).Hstack(C) << std::endl;
-	
 	return 0;
 }

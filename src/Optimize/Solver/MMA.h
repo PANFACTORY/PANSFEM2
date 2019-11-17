@@ -58,7 +58,7 @@ private:
 			std::vector<T> _p0, std::vector<Vector<T> > _ps, 
 			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
 			Vector<T> _y, std::vector<T> _x);						//Function value of W(y)
-		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, Vector<T> _y, std::vector<T> _x);		//Derivatives of W(y) 
+		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, std::vector<T> _x);		//Derivatives of W(y) 
     };
 
 
@@ -161,7 +161,7 @@ private:
         //----------Loop for solving subproblem----------
 		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));					
 		Matrix<T> Bl = Identity<T>(this->m);
-		for(int l = 0; l < 100; l++){
+		for(int l = 0; l < 1; l++){
 			//.....Get x(y).....
 			for(int j = 0; j < this->n; j++){
 				if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
@@ -174,18 +174,21 @@ private:
 			}
 
 			//.....Get objective value and constraint at l.....
-			Vector<T> df = this->dWy(rs, ps, qs, yl, _xk);
+			Vector<T> df = this->dWy(rs, ps, qs, _xk);
 			Vector<T> g = -yl;
 			Matrix<T> dg = -Identity<T>(this->m);
 
 			//.....Solve subproblem.....
-			Matrix<T> A = Bl.Hstack(dg).VStack(dg.Transpose().Hstsck(Matrix<T>(this->m, this->m)));
+			Matrix<T> A = Bl.Hstack(dg).Vstack(dg.Transpose().Hstack(Matrix<T>(this->m, this->m)));
 			Vector<T> b = -df.Vstack(-g);
 			Vector<T> yz = A.Inverse()*b;
 			Vector<T> dyl = yz.Segment(0, this->m);
 			Vector<T> zlp1 = yz.Segment(this->m, this->m*2);
 
+			std::cout << std::endl << A << b << yz;
+
 			//.....Check KKT condition.....
+
 
 			//.....Get step with Armijo condition.....
 			T alpha;
@@ -193,7 +196,7 @@ private:
 			Vector<T> ylp1 = yl + alpha*dyl;
 
 			//.....Update Bl with BFGS.....
-			
+
 
 			//std::cout << std::endl << l << "\t" << yl(0) << "\t" << rl(0) << "\t" << alpha;			
 		}
@@ -215,21 +218,15 @@ private:
 		for(int j = 0; j < this->n; j++){
 			value += (_p0[j] + _y*_ps[j]) / (this->U[j] - _x[j]) + (_q0[j] + _y*_qs[j]) / (_x[j] - this->L[j]);
 		}
-		for(int i = 0; i < this->m; i++){
-			value -= this->V*log(_y(i)); 
-		}
 		return -value;
 	}
 
 
 	template<class T>
-	Vector<T> MMA<T>::dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, Vector<T> _y, std::vector<T> _x) {
+	Vector<T> MMA<T>::dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, std::vector<T> _x) {
 		Vector<T> vec = _rs;
 		for(int j = 0; j < this->n; j++){
 			vec += _ps[j] / (this->U[j] - _x[j]) + _qs[j] / (_x[j] - this->L[j]);
-		}
-		for(int i = 0; i < this->m; i++){
-			vec(i) -= this->V/_y(i);
 		}
 		return -vec;
 	}

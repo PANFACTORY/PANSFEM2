@@ -43,6 +43,7 @@ public:
 
         Matrix<T> operator+(const Matrix<T>& _mat);
         Matrix<T> operator-(const Matrix<T>& _mat);
+        Matrix<T> operator-();
         Matrix<T> operator*(const Matrix<T>& _mat);
         Matrix<T> operator*(T _a);
         Matrix<T> operator/(T _a);
@@ -203,6 +204,16 @@ protected:
         Matrix<T> mat = *this;
         for(int i = 0; i < mat.row * mat.col; i++){
             mat.values[i] -= _mat.values[i];
+        }
+        return mat;
+    }
+
+
+    template<class T>
+    Matrix<T> Matrix<T>::operator-(){
+        Matrix<T> mat = *this;
+        for(int i = 0; i < mat.row * mat.col; i++){
+            mat.values[i] *= -1.0;
         }
         return mat;
     }

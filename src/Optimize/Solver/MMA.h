@@ -82,9 +82,9 @@ private:
 
 		this->alpha0 = 1.0;
 		this->rho = 0.5;
+		
 
-
-		this->V = 1.0e-10;
+		this->V = 1.0e-3;
     }
 
 
@@ -154,24 +154,14 @@ private:
         std::vector<T> xmin = std::vector<T>(this->n);
 		std::vector<T> xmax = std::vector<T>(this->n);
 		for(int j = 0; j < this->n; j++){
-			xmin[j] = std::max(0.9*this->L[j] + 0.1*_xk[j], 0.0);
+			xmin[j] = std::max(0.9*this->L[j] + 0.1*_xk[j], 1.0e-10);
 			xmax[j] = std::min(0.9*this->U[j] + 0.1*_xk[j], 1.0);
 		}
 
         //----------Loop for solving subproblem----------
-		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0e-10));
-		for(int j = 0; j < this->n; j++){
-			if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-				_xk[j] = xmin[j];
-			} else if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-				_xk[j] = xmax[j];
-			} else {
-				_xk[j] = (sqrt(p0[j] + yl*ps[j])*this->L[j] + sqrt(q0[j] + yl*qs[j])*this->U[j]) / (sqrt(p0[j] + yl*ps[j]) + sqrt(q0[j] + yl*qs[j]));
-			}
-		}
-		Vector<T> rl = -this->dWy(rs, ps, qs, yl, _xk);
-		Vector<T> pl = rl;				
-		for(int l = 0; l < 1000; l++){
+		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0e-20));					
+		Matrix<T> Bl = Identity<T>(this->m);
+		for(int l = 0; l < 500; l++){
 			//.....Get x(y).....
 			for(int j = 0; j < this->n; j++){
 				if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
@@ -183,12 +173,27 @@ private:
 				}
 			}
 			
+			//.....Get objective value and constraint at l.....
+			Vector<T> df = this->dWy(rs, ps, qs, yl, _xk);
+			Vector<T> g = -yl;
+			Matrix<T> dg = -Identity<T>(this->m);
+
+			//.....Solve subproblem.....
+			Matrix<T> A = Bl.Hstack(dg).Vstack(dg.Transpose().Hstack(Matrix<T>(this->m, this->m)));
+			Vector<T> b = -df.Vstack(-g);
+			Vector<T> yz = A.Inverse()*b;
+			Vector<T> dyl = yz.Segment(0, this->m);
+			Vector<T> zlp1 = yz.Segment(this->m, this->m*2);
+
+			//.....Check KKT condition.....
+			
+
 			//.....Get step size with Armijo condition.....
 			T alpha = this->alpha0;
 			T c = 0.5;
 			for(int t = 0; t < 1000000; t++){
 				//.....Get x(y).....
-				Vector<T> ylp1 = yl + alpha*pl;
+				Vector<T> ylp1 = yl + alpha*dyl;
 				std::vector<T> xkp1 = std::vector<T>(this->n);
 				for(int j = 0; j < this->n; j++){
 					if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
@@ -201,28 +206,25 @@ private:
 				}
 
 				//.....Check Armijo condition.....
-				if(Wy(r0, rs, p0, ps, q0, qs, ylp1, xkp1) <= Wy(r0, rs, p0, ps, q0, qs, yl, xkp1) + c*dWy(rs, ps, qs, yl, xkp1)*alpha*pl){
+				if(Wy(r0, rs, p0, ps, q0, qs, ylp1, xkp1) <= Wy(r0, rs, p0, ps, q0, qs, yl, xkp1) + c*dWy(rs, ps, qs, yl, xkp1)*alpha*dyl){
 					break;
 				}
-				alpha *= this->rho;
+				alpha *= rho;
 			}
-			
-			//.....Update y.....
-			Vector<T> ylp1 = yl + alpha*pl;
-			Vector<T> rlp1 = -this->dWy(rs, ps, qs, ylp1, _xk);
-			T beta = (rlp1*rlp1) / (rl*rl);
-			Vector<T> plp1 = rlp1 + beta*pl;
-
+			Vector<T> ylp1 = yl + alpha*dyl;
 			yl = ylp1;
-			rl = rlp1;
-			pl = plp1;
 
-			if(yl.Norm() < 1.0e-7 || rl.Norm() < 1.0e-7){
-				std::cout << std::endl;
+			if(fabs(alpha) < 1.0e-15){
 				break;
 			}
 
-			std::cout << std::endl << alpha << "\t" << yl(0) << "\t" << rl(0);
+			//.....Update Bl with BFGS.....
+			
+
+
+
+
+			std::cout << alpha << "\t" << yl(0) << "\t" << yz.Transpose();	
 		}
 		
 
@@ -242,9 +244,6 @@ private:
 		for(int j = 0; j < this->n; j++){
 			value += (_p0[j] + _y*_ps[j]) / (this->U[j] - _x[j]) + (_q0[j] + _y*_qs[j]) / (_x[j] - this->L[j]);
 		}
-		for(int i = 0; i < this->m; i++){
-			value += this->V*log(_y(i)); 
-		}
 		return -value;
 	}
 
@@ -254,9 +253,6 @@ private:
 		Vector<T> vec = _rs;
 		for(int j = 0; j < this->n; j++){
 			vec += _ps[j] / (this->U[j] - _x[j]) + _qs[j] / (_x[j] - this->L[j]);
-		}
-		for(int i = 0; i < this->m; i++){
-			vec(i) += this->V/_y(i);
 		}
 		return -vec;
 	}

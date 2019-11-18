@@ -59,7 +59,9 @@ private:
 			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
 			Vector<T> _y, std::vector<T> _x);						//Function value of W(y)
 		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, std::vector<T> _x);		//Derivatives of W(y) 
-    };
+		T P(Vector<T> _y, Vector<T> _lambda);				//Penalty
+		Vector<T> dP(Vector<T> _y, Vector<T> _lambda);		//Derivatives of penalty
+	};
 
 
     template<class T>
@@ -158,7 +160,7 @@ private:
         //----------Loop for solving subproblem----------
 		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0e-10));					
 		Matrix<T> Bl = Identity<T>(this->m);
-		for(int l = 0; l < 100; l++){
+		for(int l = 0; l < 1000; l++){
 			//.....Get x(y).....
 			for(int j = 0; j < this->n; j++){
 				if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
@@ -182,19 +184,42 @@ private:
 			Vector<T> dyl = yz.Segment(0, this->m);
 			Vector<T> zlp1 = yz.Segment(this->m, this->m*2);
 
-			std::cout << yz.Transpose();
-
 			//.....Check KKT condition.....
 			if(dyl.Norm() < 1.0e-8){
 				//break;
 			}
 			
 			//.....Get step with Armijo condition.....
-			T alpha = 0.01;	
+			T alpha = 1.0;
+			T c = 0.5;
+			T rho = 0.5;
+			for(int t = 0; t < 100000; t++){
+				//.....Get x(y).....
+				std::vector<T> xkp1 = std::vector<T>(this->n);
+				for(int j = 0; j < this->n; j++){
+					if ((p0[j] + (yl + alpha*dyl)*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + (yl + alpha*dyl)*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
+						xkp1[j] = xmin[j];
+					} else if ((p0[j] + (yl + alpha*dyl)*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + (yl + alpha*dyl)*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
+						xkp1[j] = xmax[j];
+					} else {
+						xkp1[j] = (sqrt(p0[j] + (yl + alpha*dyl)*ps[j])*this->L[j] + sqrt(q0[j] + (yl + alpha*dyl)*qs[j])*this->U[j]) / (sqrt(p0[j] + (yl + alpha*dyl)*ps[j]) + sqrt(q0[j] + (yl + alpha*dyl)*qs[j]));
+					}
+				}
+
+				//.....Check Armijo condition.....
+				if(this->Wy(r0, rs, p0, ps, q0, qs, yl + alpha*dyl, xkp1) + this->P(yl + alpha*dyl, zlp1) 
+					<= this->Wy(r0, rs, p0, ps, q0, qs, yl, xkp1) + this->P(yl, zlp1) + c*(this->dWy(rs, ps, qs, xkp1) + this->dP(yl, zlp1))*alpha*dyl){
+					std::cout << "!";
+					break;
+				}
+				alpha *= rho;
+			}
 			Vector<T> ylp1 = yl + alpha*dyl;
 
 			//.....Update Bl with BFGS.....
 			yl = ylp1;
+
+			std::cout << alpha << "\t" << yz.Transpose();
 		}
 		
 
@@ -225,5 +250,37 @@ private:
 			vec += _ps[j] / (this->U[j] - _x[j]) + _qs[j] / (_x[j] - this->L[j]);
 		}
 		return -vec;
+	}
+
+
+	template<class T>
+	T MMA<T>::P(Vector<T> _y, Vector<T> _lambda){
+		T r = T();
+		T value = T();
+		for(int i = 0; i < this->m; i++){
+			if(r < _lambda(i)){
+				r = _lambda(i);
+			}
+			if(-_y(i) > T()){
+				value += -_y(i);
+			}
+		}
+		return (r + 1.0e-5)*value;
+	}
+
+
+	template<class T>
+	Vector<T> MMA<T>::dP(Vector<T> _y, Vector<T> _lambda){
+		T r = T();
+		Vector<T> vec = Vector<T>(this->m);
+		for(int i = 0; i < this->m; i++){
+			if(r < _lambda(i)){
+				r = _lambda(i);
+			}
+			if(-_y(i) > T()){
+				vec(i) += -1.0;
+			}
+		}
+		return (r + 1.0e-5)*vec;
 	}
 }

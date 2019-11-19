@@ -49,6 +49,7 @@ private:
 
 		T alpha0;				//Constant for line search
 		T rho;					//Self epsilon for line search
+		T c1;
 
 
 		T V;					//Constant for penalty
@@ -84,9 +85,10 @@ private:
 
 		this->alpha0 = 1.0;
 		this->rho = 0.5;
+		this->c1 = 0.7;
 		
 
-		this->V = 15.0;
+		this->V = 1.0e-20;
     }
 
 
@@ -161,42 +163,26 @@ private:
 		}
 
         //----------Loop for solving subproblem----------
-		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0e-15));		//Lagrange multiplier for mainproblem
-		Vector<T> zl = Vector<T>(std::vector<T>(this->m, 0.0));		//Lagrange multiplier for subproblem
-		Matrix<T> Bl = Identity<T>(this->m);
-		for(int l = 0; l < 50; l++){
-			//.....Get x(y).....
-			for(int j = 0; j < this->n; j++){
-				if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-					_xk[j] = xmin[j];
-				} else if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-					_xk[j] = xmax[j];
-				} else {
-					_xk[j] = (sqrt(p0[j] + yl*ps[j])*this->L[j] + sqrt(q0[j] + yl*qs[j])*this->U[j]) / (sqrt(p0[j] + yl*ps[j]) + sqrt(q0[j] + yl*qs[j]));
-				}
+		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));		//Lagrange multiplier for mainproblem
+		for(int j = 0; j < this->n; j++){
+			if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
+				_xk[j] = xmin[j];
+			} else if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
+				_xk[j] = xmax[j];
+			} else {
+				_xk[j] = (sqrt(p0[j] + yl*ps[j])*this->L[j] + sqrt(q0[j] + yl*qs[j])*this->U[j]) / (sqrt(p0[j] + yl*ps[j]) + sqrt(q0[j] + yl*qs[j]));
 			}
-			
-			//.....Get objective value and constraint at l.....
-			Vector<T> df = this->dWy(rs, ps, qs, yl, _xk);
-			Vector<T> g = -yl;
-			Matrix<T> dg = -Identity<T>(this->m);
-			Vector<T> dL = df + dg*zl;
-
-			//.....Get direction and Lagrange parameter with Newton method.....
-			Matrix<T> A = Bl.Hstack(dg.Transpose()).Vstack(dg.Hstack(Matrix<T>(this->m, this->m)));
-			Vector<T> b = -df.Vstack(-g);
-			Vector<T> yz = A.Inverse()*b;
-			Vector<T> dyl = yz.Segment(0, this->m);
-			Vector<T> zlp1 = yz.Segment(this->m, this->m*2);
-
+		}
+		Vector<T> rl = -(this->dWy(rs, ps, qs, yl, _xk) + dP(yl));
+		Vector<T> pl = rl;
+		T rlNorm0 = rl.Norm();
+		for(int l = 0; l < 100; l++){
 			//.....Get step size with Armijo condition.....
 			T alpha = this->alpha0;
-			T c = 0.5;
 			std::vector<T> xkp1 = std::vector<T>(this->n);
-			Vector<T> ylp1;
 			for(int t = 0; t < 100; t++){
 				//.....Update y.....
-				ylp1 = yl + alpha*dyl;
+				Vector<T> ylp1 = yl + alpha*pl;
 
 				//.....Update x(y).....
 				for(int j = 0; j < this->n; j++){
@@ -211,28 +197,29 @@ private:
 
 				//.....Check Armijo condition.....
 				if(Wy(r0, rs, p0, ps, q0, qs, ylp1, xkp1) + P(ylp1)
-				 <= Wy(r0, rs, p0, ps, q0, qs, yl, _xk) + P(yl) + c*(dWy(rs, ps, qs, yl, _xk) + dP(yl))*alpha*dyl){
+				 <= Wy(r0, rs, p0, ps, q0, qs, yl, _xk) + P(yl) + c1*(dWy(rs, ps, qs, yl, _xk) + dP(yl))*alpha*pl){
 					break;
 				}
 				alpha *= rho;
 			}
-			
-			//.....Check KKT condition.....
-			//∇f(ylp1) + λT∇g(ylp1) = 0
-			//g(ylp1) <= 0
-			//λTg(ylp1) = 0
-			//λ >= 0
-			Vector<T> dLlp1 = this->dWy(rs, ps, qs, ylp1, xkp1) + -Identity<T>(this->m)*zlp1;
-									
+
+			//.....Update yl.....
+			Vector<T> ylp1 = yl + alpha*pl;
+			Vector<T> rlp1 = -(this->dWy(rs, ps, qs, ylp1, xkp1) + dP(ylp1));
+			T beta = (rlp1*rlp1) / (rl*rl);
+			Vector<T> plp1 = rlp1 + beta*pl;
+
+			//.....Update values.....
 			_xk = xkp1;
 			yl = ylp1;
-			zl = zlp1;
+			rl = rlp1;
+			pl = plp1;
 
-			std::cout << std::endl << l << "\t" << dLlp1(0) << "\t" << alpha << "\t" << yl(0) << "\t" << zl(0);	
+			std::cout << std::endl << l << "\t" << yl(0) << "\t" << rl.Norm() / rlNorm0<< "\t" << pl(0) << "\t" << alpha << "\t" << beta;  
 
-			if(dLlp1.Norm() < 1.0e-3 && yl(0) > T() && zl(0) >= T()){
+			if(rl.Norm() / rlNorm0 < 1.0e-6){
 				break;
-			}		
+			}
 		}
 		
 
@@ -270,9 +257,10 @@ private:
 	T MMA<T>::P(Vector<T> _y){
 		T value = T();
 		for(int i = 0; i < this->m; i++){
-			if(-_y(i) > T()){
+			/*if(-_y(i) > T()){
 				value += -_y(i);
-			}
+			}*/
+			value += -log(_y(i));
 		}
 		return (this->V)*value;
 	}
@@ -282,9 +270,10 @@ private:
 	Vector<T> MMA<T>::dP(Vector<T> _y){
 		Vector<T> vec = Vector<T>(this->m);
 		for(int i = 0; i < this->m; i++){
-			if(-_y(i) > T()){
+			/*if(-_y(i) > T()){
 				vec(i) = -1.0;
-			}
+			}*/
+			vec(i) = -1.0 / _y(i);
 		}
 		return (this->V)*vec;
 	}

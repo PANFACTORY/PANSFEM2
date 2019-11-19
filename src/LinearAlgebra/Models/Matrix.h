@@ -71,6 +71,8 @@ public:
 
         template<class U>
         friend Matrix<U> Identity(int _row);
+        template<class U>
+        friend Matrix<U> Diagonal(const Vector<U>& _vec);
 
 
 protected:
@@ -391,6 +393,16 @@ protected:
         Matrix<U> mat = Matrix<U>(_row, _row);
         for(int i = 0; i < mat.row; i++){
             mat.values[i * mat.col + i] = 1.0;
+        }
+        return mat;
+    }
+
+
+    template<class U>
+    Matrix<U> Diagonal(const Vector<U>& _vec){
+        Matrix<U> mat = Matrix<U>(_vec.size, _vec.size);
+        for(int i = 0; i < mat.row; i++){
+            mat.values[i * mat.col + i] = _vec.values[i];
         }
         return mat;
     }

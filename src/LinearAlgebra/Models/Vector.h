@@ -57,6 +57,8 @@ public:
         friend Vector<U> operator*(const Matrix<U>& _mat, const Vector<U>& _vec);
         template<class U>
         friend Vector<U> operator*(U _a, const Vector<U>& _vec);
+        template<class U>
+        friend Matrix<U> Diagonal(const Vector<U>& _vec);
 
 
         T Norm();

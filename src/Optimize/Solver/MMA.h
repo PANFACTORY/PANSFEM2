@@ -59,6 +59,8 @@ private:
 			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
 			Vector<T> _y, std::vector<T> _x);						//Function value of W(y)
 		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, Vector<T> _y, std::vector<T> _x);		//Derivatives of W(y) 
+		T P(Vector<T> _y);
+		Vector<T> dP(Vector<T> _y);
 	};
 
 
@@ -84,7 +86,7 @@ private:
 		this->rho = 0.5;
 		
 
-		this->V = 1.0e-3;
+		this->V = 15.0;
     }
 
 
@@ -159,9 +161,10 @@ private:
 		}
 
         //----------Loop for solving subproblem----------
-		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0e-20));					
+		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0e-15));		//Lagrange multiplier for mainproblem
+		Vector<T> zl = Vector<T>(std::vector<T>(this->m, 0.0));		//Lagrange multiplier for subproblem
 		Matrix<T> Bl = Identity<T>(this->m);
-		for(int l = 0; l < 500; l++){
+		for(int l = 0; l < 50; l++){
 			//.....Get x(y).....
 			for(int j = 0; j < this->n; j++){
 				if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
@@ -177,24 +180,25 @@ private:
 			Vector<T> df = this->dWy(rs, ps, qs, yl, _xk);
 			Vector<T> g = -yl;
 			Matrix<T> dg = -Identity<T>(this->m);
+			Vector<T> dL = df + dg*zl;
 
-			//.....Solve subproblem.....
-			Matrix<T> A = Bl.Hstack(dg).Vstack(dg.Transpose().Hstack(Matrix<T>(this->m, this->m)));
+			//.....Get direction and Lagrange parameter with Newton method.....
+			Matrix<T> A = Bl.Hstack(dg.Transpose()).Vstack(dg.Hstack(Matrix<T>(this->m, this->m)));
 			Vector<T> b = -df.Vstack(-g);
 			Vector<T> yz = A.Inverse()*b;
 			Vector<T> dyl = yz.Segment(0, this->m);
 			Vector<T> zlp1 = yz.Segment(this->m, this->m*2);
 
-			//.....Check KKT condition.....
-			
-
 			//.....Get step size with Armijo condition.....
 			T alpha = this->alpha0;
 			T c = 0.5;
-			for(int t = 0; t < 1000000; t++){
-				//.....Get x(y).....
-				Vector<T> ylp1 = yl + alpha*dyl;
-				std::vector<T> xkp1 = std::vector<T>(this->n);
+			std::vector<T> xkp1 = std::vector<T>(this->n);
+			Vector<T> ylp1;
+			for(int t = 0; t < 100; t++){
+				//.....Update y.....
+				ylp1 = yl + alpha*dyl;
+
+				//.....Update x(y).....
 				for(int j = 0; j < this->n; j++){
 					if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
 						xkp1[j] = xmin[j];
@@ -206,25 +210,29 @@ private:
 				}
 
 				//.....Check Armijo condition.....
-				if(Wy(r0, rs, p0, ps, q0, qs, ylp1, xkp1) <= Wy(r0, rs, p0, ps, q0, qs, yl, xkp1) + c*dWy(rs, ps, qs, yl, xkp1)*alpha*dyl){
+				if(Wy(r0, rs, p0, ps, q0, qs, ylp1, xkp1) + P(ylp1)
+				 <= Wy(r0, rs, p0, ps, q0, qs, yl, _xk) + P(yl) + c*(dWy(rs, ps, qs, yl, _xk) + dP(yl))*alpha*dyl){
 					break;
 				}
 				alpha *= rho;
 			}
-			Vector<T> ylp1 = yl + alpha*dyl;
-			yl = ylp1;
-
-			if(fabs(alpha) < 1.0e-15){
-				break;
-			}
-
-			//.....Update Bl with BFGS.....
 			
+			//.....Check KKT condition.....
+			//∇f(ylp1) + λT∇g(ylp1) = 0
+			//g(ylp1) <= 0
+			//λTg(ylp1) = 0
+			//λ >= 0
+			Vector<T> dLlp1 = this->dWy(rs, ps, qs, ylp1, xkp1) + -Identity<T>(this->m)*zlp1;
+									
+			_xk = xkp1;
+			yl = ylp1;
+			zl = zlp1;
 
+			std::cout << std::endl << l << "\t" << dLlp1(0) << "\t" << alpha << "\t" << yl(0) << "\t" << zl(0);	
 
-
-
-			std::cout << alpha << "\t" << yl(0) << "\t" << yz.Transpose();	
+			if(dLlp1.Norm() < 1.0e-3 && yl(0) > T() && zl(0) >= T()){
+				break;
+			}		
 		}
 		
 
@@ -255,5 +263,29 @@ private:
 			vec += _ps[j] / (this->U[j] - _x[j]) + _qs[j] / (_x[j] - this->L[j]);
 		}
 		return -vec;
+	}
+
+
+	template<class T>
+	T MMA<T>::P(Vector<T> _y){
+		T value = T();
+		for(int i = 0; i < this->m; i++){
+			if(-_y(i) > T()){
+				value += -_y(i);
+			}
+		}
+		return (this->V)*value;
+	}
+
+
+	template<class T>
+	Vector<T> MMA<T>::dP(Vector<T> _y){
+		Vector<T> vec = Vector<T>(this->m);
+		for(int i = 0; i < this->m; i++){
+			if(-_y(i) > T()){
+				vec(i) = -1.0;
+			}
+		}
+		return (this->V)*vec;
 	}
 }

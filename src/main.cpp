@@ -60,7 +60,7 @@ int main() {
 	
 	//----------Optimize loop----------
 	for(int k = 0; k < 20; k++){
-		std::cout << "k = " << k << "\t";
+		std::cout << std::endl << "k = " << k << "\t";
 
 		//**************************************************
 		//	Excute direct analysis

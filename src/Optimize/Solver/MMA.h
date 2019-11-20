@@ -162,7 +162,78 @@ private:
 			xmax[j] = std::min(0.9*this->U[j] + 0.1*_xk[j], 1.0);
 		}
 
-        //----------Loop for solving subproblem----------
+		//----------External loop----------
+		T Me = 1.0e-3;
+		T mu = 1.0e-3;
+		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));
+		Vector<T> zl = Vector<T>(std::vector<T>(this->m, 1.0));
+		for(int l = 0; l < 100; l++){
+			//.....Check convergence.....
+
+			//.....Internal loop.....
+			Matrix<T> Bt = Identity<T>(this->m);
+			Vector<T> yt = yl;
+			Vector<T> zt = zl;
+			for(int t = 0; t < 100; t++){
+				//...Get x(y)...
+				for(int j = 0; j < this->n; j++){
+					if ((p0[j] + yt*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yt*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
+						_xk[j] = xmin[j];
+					} else if ((p0[j] + yt*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yt*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
+						_xk[j] = xmax[j];
+					} else {
+						_xk[j] = (sqrt(p0[j] + yt*ps[j])*this->L[j] + sqrt(q0[j] + yt*qs[j])*this->U[j]) / (sqrt(p0[j] + yt*ps[j]) + sqrt(q0[j] + yt*qs[j]));
+					}
+				}
+
+				//...Get function values and derivatives...
+				Vector<T> dL = dWy(rs, ps, qs, yt, _x) - zt;
+				Matrix<T> diagy = Diagonal<T>(yt);
+				Matrix<T> diagz = Diagonal<T>(zt);
+
+				//...Check convergence...
+
+
+				//...Get search direction...
+				Matrix<T> A = Bt.Hstack(-Identity<T>(this->m)).Vstack(diagz.Hstack(diagy));
+				Vector<T> b = -dl.Vstack(-diagy*zt + mu*Vector<T>(std::vector<T>(this->m, 1.0)));
+				Vector<T> dyz = A.Inverse(b);
+
+				//...Get step size with Armijo condition...
+
+			}
+
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /*//----------Loop for solving subproblem----------
 		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));		//Lagrange multiplier for mainproblem
 		for(int j = 0; j < this->n; j++){
 			if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
@@ -220,7 +291,7 @@ private:
 			if(rl.Norm() / rlNorm0 < 1.0e-6){
 				break;
 			}
-		}
+		}*/
 		
 
         //----------Update step----------

@@ -52,14 +52,17 @@ private:
 		T c1;
 
 
-		T V;					//Constant for penalty
+		T Mc;
+		T tau;
+		T mu0;
+		T mumin;
 
 
 		T Wy(T _r0, Vector<T> _rs, 
 			std::vector<T> _p0, std::vector<Vector<T> > _ps, 
 			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
 			Vector<T> _y, std::vector<T> _x);						//Function value of W(y)
-		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, Vector<T> _y, std::vector<T> _x);		//Derivatives of W(y) 
+		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, std::vector<T> _x);		//Derivatives of W(y) 
 		T LogBallier(T _mu, Vector<T> _y);
 		Vector<T> dLogBallier(T _mu, Vector<T> _y);
 	};
@@ -88,7 +91,10 @@ private:
 		this->c1 = 0.7;
 		
 
-		this->V = 1.0e-20;
+		this->Mc = 1.0e-3;
+		this->tau = 0.5;
+		this->mu0 = 1.0;
+		this->mumin = 1.0e-10;
     }
 
 
@@ -163,12 +169,9 @@ private:
 		}
 
 		//----------Solve subproblem with Primal-Dual Inner Point Method----------
+		T mu = this->mu0;
 
 		//----------External loop----------
-		T Mc = 1.0e-3;
-		T tau = 0.25;
-		T mu = 1.0;
-		T mumin = 1.0e-10;
 		Vector<T> y = Vector<T>(std::vector<T>(this->m, 1.0));
 		for(int j = 0; j < this->n; j++){
 			if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
@@ -180,7 +183,7 @@ private:
 			}
 		}
 		Vector<T> z = Vector<T>(std::vector<T>(this->m, 1.0));
-		while(mu > mumin){
+		while(mu > this->mumin){
 			//.....Internal loop.....
 			Matrix<T> Bl = Identity<T>(this->m);
 			for(int l = 0; l < 10000; l++){
@@ -188,9 +191,10 @@ private:
 				Matrix<T> Diagy = Diagonal<T>(y);
 				Matrix<T> Diagz = Diagonal<T>(z);
 				Vector<T> e = Vector<T>(std::vector<T>(this->m, 1.0));
-				Vector<T> dL = this->dWy(rs, ps, qs, y, _xk) - z;
+				Vector<T> dL = this->dWy(rs, ps, qs, _xk) - z;
 				Vector<T> r = dL.Vstack(Diagy*Diagz*e - mu*e);
-				if(r.Norm() < Mc*mu){
+				if(r.Norm() < this->Mc*mu){
+					std::cout << "!!!"; 
 					break;
 				}
 				
@@ -220,7 +224,7 @@ private:
 
 				//...Update Bl with BFGS...
 				Vector<T> sl = alphay*dy;
-				Vector<T> ql = (this->dWy(rs, ps, qs, y, _xk) - z) - dL;
+				Vector<T> ql = (this->dWy(rs, ps, qs, _xk) - z) - dL;
 				T psi = 1.0;
 				if(sl*ql <= 0.2*sl*(Bl*sl)){
 					psi = 0.8*sl*(Bl*sl) / (sl*(Bl*sl - ql));
@@ -231,45 +235,10 @@ private:
 
 			//...Update mu...
 			std::cout << std::endl << y(0) << "\t" << z(0) << "\t" << mu;
-			mu *= tau;
+			mu *= this->tau;
 		}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        /*//----------Loop for solving subproblem----------
-		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));		//Lagrange multiplier for mainproblem
-		for(int j = 0; j < this->n; j++){
-			if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-				_xk[j] = xmin[j];
-			} else if ((p0[j] + yl*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yl*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-				_xk[j] = xmax[j];
-			} else {
-				_xk[j] = (sqrt(p0[j] + yl*ps[j])*this->L[j] + sqrt(q0[j] + yl*qs[j])*this->U[j]) / (sqrt(p0[j] + yl*ps[j]) + sqrt(q0[j] + yl*qs[j]));
-			}
-		}
-		Vector<T> rl = -(this->dWy(rs, ps, qs, yl, _xk) + dP(yl));
-		Vector<T> pl = rl;
-		T rlNorm0 = rl.Norm();
-		for(int l = 0; l < 100; l++){
-			//.....Get step size with Armijo condition.....
+        /*//.....Get step size with Armijo condition.....
 			T alpha = this->alpha0;
 			std::vector<T> xkp1 = std::vector<T>(this->n);
 			for(int t = 0; t < 100; t++){
@@ -301,18 +270,7 @@ private:
 			T beta = (rlp1*rlp1) / (rl*rl);
 			Vector<T> plp1 = rlp1 + beta*pl;
 
-			//.....Update values.....
-			_xk = xkp1;
-			yl = ylp1;
-			rl = rlp1;
-			pl = plp1;
-
-			std::cout << std::endl << l << "\t" << yl(0) << "\t" << rl.Norm() / rlNorm0<< "\t" << pl(0) << "\t" << alpha << "\t" << beta;  
-
-			if(rl.Norm() / rlNorm0 < 1.0e-6){
-				break;
-			}
-		}*/
+			*/
 		
 
         //----------Update step----------
@@ -336,7 +294,7 @@ private:
 
 
 	template<class T>
-	Vector<T> MMA<T>::dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, Vector<T> _y, std::vector<T> _x) {
+	Vector<T> MMA<T>::dWy(Vector<T> _rs, std::vector<Vector<T> > _ps, std::vector<Vector<T> > _qs, std::vector<T> _x) {
 		Vector<T> vec = _rs;
 		for(int j = 0; j < this->n; j++){
 			vec += _ps[j] / (this->U[j] - _x[j]) + _qs[j] / (_x[j] - this->L[j]);

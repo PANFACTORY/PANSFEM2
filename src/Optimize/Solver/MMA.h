@@ -162,22 +162,33 @@ private:
 			xmax[j] = std::min(0.9*this->U[j] + 0.1*_xk[j], 1.0);
 		}
 
+		//----------Solve subproblem with Primal-Dual Inner Point Method----------
+
 		//----------External loop----------
 		T Mc = 1.0e-3;
-		T tau = 1.0e-1;
+		T tau = 0.25;
 		T mu = 1.0;
-		T mumin = 1.0e-8;
+		T mumin = 1.0e-10;
 		Vector<T> y = Vector<T>(std::vector<T>(this->m, 1.0));
+		for(int j = 0; j < this->n; j++){
+			if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
+				_xk[j] = xmin[j];
+			} else if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
+				_xk[j] = xmax[j];
+			} else {
+				_xk[j] = (sqrt(p0[j] + y*ps[j])*this->L[j] + sqrt(q0[j] + y*qs[j])*this->U[j]) / (sqrt(p0[j] + y*ps[j]) + sqrt(q0[j] + y*qs[j]));
+			}
+		}
 		Vector<T> z = Vector<T>(std::vector<T>(this->m, 1.0));
-		for(int t = 0; t < 100; t++){
+		while(mu > mumin){
 			//.....Internal loop.....
 			Matrix<T> Bl = Identity<T>(this->m);
-			for(int l = 0; l < 100; l++){
+			for(int l = 0; l < 10000; l++){
 				//...Check KKT condition...
 				Matrix<T> Diagy = Diagonal<T>(y);
 				Matrix<T> Diagz = Diagonal<T>(z);
 				Vector<T> e = Vector<T>(std::vector<T>(this->m, 1.0));
-				Vector<T> dL = this->dWy(rs, ps, qs, y, x) - z;
+				Vector<T> dL = this->dWy(rs, ps, qs, y, _xk) - z;
 				Vector<T> r = dL.Vstack(Diagy*Diagz*e - mu*e);
 				if(r.Norm() < Mc*mu){
 					break;
@@ -185,35 +196,42 @@ private:
 				
 				//...Get search direction...
 				Matrix<T> A = Bl.Hstack(-Identity<T>(this->m)).Vstack(Diagz.Hstack(Diagy));
-				Vector<T> dyz = A.Inverse()*r;
+				Vector<T> dyz = -A.Inverse()*r;
 				Vector<T> dy = dyz.Segment(0, this->m);
 				Vector<T> dz = dyz.Segment(this->m, 2*this->m);
 
 				//...Get step size with Armijo condition...
-				T alphay = 1.0;
-				T alphaz = 1.0;
+				T alphay = 0.01;
+				T alphaz = 0.01;
+
 
 				//...Update y and z...
 				y += alphay*dy;
 				z += alphaz*dz;
+				for(int j = 0; j < this->n; j++){
+					if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
+						_xk[j] = xmin[j];
+					} else if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
+						_xk[j] = xmax[j];
+					} else {
+						_xk[j] = (sqrt(p0[j] + y*ps[j])*this->L[j] + sqrt(q0[j] + y*qs[j])*this->U[j]) / (sqrt(p0[j] + y*ps[j]) + sqrt(q0[j] + y*qs[j]));
+					}
+				}
 
 				//...Update Bl with BFGS...
-				Vector<T> sl = alpha*dy;
-				Vector<T> ql = (this->dWy(rs, ps, qs, y, x) - z) - dL;
+				Vector<T> sl = alphay*dy;
+				Vector<T> ql = (this->dWy(rs, ps, qs, y, _xk) - z) - dL;
 				T psi = 1.0;
 				if(sl*ql <= 0.2*sl*(Bl*sl)){
 					psi = 0.8*sl*(Bl*sl) / (sl*(Bl*sl - ql));
 				}
-				Vector<T> qhat = psi*ql + (1.0 - psi)*Bl*sl;
+				Vector<T> qhat = psi*ql + (1.0 - psi)*(Bl*sl);
 				Bl += -((Bl*sl)*((Bl*sl).Transpose())) / (sl*(Bl*sl)) + (qhat*(qhat.Transpose())) / (sl*qhat);
 			}
 
-			//...Check convergence...
-			if(mu < mumin){
-				break;
-			} else {
-				mu *= tau;
-			}
+			//...Update mu...
+			std::cout << std::endl << y(0) << "\t" << z(0) << "\t" << mu;
+			mu *= tau;
 		}
 
 

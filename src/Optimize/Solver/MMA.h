@@ -60,8 +60,8 @@ private:
 			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
 			Vector<T> _y, std::vector<T> _x);						//Function value of W(y)
 		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, Vector<T> _y, std::vector<T> _x);		//Derivatives of W(y) 
-		T P(Vector<T> _y);
-		Vector<T> dP(Vector<T> _y);
+		T LogBallier(T _mu, Vector<T> _y);
+		Vector<T> dLogBallier(T _mu, Vector<T> _y);
 	};
 
 
@@ -163,55 +163,58 @@ private:
 		}
 
 		//----------External loop----------
-		T Me = 1.0e-3;
-		T mu = 1.0e-3;
-		Vector<T> yl = Vector<T>(std::vector<T>(this->m, 1.0));
-		Vector<T> zl = Vector<T>(std::vector<T>(this->m, 1.0));
-		for(int l = 0; l < 100; l++){
-			//.....Check convergence.....
-
+		T Mc = 1.0e-3;
+		T tau = 1.0e-1;
+		T mu = 1.0;
+		T mumin = 1.0e-8;
+		Vector<T> y = Vector<T>(std::vector<T>(this->m, 1.0));
+		Vector<T> z = Vector<T>(std::vector<T>(this->m, 1.0));
+		for(int t = 0; t < 100; t++){
 			//.....Internal loop.....
-			Matrix<T> Bt = Identity<T>(this->m);
-			Vector<T> yt = yl;
-			Vector<T> zt = zl;
-			for(int t = 0; t < 100; t++){
-				//...Get x(y)...
-				for(int j = 0; j < this->n; j++){
-					if ((p0[j] + yt*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + yt*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-						_xk[j] = xmin[j];
-					} else if ((p0[j] + yt*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + yt*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-						_xk[j] = xmax[j];
-					} else {
-						_xk[j] = (sqrt(p0[j] + yt*ps[j])*this->L[j] + sqrt(q0[j] + yt*qs[j])*this->U[j]) / (sqrt(p0[j] + yt*ps[j]) + sqrt(q0[j] + yt*qs[j]));
-					}
+			Matrix<T> Bl = Identity<T>(this->m);
+			for(int l = 0; l < 100; l++){
+				//...Check KKT condition...
+				Matrix<T> Diagy = Diagonal<T>(y);
+				Matrix<T> Diagz = Diagonal<T>(z);
+				Vector<T> e = Vector<T>(std::vector<T>(this->m, 1.0));
+				Vector<T> dL = this->dWy(rs, ps, qs, y, x) - z;
+				Vector<T> r = dL.Vstack(Diagy*Diagz*e - mu*e);
+				if(r.Norm() < Mc*mu){
+					break;
 				}
-
-				//...Get function values and derivatives...
-				Vector<T> dL = dWy(rs, ps, qs, yt, _x) - zt;
-				Matrix<T> diagy = Diagonal<T>(yt);
-				Matrix<T> diagz = Diagonal<T>(zt);
-
-				//...Check convergence...
-
-
+				
 				//...Get search direction...
-				Matrix<T> A = Bt.Hstack(-Identity<T>(this->m)).Vstack(diagz.Hstack(diagy));
-				Vector<T> b = -dl.Vstack(-diagy*zt + mu*Vector<T>(std::vector<T>(this->m, 1.0)));
-				Vector<T> dyz = A.Inverse(b);
+				Matrix<T> A = Bl.Hstack(-Identity<T>(this->m)).Vstack(Diagz.Hstack(Diagy));
+				Vector<T> dyz = A.Inverse()*r;
+				Vector<T> dy = dyz.Segment(0, this->m);
+				Vector<T> dz = dyz.Segment(this->m, 2*this->m);
 
 				//...Get step size with Armijo condition...
+				T alphay = 1.0;
+				T alphaz = 1.0;
 
+				//...Update y and z...
+				y += alphay*dy;
+				z += alphaz*dz;
+
+				//...Update Bl with BFGS...
+				Vector<T> sl = alpha*dy;
+				Vector<T> ql = (this->dWy(rs, ps, qs, y, x) - z) - dL;
+				T psi = 1.0;
+				if(sl*ql <= 0.2*sl*(Bl*sl)){
+					psi = 0.8*sl*(Bl*sl) / (sl*(Bl*sl - ql));
+				}
+				Vector<T> qhat = psi*ql + (1.0 - psi)*Bl*sl;
+				Bl += -((Bl*sl)*((Bl*sl).Transpose())) / (sl*(Bl*sl)) + (qhat*(qhat.Transpose())) / (sl*qhat);
 			}
 
+			//...Check convergence...
+			if(mu < mumin){
+				break;
+			} else {
+				mu *= tau;
+			}
 		}
-
-
-
-
-
-
-
-
 
 
 
@@ -325,27 +328,21 @@ private:
 
 
 	template<class T>
-	T MMA<T>::P(Vector<T> _y){
+	T MMA<T>::LogBallier(T _mu, Vector<T> _y){
 		T value = T();
 		for(int i = 0; i < this->m; i++){
-			/*if(-_y(i) > T()){
-				value += -_y(i);
-			}*/
 			value += -log(_y(i));
 		}
-		return (this->V)*value;
+		return (_mu)*value;
 	}
 
 
 	template<class T>
-	Vector<T> MMA<T>::dP(Vector<T> _y){
+	Vector<T> MMA<T>::dLogBallier(T _mu, Vector<T> _y){
 		Vector<T> vec = Vector<T>(this->m);
 		for(int i = 0; i < this->m; i++){
-			/*if(-_y(i) > T()){
-				vec(i) = -1.0;
-			}*/
 			vec(i) = -1.0 / _y(i);
 		}
-		return (this->V)*vec;
+		return (_mu)*vec;
 	}
 }

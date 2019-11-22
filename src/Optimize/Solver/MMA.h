@@ -88,7 +88,7 @@ private:
 
 		this->alpha0 = 1.0;
 		this->rho = 0.5;
-		this->c1 = 0.7;
+		this->c1 = 1.0e-4;
 		
 
 		this->Mc = 1.0e-3;
@@ -204,10 +204,65 @@ private:
 				Vector<T> dy = dyz.Segment(0, this->m);
 				Vector<T> dz = dyz.Segment(this->m, 2*this->m);
 
-				//...Get step size with Armijo condition...
-				T alphay = 0.01;
-				T alphaz = 0.01;
+				//...Get step size...
+				
+				//	Get maximam of alphay
+				T ganma = 0.9995;
+				T alphay = 1.0 / ganma;	
+				for(int j = 0; j < this->m; j++){
+					if(dy(j) < T() && alphay > -y(j) / dy(j)){
+						alphay = -y(j) / dy(j);
+					}
+				}
+				alphay *= ganma;
 
+				//	Check Armijo condition
+				T F0 = this->Wy(r0, rs, p0, ps, q0, qs, y, _xk) + this->LogBallier(mu, y);
+				T dF0 = -dy*((Bl - Diagy.Inverse()*Diagz)*dy);
+				std::vector<T> xkp1 = std::vector<T>(this->n);
+				for(int t = 0; t < 1000; t++){
+					//.....Get updated y.....
+					Vector<T> ylp1 = y + alphay*dy;
+
+					//.....Get updated x(y).....
+					for(int j = 0; j < this->n; j++){
+						if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
+							xkp1[j] = xmin[j];
+						} else if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
+							xkp1[j] = xmax[j];
+						} else {
+							xkp1[j] = (sqrt(p0[j] + ylp1*ps[j])*this->L[j] + sqrt(q0[j] + ylp1*qs[j])*this->U[j]) / (sqrt(p0[j] + ylp1*ps[j]) + sqrt(q0[j] + ylp1*qs[j]));
+						}
+					}
+
+					//.....Check Armijo condition.....
+					if(this->Wy(r0, rs, p0, ps, q0, qs, ylp1, xkp1) + this->LogBallier(mu, ylp1) <= F0 + this->c1*alphay*dF0){
+						break;
+					}
+
+					alphay *= this->rho;
+				}
+
+				//	Get cLki and cUki
+				T ML = 1.01;
+				T MU = 1.01;
+				std::vector<T> cL = std::vector<T>(this->m);
+				std::vector<T> cU = std::vector<T>(this->m);
+				for(int j = 0; j < this->m; j++){
+					cL[j] = std::min(mu/ML, (y(j) + alphay*dy(j))*z(j));
+					cU[j] = std::max(mu*MU, (y(j) + alphay*dy(j))*z(j));
+				}
+
+				//	Get step size alphaz
+				T alphaz = 1.0;
+				for(int j = 0; j < this->m; j++){
+					T tmp = std::max((cL[j]/(y(j) + alphay*dy(j)) - z(j))/dz(j), (cU[j]/(y(j) + alphay*dy(j)) - z(j))/dz(j));
+					if(alphaz > tmp){
+						alphaz = tmp;
+					}
+				}
+
+				std::cout << std::endl << "\t" << alphay << "\t" << alphaz;
 
 				//...Update y and z...
 				y += alphay*dy;
@@ -237,41 +292,6 @@ private:
 			std::cout << std::endl << y(0) << "\t" << z(0) << "\t" << mu;
 			mu *= this->tau;
 		}
-
-        /*//.....Get step size with Armijo condition.....
-			T alpha = this->alpha0;
-			std::vector<T> xkp1 = std::vector<T>(this->n);
-			for(int t = 0; t < 100; t++){
-				//.....Update y.....
-				Vector<T> ylp1 = yl + alpha*pl;
-
-				//.....Update x(y).....
-				for(int j = 0; j < this->n; j++){
-					if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-						xkp1[j] = xmin[j];
-					} else if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-						xkp1[j] = xmax[j];
-					} else {
-						xkp1[j] = (sqrt(p0[j] + ylp1*ps[j])*this->L[j] + sqrt(q0[j] + ylp1*qs[j])*this->U[j]) / (sqrt(p0[j] + ylp1*ps[j]) + sqrt(q0[j] + ylp1*qs[j]));
-					}
-				}
-
-				//.....Check Armijo condition.....
-				if(Wy(r0, rs, p0, ps, q0, qs, ylp1, xkp1) + P(ylp1)
-				 <= Wy(r0, rs, p0, ps, q0, qs, yl, _xk) + P(yl) + c1*(dWy(rs, ps, qs, yl, _xk) + dP(yl))*alpha*pl){
-					break;
-				}
-				alpha *= rho;
-			}
-
-			//.....Update yl.....
-			Vector<T> ylp1 = yl + alpha*pl;
-			Vector<T> rlp1 = -(this->dWy(rs, ps, qs, ylp1, xkp1) + dP(ylp1));
-			T beta = (rlp1*rlp1) / (rl*rl);
-			Vector<T> plp1 = rlp1 + beta*pl;
-
-			*/
-		
 
         //----------Update step----------
         this->k++;

@@ -318,12 +318,17 @@ protected:
     Matrix<T> Matrix<T>::Inverse(){
         assert(this->row == this->col);
         Matrix<T> mat = Matrix<T>(this->row, this->col);
-        for(int i = 0; i < this->row; i++){
-            for(int j = 0; j < this->col; j++){
-                mat.values[i * mat.col + j] = pow(-1.0, i + j) * this->Cofactor(j, i).Determinant();
+        if(this->row == 1){
+            mat.values[0] = 1.0 / this->values[0];
+            return mat;
+        } else {
+            for(int i = 0; i < this->row; i++){
+                for(int j = 0; j < this->col; j++){
+                    mat.values[i * mat.col + j] = pow(-1.0, i + j) * this->Cofactor(j, i).Determinant();
+                }
             }
+            return mat / this->Determinant();
         }
-        return mat / this->Determinant();
     }
 
 

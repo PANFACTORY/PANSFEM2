@@ -38,7 +38,9 @@ private:
         T beforef0;             //Objective function value of before step
 
 
-        T s;					//
+        T sm;					//
+		T sn;					//
+		T sp;					//
         std::vector<T> L;       //Parameter for MMA
         std::vector<T> U;       //Parameter for MMA
 
@@ -58,13 +60,15 @@ private:
 		T mumin;
 
 
+		Vector<T> y;
+
+
 		T Wy(T _r0, Vector<T> _rs, 
 			std::vector<T> _p0, std::vector<Vector<T> > _ps, 
 			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
 			Vector<T> _y, std::vector<T> _x);						//Function value of W(y)
 		Vector<T> dWy(Vector<T> _rs, std::vector<Vector<T> > _ps,  std::vector<Vector<T> > _qs, std::vector<T> _x);		//Derivatives of W(y) 
 		T LogBallier(T _mu, Vector<T> _y);
-		Vector<T> dLogBallier(T _mu, Vector<T> _y);
 	};
 
 
@@ -77,7 +81,9 @@ private:
         this->beforef0 = T();
 
 
-        this->s = 0.7;
+        this->sm = 0.7;
+		this->sn = 1.0;
+		this->sp = 1.2;
         this->L = std::vector<T>(this->n);
 	    this->U = std::vector<T>(this->n);
 
@@ -91,10 +97,13 @@ private:
 		this->c1 = 1.0e-4;
 		
 
-		this->Mc = 1.0e-3;
+		this->Mc = 1.0;
 		this->tau = 0.5;
 		this->mu0 = 1.0;
 		this->mumin = 1.0e-10;
+
+
+		this->y = Vector<T>(std::vector<T>(this->m, 1.0e10));
     }
 
 
@@ -116,17 +125,20 @@ private:
         //----------Set parameter U and L----------
 		if(this->k < 2){
 			for(int j = 0; j < this->n; j++){
-				this->L[j] = _xk[j] - (1.0 - 0.0);
-				this->U[j] = _xk[j] + (1.0 - 0.0);
+				this->L[j] = _xk[j] - 0.5*(1.0 - 0.0);
+				this->U[j] = _xk[j] + 0.5*(1.0 - 0.0);
 			}
 		} else {
 			for(int j = 0; j < this->n; j++){
-				if((_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]) < 0.0){
-					this->L[j] = _xk[j] - this->s*(this->xkm1[j] - this->L[j]);
-					this->U[j] = _xk[j] + this->s*(this->U[j] - this->xkm1[j]);
+				if((_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]) < T()){
+					this->L[j] = _xk[j] - this->sm*(this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + this->sm*(this->U[j] - this->xkm1[j]);
+				} else if((_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]) > T()){
+					this->L[j] = _xk[j] - this->sp*(this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + this->sp*(this->U[j] - this->xkm1[j]);
 				} else {
-					this->L[j] = _xk[j] - (this->xkm1[j] - this->L[j])/this->s;
-					this->U[j] = _xk[j] + (this->U[j] - this->xkm1[j])/this->s;
+					this->L[j] = _xk[j] - this->sn*(this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + this->sn*(this->U[j] - this->xkm1[j]);
 				}
 			}
 		}
@@ -164,7 +176,7 @@ private:
         std::vector<T> xmin = std::vector<T>(this->n);
 		std::vector<T> xmax = std::vector<T>(this->n);
 		for(int j = 0; j < this->n; j++){
-			xmin[j] = std::max(0.9*this->L[j] + 0.1*_xk[j], 1.0e-10);
+			xmin[j] = std::max(0.9*this->L[j] + 0.1*_xk[j], 0.0);
 			xmax[j] = std::min(0.9*this->U[j] + 0.1*_xk[j], 1.0);
 		}
 
@@ -172,21 +184,11 @@ private:
 		T mu = this->mu0;
 
 		//----------External loop----------
-		Vector<T> y = Vector<T>(std::vector<T>(this->m, 1.0));
-		for(int j = 0; j < this->n; j++){
-			if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-				_xk[j] = xmin[j];
-			} else if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-				_xk[j] = xmax[j];
-			} else {
-				_xk[j] = (sqrt(p0[j] + y*ps[j])*this->L[j] + sqrt(q0[j] + y*qs[j])*this->U[j]) / (sqrt(p0[j] + y*ps[j]) + sqrt(q0[j] + y*qs[j]));
-			}
-		}
 		Vector<T> z = Vector<T>(std::vector<T>(this->m, 1.0));
 		while(mu > this->mumin){
 			//.....Internal loop.....
 			Matrix<T> Bl = Identity<T>(this->m);
-			for(int l = 0; l < 10000; l++){
+			for(int l = 0; l < 100; l++){
 				//...Check KKT condition...
 				Matrix<T> Diagy = Diagonal<T>(y);
 				Matrix<T> Diagz = Diagonal<T>(z);
@@ -197,7 +199,7 @@ private:
 					std::cout << "!!!"; 
 					break;
 				}
-				
+
 				//...Get search direction...
 				Matrix<T> A = Bl.Hstack(-Identity<T>(this->m)).Vstack(Diagz.Hstack(Diagy));
 				Vector<T> dyz = -A.Inverse()*r;
@@ -220,7 +222,7 @@ private:
 				T F0 = this->Wy(r0, rs, p0, ps, q0, qs, y, _xk) + this->LogBallier(mu, y);
 				T dF0 = -dy*((Bl - Diagy.Inverse()*Diagz)*dy);
 				std::vector<T> xkp1 = std::vector<T>(this->n);
-				for(int t = 0; t < 1000; t++){
+				for(int t = 0; t < 100; t++){
 					//.....Get updated y.....
 					Vector<T> ylp1 = y + alphay*dy;
 
@@ -244,8 +246,8 @@ private:
 				}
 
 				//	Get cLki and cUki
-				T ML = 1.01;
-				T MU = 1.01;
+				T ML = 100.0;
+				T MU = 100.0;
 				std::vector<T> cL = std::vector<T>(this->m);
 				std::vector<T> cU = std::vector<T>(this->m);
 				for(int j = 0; j < this->m; j++){
@@ -261,8 +263,6 @@ private:
 						alphaz = tmp;
 					}
 				}
-
-				std::cout << std::endl << "\t" << alphay << "\t" << alphaz;
 
 				//...Update y and z...
 				y += alphay*dy;
@@ -330,15 +330,5 @@ private:
 			value += -log(_y(i));
 		}
 		return (_mu)*value;
-	}
-
-
-	template<class T>
-	Vector<T> MMA<T>::dLogBallier(T _mu, Vector<T> _y){
-		Vector<T> vec = Vector<T>(this->m);
-		for(int i = 0; i < this->m; i++){
-			vec(i) = -1.0 / _y(i);
-		}
-		return (_mu)*vec;
 	}
 }

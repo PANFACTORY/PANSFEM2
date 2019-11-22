@@ -100,7 +100,7 @@ private:
 		this->Mc = 1.0;
 		this->tau = 0.5;
 		this->mu0 = 1.0;
-		this->mumin = 1.0e-10;
+		this->mumin = 1.0e-7;
 
 
 		this->y = Vector<T>(std::vector<T>(this->m, 1.0e10));
@@ -195,8 +195,7 @@ private:
 				Vector<T> e = Vector<T>(std::vector<T>(this->m, 1.0));
 				Vector<T> dL = this->dWy(rs, ps, qs, _xk) - z;
 				Vector<T> r = dL.Vstack(Diagy*Diagz*e - mu*e);
-				if(r.Norm() < this->Mc*mu){
-					std::cout << "!!!"; 
+				if(r.Norm() < this->Mc*mu){ 
 					break;
 				}
 
@@ -267,15 +266,7 @@ private:
 				//...Update y and z...
 				y += alphay*dy;
 				z += alphaz*dz;
-				for(int j = 0; j < this->n; j++){
-					if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-						_xk[j] = xmin[j];
-					} else if ((p0[j] + y*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + y*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-						_xk[j] = xmax[j];
-					} else {
-						_xk[j] = (sqrt(p0[j] + y*ps[j])*this->L[j] + sqrt(q0[j] + y*qs[j])*this->U[j]) / (sqrt(p0[j] + y*ps[j]) + sqrt(q0[j] + y*qs[j]));
-					}
-				}
+				_xk = xkp1;
 
 				//...Update Bl with BFGS...
 				Vector<T> sl = alphay*dy;
@@ -286,12 +277,17 @@ private:
 				}
 				Vector<T> qhat = psi*ql + (1.0 - psi)*(Bl*sl);
 				Bl += -((Bl*sl)*((Bl*sl).Transpose())) / (sl*(Bl*sl)) + (qhat*(qhat.Transpose())) / (sl*qhat);
+
+				std::cout << std::endl << "\t" << dy(0) << "\t" << dz(0) << "\t" << Bl(0, 0) << "\t" << sl(0) << "\t" << qhat(0) << "\t" << mu;
+				
+				
 			}
 
 			//...Update mu...
-			std::cout << std::endl << y(0) << "\t" << z(0) << "\t" << mu;
 			mu *= this->tau;
 		}
+
+		
 
         //----------Update step----------
         this->k++;

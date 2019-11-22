@@ -59,7 +59,7 @@ int main() {
 	MMA<double> optimizer = MMA<double>(elements.size(), 1);
 	
 	//----------Optimize loop----------
-	for(int k = 0; k < 20; k++){
+	for(int k = 0; k < 50; k++){
 		std::cout << std::endl << "k = " << k << "\t";
 
 		//**************************************************

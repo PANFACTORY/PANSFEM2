@@ -61,6 +61,7 @@ private:
 
 
 		Vector<T> y;
+		Vector<T> z;
 
 
 		T Wy(T _r0, Vector<T> _rs, 
@@ -97,13 +98,14 @@ private:
 		this->c1 = 1.0e-4;
 		
 
-		this->Mc = 1.0;
-		this->tau = 0.5;
+		this->Mc = 0.9;
+		this->tau = 0.1;
 		this->mu0 = 1.0;
 		this->mumin = 1.0e-7;
 
 
-		this->y = Vector<T>(std::vector<T>(this->m, 1.0e10));
+		this->y = Vector<T>(std::vector<T>(this->m, 1.0));
+		this->z = Vector<T>(std::vector<T>(this->m, 1.0));
     }
 
 
@@ -176,19 +178,18 @@ private:
         std::vector<T> xmin = std::vector<T>(this->n);
 		std::vector<T> xmax = std::vector<T>(this->n);
 		for(int j = 0; j < this->n; j++){
-			xmin[j] = std::max(0.9*this->L[j] + 0.1*_xk[j], 0.0);
-			xmax[j] = std::min(0.9*this->U[j] + 0.1*_xk[j], 1.0);
+			xmin[j] = std::max({ 1.0e-10, 0.9*this->L[j] + 0.1*_xk[j], _xk[j] - 0.5*(1.0 - 0.0) });
+			xmax[j] = std::min({ 1.0, 0.9*this->U[j] + 0.1*_xk[j], _xk[j] + 0.5*(1.0 - 0.0) });
 		}
 
 		//----------Solve subproblem with Primal-Dual Inner Point Method----------
 		T mu = this->mu0;
 
 		//----------External loop----------
-		Vector<T> z = Vector<T>(std::vector<T>(this->m, 1.0));
 		while(mu > this->mumin){
 			//.....Internal loop.....
 			Matrix<T> Bl = Identity<T>(this->m);
-			for(int l = 0; l < 100; l++){
+			for(int l = 0; l < 200; l++){
 				//...Check KKT condition...
 				Matrix<T> Diagy = Diagonal<T>(y);
 				Matrix<T> Diagz = Diagonal<T>(z);
@@ -276,17 +277,11 @@ private:
 					psi = 0.8*sl*(Bl*sl) / (sl*(Bl*sl - ql));
 				}
 				Vector<T> qhat = psi*ql + (1.0 - psi)*(Bl*sl);
-
-
-				std::cout << std::endl << "\t" << dL(0) << "\t" << z(0) << "\t" << ql(0) << "\t" << this->dWy(rs, ps, qs, _xk)(0) << "\t" << psi;
-				
-
-
-				Bl += -((Bl*sl)*((Bl*sl).Transpose())) / (sl*(Bl*sl)) + (qhat*(qhat.Transpose())) / (sl*qhat);
-
-				
-				
+				Bl += -((Bl*sl)*((Bl*sl).Transpose())) / (sl*(Bl*sl)) + (qhat*(qhat.Transpose())) / (sl*qhat);	
 			}
+
+			std::cout << std::endl << "\t" << y(0) << "\t" << z(0);
+				
 
 			//...Update mu...
 			mu *= this->tau;

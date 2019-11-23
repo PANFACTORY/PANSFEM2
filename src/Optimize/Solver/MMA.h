@@ -276,9 +276,14 @@ private:
 					psi = 0.8*sl*(Bl*sl) / (sl*(Bl*sl - ql));
 				}
 				Vector<T> qhat = psi*ql + (1.0 - psi)*(Bl*sl);
+
+
+				std::cout << std::endl << "\t" << dL(0) << "\t" << z(0) << "\t" << ql(0) << "\t" << this->dWy(rs, ps, qs, _xk)(0) << "\t" << psi;
+				
+
+
 				Bl += -((Bl*sl)*((Bl*sl).Transpose())) / (sl*(Bl*sl)) + (qhat*(qhat.Transpose())) / (sl*qhat);
 
-				std::cout << std::endl << "\t" << dy(0) << "\t" << dz(0) << "\t" << Bl(0, 0) << "\t" << sl(0) << "\t" << qhat(0) << "\t" << mu;
 				
 				
 			}

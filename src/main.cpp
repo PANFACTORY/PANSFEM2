@@ -17,14 +17,11 @@
 #include "Optimize/Solver/MMA.h"
 
 
-#include "LinearAlgebra/Solvers/Lanczos.h"
-
-
 using namespace PANSFEM2;
 
 
 int main() {
-	/*//----------Model Path----------
+	//----------Model Path----------
 	std::string model_path = "sample/optimize/";
 	
 	//----------Add Nodes----------
@@ -62,7 +59,7 @@ int main() {
 	MMA<double> optimizer = MMA<double>(elements.size(), 1);
 	
 	//----------Optimize loop----------
-	for(int k = 0; k < 50; k++){
+	for(int k = 0; k < 100; k++){
 		std::cout << std::endl << "k = " << k << "\t";
 
 		//**************************************************
@@ -142,18 +139,7 @@ int main() {
 
 		//----------Update s----------
 		optimizer.UpdateVariables(s, compliance, dcompliance, constraints, dconstraints);	
-	}*/
-
-	CSR<double> A = CSR<double>(4, 4);
-	A.set(0, 0, 1.0);	A.set(0, 1, 1.0);	A.set(0, 2, 1.0);	A.set(0, 3, 1.0);
-	A.set(1, 0, 1.0);	A.set(1, 1, 2.0);	A.set(1, 2, 2.0);	A.set(1, 3, 2.0);
-	A.set(2, 0, 1.0);	A.set(2, 1, 2.0);	A.set(2, 2, 3.0);	A.set(2, 3, 3.0);
-	A.set(3, 0, 1.0);	A.set(3, 1, 2.0);	A.set(3, 2, 3.0);	A.set(3, 3, 4.0);
-
-	std::vector<double> alpha, beta;
-	LanczosProcess<double>(A, alpha, beta);
-
-	std::cout << A << std::endl << alpha << std::endl << beta;
+	}
 
 	return 0;
 }

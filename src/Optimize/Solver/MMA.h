@@ -132,17 +132,39 @@ private:
 			}
 		} else {
 			for(int j = 0; j < this->n; j++){
-				if((_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]) < T()){
+				if(fabs((_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j])) < 1.0e-10){
+					this->L[j] = _xk[j] - this->sn*(this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + this->sn*(this->U[j] - this->xkm1[j]);
+				} else if((_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]) < T()){
 					this->L[j] = _xk[j] - this->sm*(this->xkm1[j] - this->L[j]);
 					this->U[j] = _xk[j] + this->sm*(this->U[j] - this->xkm1[j]);
 				} else if((_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]) > T()){
 					this->L[j] = _xk[j] - this->sp*(this->xkm1[j] - this->L[j]);
 					this->U[j] = _xk[j] + this->sp*(this->U[j] - this->xkm1[j]);
-				} else {
-					this->L[j] = _xk[j] - this->sn*(this->xkm1[j] - this->L[j]);
-					this->U[j] = _xk[j] + this->sn*(this->U[j] - this->xkm1[j]);
 				}
 			}
+		}
+
+		for(int j = 0; j < this->n; j++){
+			if(this->L[j] >= _xk[j] - 0.01*(1.0 - 0.0)){
+				this->L[j] = _xk[j] - 0.01*(1.0 - 0.0);
+			} else if(this->L[j] <= _xk[j] - 10.0*(1.0 - 0.0)){
+				this->L[j] = _xk[j] - 10.0*(1.0 - 0.0);
+			}
+
+			if(this->U[j] <= _xk[j] + 0.01*(1.0 - 0.0)){
+				this->U[j] = _xk[j] + 0.01*(1.0 - 0.0);
+			} else if(this->U[j] >= _xk[j] + 10.0*(1.0 - 0.0)){
+				this->U[j] = _xk[j] + 10.0*(1.0 - 0.0);
+			}
+		}
+
+		//----------Set movelimit----------
+        std::vector<T> xmin = std::vector<T>(this->n);
+		std::vector<T> xmax = std::vector<T>(this->n);
+		for(int j = 0; j < this->n; j++){
+			xmin[j] = std::max({ 1.0e-10, this->L[j] + 0.1*(_xk[j] - this->L[j]), _xk[j] - 0.5*(1.0 - 0.0) });
+			xmax[j] = std::min({ 1.0, this->U[j] - 0.1*(this->U[j] - _xk[j]), _xk[j] + 0.5*(1.0 - 0.0) });
 		}
 
         //----------Similerize objective function and constraint functions----------
@@ -173,14 +195,6 @@ private:
 				}
             }
         }
-
-        //----------Set movelimit----------
-        std::vector<T> xmin = std::vector<T>(this->n);
-		std::vector<T> xmax = std::vector<T>(this->n);
-		for(int j = 0; j < this->n; j++){
-			xmin[j] = std::max({ 1.0e-10, 0.9*this->L[j] + 0.1*_xk[j], _xk[j] - 0.5*(1.0 - 0.0) });
-			xmax[j] = std::min({ 1.0, 0.9*this->U[j] + 0.1*_xk[j], _xk[j] + 0.5*(1.0 - 0.0) });
-		}
 
 		//----------Solve subproblem with Primal-Dual Inner Point Method----------
 		T mu = this->mu0;
@@ -280,19 +294,16 @@ private:
 				Bl += -((Bl*sl)*((Bl*sl).Transpose())) / (sl*(Bl*sl)) + (qhat*(qhat.Transpose())) / (sl*qhat);	
 			}
 
-			std::cout << std::endl << "\t" << y(0) << "\t" << z(0);
-				
-
 			//...Update mu...
 			mu *= this->tau;
 		}
-
-		
 
         //----------Update step----------
         this->k++;
 		this->xkm2 = this->xkm1;
 		this->xkm1 = _xk;
+
+		std::cout << y(0) << "\t" << z(0);
     }
 
 

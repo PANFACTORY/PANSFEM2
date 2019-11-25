@@ -55,10 +55,9 @@ void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta){
 
 //********************Bisection method********************
 template<class T>
-void BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, std::vector<T>& _lambdas){
+T BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, int _mode){
     int n = _alpha.size();
-    int m = _lambdas.size();
-
+    
     T b = fabs(_alpha[0]) + fabs(_beta[0]);
     for(int i = 1; i < n; i++){
         if(b < fabs(_beta[i - 1]) + fabs(_alpha[i]) + fabs(_beta[i])){
@@ -66,40 +65,35 @@ void BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, 
         }
     }
 
-    for(int i = 0; i < m; i++){
-        T a1, a2, lambda;
-        if(i == 0){
-            a1 = -b;
-            a2 = b;
+    T a1 = -b, a2 = b, lambda;
+    while((a2 - a1) > 1.0e-13*b){
+        //----------Update lambda----------
+        lambda = 0.5*(a1 + a2);
+
+        //----------Count sign change----------
+        T pkm1 = 1.0, pk = _alpha[0] - lambda, sign = 1.0;
+        int Nlambda = 0;
+        if(sign*pk < T()){
+            Nlambda++;
+            sign *= -1.0;
+        }
+        for(int k = 0; k < n - 1; k++){
+            T pkp1 = (_alpha[k + 1] - lambda)*pk - pow(_beta[k], 2.0)*pkm1;
+            if(sign*pkp1 < T()){
+                Nlambda++;
+                sign *= -1.0;
+            }
+            pkm1 = pk;
+            pk = pkp1;
+        }
+
+        //----------Update a1 and a2----------
+        if(Nlambda <= _mode){
+            a1 = lambda;
         } else {
-            a1 = _lambdas[i - 1];
-            a2 = b;
+            a2 = lambda;
         }
-
-        while((a2 - a1) > 1.0e-13*b){
-            //----------Update lambda----------
-            lambda = 0.5*(a1 + a2);
-
-            //----------Count sign change----------
-            T pkm1 = 1.0, pk = lambda - _alpha[0];
-            int Nlambda = 0;
-            for(int k = 0; k < n - 1; k++){
-                T pkp1 = (lambda - _alpha[k + 1])*pk - pow(_beta[k], 2.0)*pkm1;
-                if(pkm1*pkp1 < T()){
-                    Nlambda++;
-                }
-                pkm1 = pk;
-                pk = pkp1;
-            }
-
-            //----------Update a1 and a2----------
-            if(Nlambda <= i){
-                a1 = lambda;
-            } else {
-                a2 = lambda;
-            }
-        }
-
-        _lambdas[i] = lambda;
     }
+
+    return lambda;
 }

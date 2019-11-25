@@ -155,10 +155,9 @@ int main() {
 	std::vector<double> alpha, beta;
 	LanczosProcess(A, alpha, beta);
 
-	std::vector<double> lambda = std::vector<double>(6);
-	BisectionMethod(alpha, beta, lambda);
-		
-	std::cout << lambda;
-
+	for(int i = 0; i < 6; i++){
+		std::cout << BisectionMethod(alpha, beta, i) << std::endl;
+	}
+	
 	return 0;
 }

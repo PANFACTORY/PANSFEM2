@@ -97,3 +97,13 @@ T BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, int
 
     return lambda;
 }
+
+
+//********************Inverse Power method********************
+template<class T>
+std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, T _lambda){
+    int n = _alpha.size();
+    std::vector<T> phi = std::vector<T>(n);
+    
+    return phi;
+}

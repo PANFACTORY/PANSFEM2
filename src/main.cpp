@@ -24,7 +24,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-	/*//----------Model Path----------
+	//----------Model Path----------
 	std::string model_path = "sample/optimize/";
 	
 	//----------Add Nodes----------
@@ -142,22 +142,7 @@ int main() {
 
 		//----------Update s----------
 		optimizer.UpdateVariables(s, compliance, dcompliance, constraints, dconstraints);	
-	}*/
-
-	CSR<double> A = CSR<double>(6, 6);
-	A.set(0, 0, 6.0);	A.set(0, 1, 5.0);	A.set(0, 2, 4.0);	A.set(0, 3, 3.0);	A.set(0, 4, 2.0);	A.set(0, 5, 1.0);
-	A.set(1, 0, 5.0);	A.set(1, 1, 5.0);	A.set(1, 2, 4.0);	A.set(1, 3, 3.0);	A.set(1, 4, 2.0);	A.set(1, 5, 1.0);
-	A.set(2, 0, 4.0);	A.set(2, 1, 4.0);	A.set(2, 2, 4.0);	A.set(2, 3, 3.0);	A.set(2, 4, 2.0);	A.set(2, 5, 1.0);
-	A.set(3, 0, 3.0);	A.set(3, 1, 3.0);	A.set(3, 2, 3.0);	A.set(3, 3, 3.0);	A.set(3, 4, 2.0);	A.set(3, 5, 1.0);
-	A.set(4, 0, 2.0);	A.set(4, 1, 2.0);	A.set(4, 2, 2.0);	A.set(4, 3, 2.0);	A.set(4, 4, 2.0);	A.set(4, 5, 1.0);
-	A.set(5, 0, 1.0);	A.set(5, 1, 1.0);	A.set(5, 2, 1.0);	A.set(5, 3, 1.0);	A.set(5, 4, 1.0);	A.set(5, 5, 1.0);
-	
-	std::vector<double> alpha, beta;
-	LanczosProcess(A, alpha, beta);
-
-	for(int i = 0; i < 6; i++){
-		std::cout << BisectionMethod(alpha, beta, i) << std::endl;
 	}
-	
+
 	return 0;
 }

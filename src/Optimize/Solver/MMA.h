@@ -8,6 +8,7 @@
 
 #pragma once
 #include <vector>
+#include <algorithm>
 
 
 #include "../../LinearAlgebra/Models/Vector.h"
@@ -27,6 +28,7 @@ public:
         
 
 private:
+		//----------MMA parameters----------
         const int n;            //Number of design variables
         const int m;            //Number of constraints
 
@@ -36,6 +38,10 @@ private:
 
         T epsf0;				//Self epsilon for objective function value
         T beforef0;             //Objective function value of before step
+
+
+		std::vector<T> xmin;
+		std::vector<T> xmax;
 
 
         T sm;					//
@@ -49,11 +55,13 @@ private:
         std::vector<T> xkm2;    //Design variables of previous 2 step
 
 
+		//----------Line search parameters----------
 		T alpha0;				//Constant for line search
 		T rho;					//Self epsilon for line search
 		T c1;
 
 
+		//----------Primal-Dual Inner Point method parameters----------
 		T Mc;
 		T tau;
 		T mu0;
@@ -64,6 +72,11 @@ private:
 		Vector<T> z;
 
 
+		T ML;
+		T MU;
+
+
+		//----------MMA functions----------
 		T Wy(T _r0, Vector<T> _rs, 
 			std::vector<T> _p0, std::vector<Vector<T> > _ps, 
 			std::vector<T> _q0, std::vector<Vector<T> > _qs, 
@@ -80,6 +93,10 @@ private:
 
         this->epsf0 = 1.0e-5;
         this->beforef0 = T();
+
+
+		this->xmin = std::vector<T>(this->n, 1.0);
+		this->xmax = std::vector<T>(this->n, 10.0);
 
 
         this->sm = 0.7;
@@ -106,6 +123,10 @@ private:
 
 		this->y = Vector<T>(std::vector<T>(this->m, 1.0));
 		this->z = Vector<T>(std::vector<T>(this->m, 1.0));
+
+
+		this->ML = 100.0;
+		this->MU = 100.0;
     }
 
 
@@ -118,6 +139,7 @@ private:
         if(fabs((_currentf0 - this->beforef0) / (_currentf0 + this->beforef0)) < this->epsf0) {
 			return true;
 		}
+		this->beforef0 = _currentf0;
         return false;
     }
 
@@ -127,8 +149,8 @@ private:
         //----------Set parameter U and L----------
 		if(this->k < 2){
 			for(int j = 0; j < this->n; j++){
-				this->L[j] = _xk[j] - 0.5*(1.0 - 0.0);
-				this->U[j] = _xk[j] + 0.5*(1.0 - 0.0);
+				this->L[j] = _xk[j] - 0.5*(this->xmax[j] - this->xmin[j]);
+				this->U[j] = _xk[j] + 0.5*(this->xmax[j] - this->xmin[j]);
 			}
 		} else {
 			for(int j = 0; j < this->n; j++){
@@ -146,25 +168,25 @@ private:
 		}
 
 		for(int j = 0; j < this->n; j++){
-			if(this->L[j] >= _xk[j] - 0.01*(1.0 - 0.0)){
-				this->L[j] = _xk[j] - 0.01*(1.0 - 0.0);
-			} else if(this->L[j] <= _xk[j] - 10.0*(1.0 - 0.0)){
-				this->L[j] = _xk[j] - 10.0*(1.0 - 0.0);
+			if(this->L[j] >= _xk[j] - 0.01*(this->xmax[j] - this->xmin[j])){
+				this->L[j] = _xk[j] - 0.01*(this->xmax[j] - this->xmin[j]);
+			} else if(this->L[j] <= _xk[j] - 10.0*(this->xmax[j] - this->xmin[j])){
+				this->L[j] = _xk[j] - 10.0*(this->xmax[j] - this->xmin[j]);
 			}
 
-			if(this->U[j] <= _xk[j] + 0.01*(1.0 - 0.0)){
-				this->U[j] = _xk[j] + 0.01*(1.0 - 0.0);
-			} else if(this->U[j] >= _xk[j] + 10.0*(1.0 - 0.0)){
-				this->U[j] = _xk[j] + 10.0*(1.0 - 0.0);
+			if(this->U[j] <= _xk[j] + 0.01*(this->xmax[j] - this->xmin[j])){
+				this->U[j] = _xk[j] + 0.01*(this->xmax[j] - this->xmin[j]);
+			} else if(this->U[j] >= _xk[j] + 10.0*(this->xmax[j] - this->xmin[j])){
+				this->U[j] = _xk[j] + 10.0*(this->xmax[j] - this->xmin[j]);
 			}
 		}
 
 		//----------Set movelimit----------
-        std::vector<T> xmin = std::vector<T>(this->n);
-		std::vector<T> xmax = std::vector<T>(this->n);
+        std::vector<T> xkmin = std::vector<T>(this->n);
+		std::vector<T> xkmax = std::vector<T>(this->n);
 		for(int j = 0; j < this->n; j++){
-			xmin[j] = std::max({ 1.0e-10, this->L[j] + 0.1*(_xk[j] - this->L[j]), _xk[j] - 0.5*(1.0 - 0.0) });
-			xmax[j] = std::min({ 1.0, this->U[j] - 0.1*(this->U[j] - _xk[j]), _xk[j] + 0.5*(1.0 - 0.0) });
+			xkmin[j] = std::max({ this->xmin[j], this->L[j] + 0.1*(_xk[j] - this->L[j]), _xk[j] - 0.5*(this->xmax[j] - this->xmin[j]) });
+			xkmax[j] = std::min({ this->xmax[j], this->U[j] - 0.1*(this->U[j] - _xk[j]), _xk[j] + 0.5*(this->xmax[j] - this->xmin[j]) });
 		}
 
         //----------Similerize objective function and constraint functions----------
@@ -242,10 +264,10 @@ private:
 
 					//.....Get updated x(y).....
 					for(int j = 0; j < this->n; j++){
-						if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xmin[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xmin[j] - this->L[j], 2.0) >= T()) {
-							xkp1[j] = xmin[j];
-						} else if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xmax[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xmax[j] - this->L[j], 2.0) <= T()) {
-							xkp1[j] = xmax[j];
+						if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xkmin[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xkmin[j] - this->L[j], 2.0) >= T()) {
+							xkp1[j] = xkmin[j];
+						} else if ((p0[j] + ylp1*ps[j]) / pow(this->U[j] - xkmax[j], 2.0) - (q0[j] + ylp1*qs[j]) / pow(xkmax[j] - this->L[j], 2.0) <= T()) {
+							xkp1[j] = xkmax[j];
 						} else {
 							xkp1[j] = (sqrt(p0[j] + ylp1*ps[j])*this->L[j] + sqrt(q0[j] + ylp1*qs[j])*this->U[j]) / (sqrt(p0[j] + ylp1*ps[j]) + sqrt(q0[j] + ylp1*qs[j]));
 						}
@@ -260,13 +282,11 @@ private:
 				}
 
 				//	Get cLki and cUki
-				T ML = 100.0;
-				T MU = 100.0;
 				std::vector<T> cL = std::vector<T>(this->m);
 				std::vector<T> cU = std::vector<T>(this->m);
 				for(int j = 0; j < this->m; j++){
-					cL[j] = std::min(mu/ML, (y(j) + alphay*dy(j))*z(j));
-					cU[j] = std::max(mu*MU, (y(j) + alphay*dy(j))*z(j));
+					cL[j] = std::min(mu/this->ML, (y(j) + alphay*dy(j))*z(j));
+					cU[j] = std::max(mu*this->MU, (y(j) + alphay*dy(j))*z(j));
 				}
 
 				//	Get step size alphaz
@@ -303,7 +323,7 @@ private:
 		this->xkm2 = this->xkm1;
 		this->xkm1 = _xk;
 
-		std::cout << y(0) << "\t" << z(0);
+		std::cout << "\t" << y(0) << "\t" << z(0);
     }
 
 

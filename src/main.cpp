@@ -59,7 +59,7 @@ int main() {
 
 	//----------Initialize optimization solver----------
 	std::vector<double> s = std::vector<double>(elements.size(), 0.5);
-	MMA<double> optimizer = MMA<double>(elements.size(), 1);
+	MMA<double> optimizer = MMA<double>(elements.size(), 1, std::vector<double>(elements.size(), 0.0), std::vector<double>(elements.size(), 1.0));
 	
 	//----------Optimize loop----------
 	for(int k = 0; k < 100; k++){

@@ -16,7 +16,7 @@ int main() {
 
 	//----------Initialize optimization solver----------
 	std::vector<double> s = std::vector<double>(5, 5.0);
-	MMA<double> optimizer = MMA<double>(5, 1);
+	MMA<double> optimizer = MMA<double>(5, 1, { 1.0, 1.0, 1.0, 1.0, 1.0}, { 10.0, 10.0, 10.0, 10.0, 10.0 });
 	
 	//----------Optimize loop----------
 	for(int k = 0; k < 100; k++){

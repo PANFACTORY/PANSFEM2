@@ -19,7 +19,7 @@ namespace PANSFEM2{
     template<class T>
     class MMA{
 public:
-        MMA(int _n, int _m);
+        MMA(int _n, int _m, const std::vector<T>& _xmin, const std::vector<T>& _xmax);
         ~MMA();
 
 
@@ -40,13 +40,13 @@ private:
         T beforef0;             //Objective function value of before step
 
 
-		std::vector<T> xmin;
-		std::vector<T> xmax;
+		std::vector<T> xmin;	//Minimum values of design variables
+		std::vector<T> xmax;	//Maximum values of design variables
 
 
-        T sm;					//
-		T sn;					//
-		T sp;					//
+        T sm;					//Parameter for deciding L and U
+		T sn;					//Parameter for deciding L and U
+		T sp;					//Parameter for deciding L and U
         std::vector<T> L;       //Parameter for MMA
         std::vector<T> U;       //Parameter for MMA
 
@@ -58,7 +58,7 @@ private:
 		//----------Line search parameters----------
 		T alpha0;				//Constant for line search
 		T rho;					//Self epsilon for line search
-		T c1;
+		T c1;					//Relaxation coefficient for line search 
 
 
 		//----------Primal-Dual Inner Point method parameters----------
@@ -87,7 +87,7 @@ private:
 
 
     template<class T>
-    MMA<T>::MMA(int _n, int _m) : n(_n), m(_m) {
+    MMA<T>::MMA(int _n, int _m, const std::vector<T>& _xmin, const std::vector<T>& _xmax) : n(_n), m(_m) {
         this->k = 0;
 
 
@@ -95,13 +95,13 @@ private:
         this->beforef0 = T();
 
 
-		this->xmin = std::vector<T>(this->n, 1.0);
-		this->xmax = std::vector<T>(this->n, 10.0);
+		this->xmin = _xmin;
+		this->xmax = _xmax;
 
 
-        this->sm = 0.7;
+        this->sm = 0.125;
 		this->sn = 1.0;
-		this->sp = 1.2;
+		this->sp = 8.0;
         this->L = std::vector<T>(this->n);
 	    this->U = std::vector<T>(this->n);
 

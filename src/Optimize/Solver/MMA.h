@@ -101,7 +101,7 @@ private:
 		this->Mc = 0.9;
 		this->tau = 0.1;
 		this->mu0 = 1.0;
-		this->mumin = 1.0e-7;
+		this->mumin = 1.0e-9;
 
 
 		this->y = Vector<T>(std::vector<T>(this->m, 1.0));

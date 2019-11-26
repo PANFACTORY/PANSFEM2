@@ -59,6 +59,10 @@ int main() {
 	A.set(3, 0, 5.0);	A.set(3, 1, 1.0);	A.set(3, 2, 2.0);	A.set(3, 3, 0.0);	
 	*/
 
+	//*************************************************************************
+	//	Eigen values are
+	//		0.307979	0.643104	5.04892
+	//*************************************************************************
 	/*CSR<double> A = CSR<double>(3, 3);
 	A.set(0, 0, 3.0);	A.set(0, 1, 2.0);	A.set(0, 2, 1.0);
 	A.set(1, 0, 2.0);	A.set(1, 1, 2.0);	A.set(1, 2, 1.0);
@@ -68,7 +72,7 @@ int main() {
 	std::cout << A << std::endl;
 
 	std::vector<double> alpha, beta;
-	LanczosProcess(A, alpha, beta);
+	LanczosProcess(A, alpha, beta, 5);
 
 	for(int i = 0; i < 6; i++){
 		double lambda = BisectionMethod(alpha, beta, i);

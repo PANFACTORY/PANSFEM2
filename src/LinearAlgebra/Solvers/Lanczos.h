@@ -28,25 +28,23 @@ void Subtruct(std::vector<T>& _v, T _beta, const std::vector<T>& _qkm1, T _alpha
 
 //********************Lanczos process********************
 template<class T>
-void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta){
+void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, int _m){
     int n = _A.ROWS;                    //Degree of matrix
     
-    _alpha = std::vector<T>(n);         //Values of diagonal
-    _beta = std::vector<T>(n);          //Values of side of diagonal
+    _alpha = std::vector<T>(_m);        //Values of diagonal
+    _beta = std::vector<T>(_m);         //Values of side of diagonal
 
     std::vector<T> qkm1 = std::vector<T>(n, T());
     std::vector<T> qk = std::vector<T>(n, T());
     qk[0] = 1.0;
 
-    for(int k = 0; k < n; k++){
+    T beta = T();
+    for(int k = 0; k < _m; k++){
         std::vector<T> v = _A*qk;
         _alpha[k] = std::inner_product(qk.begin(), qk.end(), v.begin(), T());
-        if(k == 0) {
-            Subtruct(v, T(), qkm1, _alpha[k], qk);
-        } else {
-            Subtruct(v, _beta[k - 1], qkm1, _alpha[k], qk);
-        }
+        Subtruct(v, beta, qkm1, _alpha[k], qk);
         _beta[k] = sqrt(std::inner_product(v.begin(), v.end(), v.begin(), T()));
+        beta = _beta[k];
         qkm1 = qk;
         std::transform(v.begin(), v.end(), qk.begin(), [=](T _vi) { return _vi/_beta[k]; });
     }
@@ -56,10 +54,10 @@ void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta){
 //********************Bisection method********************
 template<class T>
 T BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, int _mode){
-    int n = _alpha.size();
+    int m = _alpha.size();
     
     T b = fabs(_alpha[0]) + fabs(_beta[0]);
-    for(int i = 1; i < n; i++){
+    for(int i = 1; i < m; i++){
         if(b < fabs(_beta[i - 1]) + fabs(_alpha[i]) + fabs(_beta[i])){
             b = fabs(_beta[i - 1]) + fabs(_alpha[i]) + fabs(_beta[i]);
         }
@@ -77,7 +75,7 @@ T BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, int
             Nlambda++;
             sign *= -1.0;
         }
-        for(int k = 0; k < n - 1; k++){
+        for(int k = 0; k < m - 1; k++){
             T pkp1 = (_alpha[k + 1] - lambda)*pk - pow(_beta[k], 2.0)*pkm1;
             if(sign*pkp1 < T()){
                 Nlambda++;
@@ -102,30 +100,30 @@ T BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, int
 //********************Inverse Power method********************
 template<class T>
 std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, T _lambda){
-    int n = _alpha.size();
-    std::vector<T> yk = std::vector<T>(n, T());
+    int m = _alpha.size();
+    std::vector<T> yk = std::vector<T>(m, T());
     yk[0] = 1.0;
 
     for(int k = 0; k < 1000; k++){
         //.....Solve [T - lambda*E]{ykp1}={yk} with Thomas method.....
-        std::vector<T> p = std::vector<T>(n);
-        std::vector<T> q = std::vector<T>(n);
+        std::vector<T> p = std::vector<T>(m);
+        std::vector<T> q = std::vector<T>(m);
         
         p[0] = -_beta[0]/(_alpha[0] - _lambda);
         q[0] = yk[0]/(_alpha[0] - _lambda);
-        for(int i = 1; i < n; i++){
+        for(int i = 1; i < m; i++){
             p[i] = -_beta[i]/((_alpha[i] - _lambda) + _beta[i - 1]*p[i - 1]);
             q[i] = (yk[i] - _beta[i - 1]*q[i - 1])/((_alpha[i] - _lambda) + _beta[i - 1]*p[i - 1]);
         }
 
-        yk[n - 1] = q[n - 1];
-        for(int i = n - 2; i >= 0; i--){
+        yk[m - 1] = q[m - 1];
+        for(int i = m - 2; i >= 0; i--){
             yk[i] = p[i]*yk[i + 1] + q[i];
         }
 
         //.....Normalize yk.....
         T ykNorm = sqrt(std::inner_product(yk.begin(), yk.end(), yk.begin(), T()));
-        for(int i = 0; i < n; i++){
+        for(int i = 0; i < m; i++){
             yk[i] /= ykNorm;
         }
     }
@@ -137,7 +135,8 @@ std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vecto
 //********************Reconvert vector********************
 template<class T>
 std::vector<T> ReconvertVector(CSR<T>& _A, const std::vector<T>& _y){
-    int n = _y.size();
+    int m = _y.size();
+    int n = _A.ROWS;
     std::vector<T> x = std::vector<T>(n, T());
 
     std::vector<T> qkm1 = std::vector<T>(n, T());
@@ -145,7 +144,7 @@ std::vector<T> ReconvertVector(CSR<T>& _A, const std::vector<T>& _y){
     qk[0] = 1.0;
 
     T beta = T();
-    for(int k = 0; k < n; k++){
+    for(int k = 0; k < m; k++){
         //----------Update x----------
         for(int i = 0; i < n; i++){
             x[i] += qk[i]*_y[k];

@@ -106,7 +106,7 @@ std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vecto
     std::vector<T> yk = std::vector<T>(n, T());
     yk[0] = 1.0;
 
-    for(int k = 0; k < 10; k++){
+    for(int k = 0; k < 1000; k++){
         //.....Solve [T - lambda*E]{ykp1}={yk} with Thomas method.....
         std::vector<T> p = std::vector<T>(n);
         std::vector<T> q = std::vector<T>(n);
@@ -131,4 +131,34 @@ std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vecto
     }
     
     return yk;
+}
+
+
+//********************Reconvert vector********************
+template<class T>
+std::vector<T> ReconvertVector(CSR<T>& _A, const std::vector<T>& _y){
+    int n = _y.size();
+    std::vector<T> x = std::vector<T>(n, T());
+
+    std::vector<T> qkm1 = std::vector<T>(n, T());
+    std::vector<T> qk = std::vector<T>(n, T());
+    qk[0] = 1.0;
+
+    T beta = T();
+    for(int k = 0; k < n; k++){
+        //----------Update x----------
+        for(int i = 0; i < n; i++){
+            x[i] += qk[i]*_y[k];
+        } 
+
+        //----------Update qk----------
+        std::vector<T> v = _A*qk;
+        T alpha = std::inner_product(qk.begin(), qk.end(), v.begin(), T());
+        Subtruct(v, beta, qkm1, alpha, qk);
+        beta = sqrt(std::inner_product(v.begin(), v.end(), v.begin(), T()));
+        qkm1 = qk;
+        std::transform(v.begin(), v.end(), qk.begin(), [=](T _vi) { return _vi/beta; });   
+    }
+
+    return x;
 }

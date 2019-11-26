@@ -99,9 +99,9 @@ private:
 		this->xmax = _xmax;
 
 
-        this->sm = 0.25;
+        this->sm = 0.7;
 		this->sn = 1.0;
-		this->sp = 4.0;
+		this->sp = 1.2;
         this->L = std::vector<T>(this->n);
 	    this->U = std::vector<T>(this->n);
 

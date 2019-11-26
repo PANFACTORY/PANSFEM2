@@ -103,7 +103,32 @@ T BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, int
 template<class T>
 std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, T _lambda){
     int n = _alpha.size();
-    std::vector<T> phi = std::vector<T>(n);
+    std::vector<T> yk = std::vector<T>(n, T());
+    yk[0] = 1.0;
+
+    for(int k = 0; k < 10; k++){
+        //.....Solve [T - lambda*E]{ykp1}={yk} with Thomas method.....
+        std::vector<T> p = std::vector<T>(n);
+        std::vector<T> q = std::vector<T>(n);
+        
+        p[0] = -_beta[0]/(_alpha[0] - _lambda);
+        q[0] = yk[0]/(_alpha[0] - _lambda);
+        for(int i = 1; i < n; i++){
+            p[i] = -_beta[i]/((_alpha[i] - _lambda) + _beta[i - 1]*p[i - 1]);
+            q[i] = (yk[i] - _beta[i - 1]*q[i - 1])/((_alpha[i] - _lambda) + _beta[i - 1]*p[i - 1]);
+        }
+
+        yk[n - 1] = q[n - 1];
+        for(int i = n - 2; i >= 0; i--){
+            yk[i] = p[i]*yk[i + 1] + q[i];
+        }
+
+        //.....Normalize yk.....
+        T ykNorm = sqrt(std::inner_product(yk.begin(), yk.end(), yk.begin(), T()));
+        for(int i = 0; i < n; i++){
+            yk[i] /= ykNorm;
+        }
+    }
     
-    return phi;
+    return yk;
 }

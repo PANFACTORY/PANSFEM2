@@ -99,9 +99,9 @@ private:
 		this->xmax = _xmax;
 
 
-        this->sm = 0.125;
+        this->sm = 0.25;
 		this->sn = 1.0;
-		this->sp = 8.0;
+		this->sp = 4.0;
         this->L = std::vector<T>(this->n);
 	    this->U = std::vector<T>(this->n);
 
@@ -118,7 +118,7 @@ private:
 		this->Mc = 0.9;
 		this->tau = 0.1;
 		this->mu0 = 1.0;
-		this->mumin = 1.0e-9;
+		this->mumin = 1.0e-7;
 
 
 		this->y = Vector<T>(std::vector<T>(this->m, 1.0));
@@ -241,7 +241,6 @@ private:
 				Vector<T> dyz = -A.Inverse()*r;
 				Vector<T> dy = dyz.Segment(0, this->m);
 				Vector<T> dz = dyz.Segment(this->m, 2*this->m);
-
 				//...Get step size...
 				
 				//	Get maximam of alphay

@@ -12,41 +12,77 @@
 
 
 #include "../Models/CSR.h"
-
-
-//********************Vector subtruct********************
-template<class T>
-void Subtruct(std::vector<T>& _v, T _beta, const std::vector<T>& _qkm1, T _alpha, const std::vector<T>& _qk){
-    auto qkm1i = _qkm1.begin(), qki = _qk.begin();
-	for (auto &vi : _v) {
-		vi -= _beta*(*qkm1i) + _alpha*(*qki);
-		++qkm1i;
-		++qki;
-	}
-} 
+#include "CG.h"
 
 
 //********************Lanczos process********************
 template<class T>
-void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, int _m){
-    int n = _A.ROWS;                    //Degree of matrix
-    
+void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal
+    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
+    _q[0][0] = 1.0;
 
-    std::vector<T> qkm1 = std::vector<T>(n, T());
-    std::vector<T> qk = std::vector<T>(n, T());
-    qk[0] = 1.0;
-
-    T beta = T();
     for(int k = 0; k < _m; k++){
-        std::vector<T> v = _A*qk;
-        _alpha[k] = std::inner_product(qk.begin(), qk.end(), v.begin(), T());
-        Subtruct(v, beta, qkm1, _alpha[k], qk);
-        _beta[k] = sqrt(std::inner_product(v.begin(), v.end(), v.begin(), T()));
-        beta = _beta[k];
-        qkm1 = qk;
-        std::transform(v.begin(), v.end(), qk.begin(), [=](T _vi) { return _vi/_beta[k]; });
+        std::vector<T> p = _A*_q[k];
+        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
+        std::transform(p.begin(), p.end(), _q[k].begin(), p.begin(), [=](T _pi, T _qki) {return _pi - _alpha[k]*_qki; });
+        if( k != 0){
+            std::transform(p.begin(), p.end(), _q[k - 1].begin(), p.begin(), [=](T _pi, T _qkm1i) {return _pi - _beta[k - 1]*_qkm1i; });
+        }
+        _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
+        if(k != _m - 1){
+            std::transform(p.begin(), p.end(), _q[k + 1].begin(), [=](T _pi) { return _pi/_beta[k]; });
+        }
+    }
+}
+
+
+//********************Lanczos Inverse Power process********************
+template<class T>
+void LanczosInversePowerProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
+    _alpha = std::vector<T>(_m);        //Values of diagonal
+    _beta = std::vector<T>(_m);         //Values of side of diagonal
+    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
+    _q[0][0] = 1.0;
+
+    for(int k = 0; k < _m; k++){
+        std::vector<T> p = ScalingCG(_A, _q[k], 1000, 1.0e-10);
+        if(k != 0){
+            std::transform(p.begin(), p.end(), _q[k - 1].begin(), p.begin(), [=](T _pi, T _qkm1i) {return _pi - _beta[k - 1]*_qkm1i; });
+        }
+        _alpha[k] = std::inner_product(p.begin(), p.end(), _q[k].begin(), T());
+        std::transform(p.begin(), p.end(), _q[k].begin(), p.begin(), [=](T _pi, T _qki) {return _pi - _alpha[k]*_qki; });
+        _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
+        if(k != _m - 1){
+            std::transform(p.begin(), p.end(), _q[k + 1].begin(), [=](T _pi) { return _pi/_beta[k]; });
+        }       
+    }
+}
+
+
+//********************Lanczos Inverse Power process for General eigenvalue problem********************
+template<class T>
+void LanczosInversePowerProcessForGeneral(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
+    _alpha = std::vector<T>(_m);        //Values of diagonal
+    _beta = std::vector<T>(_m);         //Values of side of diagonal
+    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
+    _q[0][0] = 1.0;
+
+    std::vector<T> p = _B*_q[0];
+    for(int k = 0; k < _m; k++){
+        std::vector<T> s = ScalingCG(_A, p, 1000, 1.0e-10);
+        if(k != 0){
+            std::transform(s.begin(), s.end(), _q[k - 1].begin(), s.begin(), [=](T _si, T _qkm1i) {return _si - _beta[k - 1]*_qkm1i; });
+        }
+        _alpha[k] = std::inner_product(p.begin(), p.end(), s.begin(), T());
+        std::transform(s.begin(), s.end(), _q[k].begin(), s.begin(), [=](T _si, T _qki) {return _si - _alpha[k]*_qki; });
+        std::vector<T> r = _B*s;
+        _beta[k] = sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T()));
+        std::transform(r.begin(), r.end(), p.begin(), [=](T _ri) { return _ri/_beta[k]; });
+        if(k != _m - 1){
+            std::transform(s.begin(), s.end(), _q[k + 1].begin(), [=](T _si) { return _si/_beta[k]; });
+        }       
     }
 }
 
@@ -134,29 +170,15 @@ std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vecto
 
 //********************Reconvert vector********************
 template<class T>
-std::vector<T> ReconvertVector(CSR<T>& _A, const std::vector<T>& _y){
+std::vector<T> ReconvertVector(const std::vector<T>& _y, std::vector<std::vector<T> >& _q){
+    int n = _q[0].size();
     int m = _y.size();
-    int n = _A.ROWS;
     std::vector<T> x = std::vector<T>(n, T());
 
-    std::vector<T> qkm1 = std::vector<T>(n, T());
-    std::vector<T> qk = std::vector<T>(n, T());
-    qk[0] = 1.0;
-
-    T beta = T();
     for(int k = 0; k < m; k++){
-        //----------Update x----------
         for(int i = 0; i < n; i++){
-            x[i] += qk[i]*_y[k];
+            x[i] += _q[k][i]*_y[k];
         } 
-
-        //----------Update qk----------
-        std::vector<T> v = _A*qk;
-        T alpha = std::inner_product(qk.begin(), qk.end(), v.begin(), T());
-        Subtruct(v, beta, qkm1, alpha, qk);
-        beta = sqrt(std::inner_product(v.begin(), v.end(), v.begin(), T()));
-        qkm1 = qk;
-        std::transform(v.begin(), v.end(), qk.begin(), [=](T _vi) { return _vi/beta; });   
     }
 
     return x;

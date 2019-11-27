@@ -20,6 +20,10 @@ int main() {
 	A.set(9, 0, 1.0);	A.set(9, 1, 1.0);	A.set(9, 2, 1.0);	A.set(9, 3, 1.0);	A.set(9, 4, 1.0);	A.set(9, 5, 1.0);	A.set(9, 6, 1.0);	A.set(9, 7, 1.0);	A.set(9, 8, 1.0);	A.set(9, 9, 1.0);	
     */
 
+   	//*************************************************************************
+	//	Eigen values are
+	//		0.2652	0.3189	0.4462	0.7747	1.988	17.21
+	//*************************************************************************
 	CSR<double> A = CSR<double>(6, 6);
 	A.set(0, 0, 6.0);	A.set(0, 1, 5.0);	A.set(0, 2, 4.0);	A.set(0, 3, 3.0);	A.set(0, 4, 2.0);	A.set(0, 5, 1.0);
 	A.set(1, 0, 5.0);	A.set(1, 1, 5.0);	A.set(1, 2, 4.0);	A.set(1, 3, 3.0);	A.set(1, 4, 2.0);	A.set(1, 5, 1.0);
@@ -29,57 +33,24 @@ int main() {
 	A.set(5, 0, 1.0);	A.set(5, 1, 1.0);	A.set(5, 2, 1.0);	A.set(5, 3, 1.0);	A.set(5, 4, 1.0);	A.set(5, 5, 1.0);
 	
 
-	//*************************************************************************
-	//	Eigen values are
-	//		-3.2474 -2.6633  1.7511  4.1599 14.9997
-	//*************************************************************************
-	/*CSR<double> A = CSR<double>(5, 5);
-	A.set(0, 0, 1.0);	A.set(0, 1, 2.0);	A.set(0, 2, 3.0);	A.set(0, 3, 0.0);	A.set(0, 4, 0.0);
-	A.set(1, 0, 2.0);	A.set(1, 1, 2.0);	A.set(1, 2, 3.0);	A.set(1, 3, 4.0);	A.set(1, 4, 0.0);
-	A.set(2, 0, 3.0);	A.set(2, 1, 3.0);	A.set(2, 2, 3.0);	A.set(2, 3, 4.0);	A.set(2, 4, 5.0);
-	A.set(3, 0, 0.0);	A.set(3, 1, 4.0);	A.set(3, 2, 4.0);	A.set(3, 3, 4.0);	A.set(3, 4, 5.0);
-	A.set(4, 0, 0.0);	A.set(4, 1, 0.0);	A.set(4, 2, 5.0);	A.set(4, 3, 5.0);	A.set(4, 4, 5.0);
-	*/
-
-	//*************************************************************************
-	//	Eigen values are
-	//		8.29086 1.00000	0.42602 0.28312
-	//*************************************************************************
-	/*CSR<double> A = CSR<double>(4, 4);
-	A.set(0, 0, 1.0);	A.set(0, 1, 1.0);	A.set(0, 2, 1.0);	A.set(0, 3, 1.0);	
-	A.set(1, 0, 1.0);	A.set(1, 1, 2.0);	A.set(1, 2, 2.0);	A.set(1, 3, 2.0);	
-	A.set(2, 0, 1.0);	A.set(2, 1, 2.0);	A.set(2, 2, 3.0);	A.set(2, 3, 3.0);	
-	A.set(3, 0, 1.0);	A.set(3, 1, 2.0);	A.set(3, 2, 3.0);	A.set(3, 3, 4.0);	
-	*/
-
-	/*CSR<double> A = CSR<double>(4, 4);
-	A.set(0, 0, 1.0);	A.set(0, 1, 3.0);	A.set(0, 2, 4.0);	A.set(0, 3, 5.0);	
-	A.set(1, 0, 3.0);	A.set(1, 1, 3.0);	A.set(1, 2, 5.0);	A.set(1, 3, 1.0);	
-	A.set(2, 0, 4.0);	A.set(2, 1, 5.0);	A.set(2, 2, 4.0);	A.set(2, 3, 2.0);	
-	A.set(3, 0, 5.0);	A.set(3, 1, 1.0);	A.set(3, 2, 2.0);	A.set(3, 3, 0.0);	
-	*/
-
-	//*************************************************************************
-	//	Eigen values are
-	//		0.307979	0.643104	5.04892
-	//*************************************************************************
-	/*CSR<double> A = CSR<double>(3, 3);
-	A.set(0, 0, 3.0);	A.set(0, 1, 2.0);	A.set(0, 2, 1.0);
-	A.set(1, 0, 2.0);	A.set(1, 1, 2.0);	A.set(1, 2, 1.0);
-	A.set(2, 0, 1.0);	A.set(2, 1, 1.0);	A.set(2, 2, 1.0);
-	*/
+	int m = 6;
 
 	std::cout << A << std::endl;
 
 	std::vector<double> alpha, beta;
-	LanczosProcess(A, alpha, beta, 5);
+	std::vector<std::vector<double> > q;
+	LanczosProcess(A, alpha, beta, q, m);
 
-	for(int i = 0; i < 6; i++){
+	for(int i = 0; i < m; i++){
+		//std::cout << alpha[i] << "\t" << beta[i] << std::endl;
+	}
+
+	for(int i = 0; i < m; i++){
 		double lambda = BisectionMethod(alpha, beta, i);
 		std::cout << lambda << std::endl;
 		
 		std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
-		std::vector<double> x = ReconvertVector(A, y);
+		std::vector<double> x = ReconvertVector(y, q);
 		for(auto xi : x){
 			std::cout << xi << "\t";
 		}

@@ -59,4 +59,34 @@ namespace PANSFEM2 {
 			_Ke += B.Transpose()*D*B*J*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
 		}
 	}
+
+
+	//******************************Make element mass matrix******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void PlaneMass(Matrix<T>& _Me, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _rho, T _t) {
+		//----------Initialize element mass matrix----------
+		_Me = Matrix<T>(2 * _element.size(), 2 * _element.size());
+
+		//----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			for(int j = 0; j < 2; j++){
+				X(i, j) = _x[_element[i]](j);
+			}
+		}
+
+		//----------Loop of Gauss Integration----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get shape function and difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr * X;
+			T J = dXdr.Determinant();
+
+			//----------Make C matrix----------
+			_Me += N*N.Transpose()*J*_rho*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+		}
+	}
 }

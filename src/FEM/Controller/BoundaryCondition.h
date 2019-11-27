@@ -15,7 +15,7 @@
 
 
 namespace PANSFEM2 {
-	//******************************Dirichlet‹«ŠEğŒ‚Ìİ’è******************************
+	//******************************Set Dirichlet boundary conditions******************************
 	template<class T>
 	void SetDirichlet(LILCSR<T>& _K, std::vector<T>& _F, std::vector<int>& _isufixed, std::vector<T>& _u, T _alpha) {
 		assert(_isufixed.size() == _u.size());
@@ -28,7 +28,19 @@ namespace PANSFEM2 {
 	}
 
 
-	//******************************Neumann‹«ŠEğŒ‚Ìİ’è******************************
+	//******************************Set Dirichlet boundary conditions******************************
+	template<class T>
+	void SetDirichlet(LILCSR<T>& _K, LILCSR<T>& _M, std::vector<int>& _isufixed, std::vector<T>& _u, T _alpha) {
+		assert(_isufixed.size() == _u.size());
+
+		for (int i = 0; i < _isufixed.size(); i++) {
+			_M.set(_isufixed[i], _isufixed[i], _alpha*_M.get(_isufixed[i], _isufixed[i]));
+			_K.set(_isufixed[i], _isufixed[i], _alpha*_K.get(_isufixed[i], _isufixed[i]));
+		}
+	}
+
+
+	//******************************Set Neumann boundary conditions******************************
 	template<class T>
 	void SetNeumann(std::vector<T>& _F, std::vector<int>& _isqfixed, std::vector<T>& _q) {
 		assert(_isqfixed.size() == _q.size());

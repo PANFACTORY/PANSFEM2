@@ -140,11 +140,10 @@ std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vecto
     std::vector<T> yk = std::vector<T>(m, T());
     yk[0] = 1.0;
 
+    std::vector<T> p = std::vector<T>(m);
+    std::vector<T> q = std::vector<T>(m);
     for(int k = 0; k < 1000; k++){
         //.....Solve [T - lambda*E]{ykp1}={yk} with Thomas method.....
-        std::vector<T> p = std::vector<T>(m);
-        std::vector<T> q = std::vector<T>(m);
-        
         p[0] = -_beta[0]/(_alpha[0] - _lambda);
         q[0] = yk[0]/(_alpha[0] - _lambda);
         for(int i = 1; i < m; i++){
@@ -159,9 +158,7 @@ std::vector<T> InversePowerMethod(const std::vector<T>& _alpha, const std::vecto
 
         //.....Normalize yk.....
         T ykNorm = sqrt(std::inner_product(yk.begin(), yk.end(), yk.begin(), T()));
-        for(int i = 0; i < m; i++){
-            yk[i] /= ykNorm;
-        }
+        std::transform(yk.begin(), yk.end(), yk.begin(), [=](T _yki) { return _yki/ykNorm; });
     }
     
     return yk;

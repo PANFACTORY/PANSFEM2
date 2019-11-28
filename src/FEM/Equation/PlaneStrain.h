@@ -85,8 +85,15 @@ namespace PANSFEM2 {
 			Matrix<T> dXdr = dNdr * X;
 			T J = dXdr.Determinant();
 
+			//----------Generate B matrix----------
+			Matrix<T> B = Matrix<T>(2, 2 * _element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2 * n) = N(n);	B(0, 2 * n + 1) = 0.0;			
+				B(1, 2 * n) = 0.0;	B(1, 2 * n + 1) = N(n);	
+			}
+
 			//----------Make C matrix----------
-			_Me += N*N.Transpose()*J*_rho*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+			_Me += B.Transpose()*B*J*_rho*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
 		}
 	}
 }

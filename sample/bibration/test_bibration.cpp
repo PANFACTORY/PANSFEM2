@@ -47,45 +47,44 @@ int main() {
     for (int i = 0; i < elements.size(); i++) {
         Matrix<double> Ke, Me;
         PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, X, elements[i], 210000.0, 0.3, 1.0);
-        PlaneMass<double, ShapeFunction8Square, Gauss9Square >(Me, X, elements[i], 1.0, 1.0);
+        PlaneMass<double, ShapeFunction8Square, Gauss9Square >(Me, X, elements[i], 0.0000078, 1.0);
         Assembling(K, Ke, elements[i], field);
-        std::cout << "!" << std::endl;
         Assembling(M, Me, elements[i], field);
     }
   
     //----------Set Dirichlet Boundary Condition----------
     SetDirichlet(K, M, isufixed, ufixed, 1.0e10);
 
-    std::cout << "!" << std::endl;
-    
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
     CSR<double> Mmod = CSR<double>(M);
     std::vector<double> alpha, beta;
 	std::vector<std::vector<double> > q;
-	LanczosInversePowerProcessForGeneral(Kmod, Mmod, alpha, beta, q, 10);
-	double lambda = BisectionMethod(alpha, beta, 0);
-	std::cout << 1.0 / lambda << std::endl;
-	std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
-	std::vector<double> result = ReconvertVector(y, q);
+	LanczosInversePowerProcessForGeneral(Kmod, Mmod, alpha, beta, q, 1.0e-10);
+    for(int i = 0; i < 20; i++){
+        //----------Get eigen value and eigen vector----------
+        double lambda = BisectionMethod(alpha, beta, i);
+        std::cout << lambda << "\t" << 1.0 / lambda;
+        if(lambda > 0.0){
+            std::cout << "\t" << sqrt(1.0 / lambda);
+        }
+        std::cout << std::endl;
+        std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
+        std::vector<double> result = ReconvertVector(y, q);
 
-    std::cout << "!" << std::endl;
-	    
-    //----------Post Process----------
-    std::vector<Vector<double> > u;
-    FieldResultToNodeValue(result, u, field);
+        //----------Post Process----------
+        std::vector<Vector<double> > u;
+        FieldResultToNodeValue(result, u, field);
 
-    //----------Save file----------
-    std::ofstream fout(model_path + "result.vtk");
-    MakeHeadderToVTK(fout);
-    AddPointsToVTK(X, fout);
-    AddElementToVTK(elements, fout);
-    std::vector<int> et = std::vector<int>(elements.size(), 25);
-    AddElementTypes(et, fout);
-    AddPointVectors(u, "u", fout);
-    fout.close();
-
-    std::cout << "!" << std::endl;
-
+        //----------Save file----------
+        std::ofstream fout(model_path + "result" + std::to_string(i) + ".vtk");
+        MakeHeadderToVTK(fout);
+        AddPointsToVTK(X, fout);
+        AddElementToVTK(elements, fout);
+        AddElementTypes(std::vector<int>(elements.size(), 23), fout);
+        AddPointVectors(u, "u", fout);
+        fout.close();
+    }
+	
 	return 0;
 }

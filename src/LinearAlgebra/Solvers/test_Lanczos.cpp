@@ -33,13 +33,13 @@ int main() {
 	A.set(5, 0, 1.0);	A.set(5, 1, 1.0);	A.set(5, 2, 1.0);	A.set(5, 3, 1.0);	A.set(5, 4, 1.0);	A.set(5, 5, 1.0);
 	*/
 
-	int m = 4;
+	int m = 3;
 
 	std::cout << A << std::endl;
 
 	std::vector<double> alpha, beta;
 	std::vector<std::vector<double> > q;
-	LanczosInversePowerProcess(A, alpha, beta, q, m);
+	LanczosInversePowerProcess(A, alpha, beta, q, 1.0e-10);
 
 	for(int i = 0; i < m; i++){
 		double lambda = BisectionMethod(alpha, beta, i);
@@ -52,6 +52,15 @@ int main() {
 		}
 		std::cout << std::endl;
 	}	
+
+	std::cout << std::endl;
+
+	for(auto qi : q){
+		for(auto qij : qi){
+			std::cout << qij << "\t";
+		}
+		std::cout << std::endl;
+	}
 		
 	return 0;
 }

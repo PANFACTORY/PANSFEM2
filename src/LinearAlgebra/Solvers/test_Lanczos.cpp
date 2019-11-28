@@ -33,7 +33,7 @@ int main() {
 	A.set(5, 0, 1.0);	A.set(5, 1, 1.0);	A.set(5, 2, 1.0);	A.set(5, 3, 1.0);	A.set(5, 4, 1.0);	A.set(5, 5, 1.0);
 	*/
 
-	int m = 5;
+	int m = 10;
 
 	std::cout << A << std::endl;
 

@@ -35,7 +35,7 @@ int main() {
 	std::vector<int> field;
 	int KDEGREE = 0;
 	ImportFieldFromCSV(field, KDEGREE, X.size(), model_path + "Field.csv");
-
+    
 	//----------Add Dirichlet Condition----------
 	std::vector<int> isufixed;
 	std::vector<double> ufixed;
@@ -60,8 +60,9 @@ int main() {
     CSR<double> Mmod = CSR<double>(M);
     std::vector<double> alpha, beta;
 	std::vector<std::vector<double> > q;
-	LanczosInversePowerProcessForGeneral(Kmod, Mmod, alpha, beta, q, 1.0e-10);
-    for(int i = 0; i < 20; i++){
+    int m = 50;
+	LanczosInversePowerProcessForGeneral(Kmod, Mmod, alpha, beta, q, m);
+    for(int i = 0; i < m; i++){
         //----------Get eigen value and eigen vector----------
         double lambda = BisectionMethod(alpha, beta, i);
         std::cout << lambda << "\t" << 1.0 / lambda;

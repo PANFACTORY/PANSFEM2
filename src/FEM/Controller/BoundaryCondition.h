@@ -34,8 +34,8 @@ namespace PANSFEM2 {
 		assert(_isufixed.size() == _u.size());
 
 		for (int i = 0; i < _isufixed.size(); i++) {
-			_M.set(_isufixed[i], _isufixed[i], _alpha*_M.get(_isufixed[i], _isufixed[i]));
 			_K.set(_isufixed[i], _isufixed[i], _alpha*_K.get(_isufixed[i], _isufixed[i]));
+			//_M.set(_isufixed[i], _isufixed[i], _alpha*_M.get(_isufixed[i], _isufixed[i]));
 		}
 	}
 

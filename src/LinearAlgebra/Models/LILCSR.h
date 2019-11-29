@@ -1,3 +1,11 @@
+//*****************************************************************************
+//Title		:PANSFEM2/LinearAlgebra/Models/LILCSR.h
+//Author	:Tanabe Yuta
+//Date		:2019/11/29
+//Copyright	:(C)2019 TanabeYuta
+//*****************************************************************************
+
+
 #pragma once
 #include <iostream>
 #include <vector>
@@ -19,31 +27,31 @@ public:
 	LILCSR();
 	~LILCSR();
 	LILCSR(int _rows, int _cols);
-	LILCSR(CSR<T> _matrix);						//CSR‚©‚çLILCSR‚ğ¶¬
+	LILCSR(CSR<T> _matrix);			//Genarate LILCSR matrix from CSR matrix
 
 
-	const int ROWS;			//s”
-	const int COLS;			//—ñ”
+	const int ROWS;					//Row number
+	const int COLS;					//Column number
 
 
 	template<class T1, class T2>
-	friend const std::vector<T1> operator*(const LILCSR<T1>& _m, const std::vector<T2> &_vec);		//ƒxƒNƒgƒ‹‚Æ‚ÌÏ
+	friend const std::vector<T1> operator*(const LILCSR<T1>& _m, const std::vector<T2> &_vec);		//ï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½Æ‚Ìï¿½
 	template<class T1, class T2>
-	friend const LILCSR<T1> operator+(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//s—ñ‚Æ‚Ì˜a
+	friend const LILCSR<T1> operator+(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//ï¿½sï¿½ï¿½Æ‚Ì˜a
 	template<class T1, class T2>
-	friend const LILCSR<T1> operator-(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//s—ñ‚Æ‚Ì·
+	friend const LILCSR<T1> operator-(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//ï¿½sï¿½ï¿½Æ‚Ìï¿½
 	template<class T1, class T2>
-	friend const LILCSR<T2> operator*(T1 _a, const LILCSR<T2>& _m);	//À”‚Æ‚ÌÏ
+	friend const LILCSR<T2> operator*(T1 _a, const LILCSR<T2>& _m);	//ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚Ìï¿½
 	template<class T1, class T2>
-	friend const LILCSR<T1> operator*(const LILCSR<T1>& _m, T2 _a);	//À”‚Æ‚ÌÏ
+	friend const LILCSR<T1> operator*(const LILCSR<T1>& _m, T2 _a);	//ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚Ìï¿½
 	template<class T1, class T2>
-	friend const LILCSR<T1> operator/(const LILCSR<T1>& _m, T2 _a);	//À”‚Æ‚Ì¤
+	friend const LILCSR<T1> operator/(const LILCSR<T1>& _m, T2 _a);	//ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚Ìï¿½
 	template<class F>
-	friend std::ostream& operator << (std::ostream &_out, const LILCSR<F> &_mat);		//stream‚Éo—Í
+	friend std::ostream& operator << (std::ostream &_out, const LILCSR<F> &_mat);		//streamï¿½Éoï¿½ï¿½
 
 
-	bool set(int _row, int _col, T _data);		//’l‚ÌƒZƒbƒg
-	T get(int _row, int _col) const;			//’l‚Ìæ“¾
+	bool set(int _row, int _col, T _data);		//ï¿½lï¿½ÌƒZï¿½bï¿½g
+	T get(int _row, int _col) const;			//ï¿½lï¿½Ìæ“¾
 
 
 	template<class F>

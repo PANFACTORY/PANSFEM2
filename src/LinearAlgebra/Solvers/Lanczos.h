@@ -71,41 +71,6 @@ void LanczosInversePowerProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<
 }
 
 
-//********************Lanczos Inverse Power process with check convergence********************
-template<class T>
-void LanczosInversePowerProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, T _eps){
-    int n = _A.ROWS;
-    _alpha = std::vector<T>();        //Values of diagonal
-    _beta = std::vector<T>();         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(1, std::vector<T>(n, T()));      //Orthogonal vectors
-    for(int i = 0; i < n; i++){
-        _q[0][i] = _A.get(i, i);
-    }
-    T q0Norm = sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T()));
-    std::transform(_q[0].begin(), _q[0].end(), _q[0].begin(), [=](T _q0i) { return _q0i/q0Norm; });
-    
-    int itrmax = std::max(n, 1000);
-    for(int k = 0; k < n; k++){
-        std::vector<T> p = ScalingCG(_A, _q[k], itrmax, 1.0e-10);
-        if(k != 0){
-            std::transform(p.begin(), p.end(), _q[k - 1].begin(), p.begin(), [=](T _pi, T _qkm1i) {return _pi - _beta[k - 1]*_qkm1i; });
-        }
-        _alpha.push_back(std::inner_product(p.begin(), p.end(), _q[k].begin(), T()));
-        std::transform(p.begin(), p.end(), _q[k].begin(), p.begin(), [=](T _pi, T _qki) {return _pi - _alpha[k]*_qki; });
-        _beta.push_back(sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T())));
-
-        std::cout << "\t" << _beta[k] << std::endl;
-
-        if(_beta[k] > _eps){
-            _q.push_back(std::vector<T>(n, T()));
-            std::transform(p.begin(), p.end(), _q[k + 1].begin(), [=](T _pi) { return _pi/_beta[k]; });
-        } else {
-            break;
-        }      
-    }
-}
-
-
 //********************Lanczos Inverse Power process for General eigenvalue problem********************
 template<class T>
 void LanczosInversePowerProcessForGeneral(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
@@ -132,42 +97,6 @@ void LanczosInversePowerProcessForGeneral(CSR<T>& _A, CSR<T>& _B, std::vector<T>
         _beta[k] = sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T()));
         std::transform(r.begin(), r.end(), p.begin(), [=](T _ri) { return _ri/_beta[k]; });
         if(k != _m - 1){
-            std::transform(s.begin(), s.end(), _q[k + 1].begin(), [=](T _si) { return _si/_beta[k]; });
-        }       
-    }
-}
-
-
-//********************Lanczos Inverse Power process with check convergence for General eigenvalue problem********************
-template<class T>
-void LanczosInversePowerProcessForGeneral(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, T _eps){
-    int n = _A.ROWS;
-    _alpha = std::vector<T>();        //Values of diagonal
-    _beta = std::vector<T>();         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(1, std::vector<T>(n, T()));      //Orthogonal vectors
-    for(int i = 0; i < n; i++){
-        _q[0][i] = _A.get(i, i);
-    }
-    T q0Norm = sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T()));
-    std::transform(_q[0].begin(), _q[0].end(), _q[0].begin(), [=](T _q0i) { return _q0i/q0Norm; });
-
-    std::vector<T> p = _B*_q[0];
-    int itrmax = std::max(n, 1000);
-    for(int k = 0; k < n; k++){
-        std::vector<T> s = ScalingCG(_A, p, itrmax, 1.0e-10);
-        if(k != 0){
-            std::transform(s.begin(), s.end(), _q[k - 1].begin(), s.begin(), [=](T _si, T _qkm1i) {return _si - _beta[k - 1]*_qkm1i; });
-        }
-        _alpha.push_back(std::inner_product(p.begin(), p.end(), s.begin(), T()));
-        std::transform(s.begin(), s.end(), _q[k].begin(), s.begin(), [=](T _si, T _qki) {return _si - _alpha[k]*_qki; });
-        std::vector<T> r = _B*s;
-        _beta.push_back(sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T())));
-        std::transform(r.begin(), r.end(), p.begin(), [=](T _ri) { return _ri/_beta[k]; });
-
-        std::cout << "\t" << _beta[k] << std::endl;
-
-        if(_beta[k] > _eps){
-            _q.push_back(std::vector<T>(n, T()));
             std::transform(s.begin(), s.end(), _q[k + 1].begin(), [=](T _si) { return _si/_beta[k]; });
         }       
     }

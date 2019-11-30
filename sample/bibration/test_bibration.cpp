@@ -46,7 +46,7 @@ int main() {
     LILCSR<double> M = LILCSR<double>(KDEGREE, KDEGREE);
     for (int i = 0; i < elements.size(); i++) {
         Matrix<double> Ke, Me;
-        PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, X, elements[i], 210000.0, 0.3, 1.0);
+        PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, X, elements[i], 210000.0, 0.0, 1.0);
         PlaneMass<double, ShapeFunction8Square, Gauss9Square >(Me, X, elements[i], 0.0000078, 1.0);
         Assembling(K, Ke, elements[i], field);
         Assembling(M, Me, elements[i], field);
@@ -60,16 +60,12 @@ int main() {
     CSR<double> Mmod = CSR<double>(M);
     std::vector<double> alpha, beta;
 	std::vector<std::vector<double> > q;
-    int m = 50;
+    int m = 5;
 	LanczosInversePowerProcessForGeneral(Kmod, Mmod, alpha, beta, q, m);
     for(int i = 0; i < m; i++){
         //----------Get eigen value and eigen vector----------
-        double lambda = BisectionMethod(alpha, beta, i);
-        std::cout << lambda << "\t" << 1.0 / lambda;
-        if(lambda > 0.0){
-            std::cout << "\t" << sqrt(1.0 / lambda);
-        }
-        std::cout << std::endl;
+        double lambda = BisectionMethod(alpha, beta, (m - 1) - i);
+        std::cout <<  sqrt(1.0 / lambda) << std::endl;
         std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
         std::vector<double> result = ReconvertVector(y, q);
 

@@ -11,7 +11,6 @@
 #include <fstream>
 
 
-#include "../../LinearAlgebra/Models/LAOperation.h"
 #include "../../LinearAlgebra/Models/Vector.h"
 
 

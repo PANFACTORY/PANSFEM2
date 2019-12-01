@@ -17,9 +17,6 @@
 #include "Optimize/Solver/MMA.h"
 
 
-#include "LinearAlgebra/Solvers/Lanczos.h"
-
-
 using namespace PANSFEM2;
 
 

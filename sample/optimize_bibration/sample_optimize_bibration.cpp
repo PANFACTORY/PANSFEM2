@@ -55,7 +55,7 @@ int main() {
 
     int m = 5;
 
-	int n = 2;
+	int n = 1;
 
 	double iota = 0.75;
 	double lambdamin = 1.0e-20;
@@ -164,6 +164,9 @@ int main() {
 			}		
 
 			weight += s[i] - weightlimit;
+			if(i == 1389 || i == 1390 || i == 1409 || i == 1410){
+				weight += 1.25e-6;
+			}
 			dweights[i] = 1.0;
 		}
 
@@ -204,6 +207,9 @@ int main() {
 
 			double weightnext = 0.0;
 			for (int i = 0; i < elements.size(); i++) {
+				if(i == 1389 || i == 1390 || i == 1409 || i == 1410){
+					weightnext += 1.25e-6;
+				}
 				weightnext += snext[i] - weightlimit;
 			}
 

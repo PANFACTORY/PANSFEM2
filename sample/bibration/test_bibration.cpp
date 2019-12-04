@@ -79,7 +79,7 @@ int main() {
         AddPointsToVTK(X, fout);
         AddElementToVTK(elements, fout);
         AddElementTypes(std::vector<int>(elements.size(), 23), fout);
-        AddPointVectors(u, "u", fout);
+        AddPointVectors(u, "u", fout, true);
         fout.close();
     }
 	

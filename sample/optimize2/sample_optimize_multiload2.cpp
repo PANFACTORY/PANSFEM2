@@ -54,11 +54,11 @@ int main() {
 
 	//----------Define design parameters----------
 	double E0 = 0.001;
-	double E1 = 374.0;
+	double E1 = 6300.0;
     double E2 = 210000.0;
 	double Poisson = 0.3;
 	double rho0 = 0.0;
-    double rho1 = 0.13;
+    double rho1 = 0.03;
     double rho2 = 1.0;
 
     double p = 3.0;
@@ -70,7 +70,7 @@ int main() {
 	double lambdaeps = 1.0e-10;
 	double movelimit = 0.15;
 
-	double weightlimit = 0.7;
+	double weightlimit = 0.25;
 	double objectivebefore = 0.0;
 	double objectiveeps = 1.0e-5;
 	

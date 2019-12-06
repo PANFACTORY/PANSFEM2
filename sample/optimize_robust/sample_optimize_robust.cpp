@@ -45,13 +45,20 @@ int main() {
 	std::vector<int> isqfixed;
 	std::vector<double> qfixed;
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
-
     std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 	SetNeumann(F, isqfixed, qfixed);
 
+    std::vector<int> isqfixed2;
+	std::vector<double> qfixed2;
+	ImportNeumannFromCSV(isqfixed2, qfixed2, field, model_path + "Neumann2.csv");
     std::vector<double> dFdtheta = std::vector<double>(KDEGREE, 0.0);
+    SetNeumann(dFdtheta, isqfixed2, qfixed2);
 
+    std::vector<int> isqfixed3;
+	std::vector<double> qfixed3;
+	ImportNeumannFromCSV(isqfixed3, qfixed3, field, model_path + "Neumann3.csv");
     std::vector<double> d2Fdtheta2 = std::vector<double>(KDEGREE, 0.0);
+    SetNeumann(d2Fdtheta2, isqfixed3, qfixed3);
 	
 	//----------Initialize design variables----------
 	std::vector<double> s = std::vector<double>(elements.size(), 0.5);

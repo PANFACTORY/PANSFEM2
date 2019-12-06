@@ -21,7 +21,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/optimize2/";
+	std::string model_path = "sample/optimize_robust/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;
@@ -69,17 +69,18 @@ int main() {
 	double Poisson = 0.3;
 	double p = 3.0;
 
-    double Edtheta2;
-    double Edtheta4;
+	double sigmatheta = 15.0/180.0*3.141592;
+    double Edtheta2 = pow(sigmatheta, 2.0);
+    double Edtheta4 = 3.0*pow(sigmatheta, 4.0);
     double alpha = 1.0;
 
 	double iota = 0.75;
-	double lambdamin = 1.0e-15;
-	double lambdamax = 1.0e15;
-	double lambdaeps = 1.0e-10;
+	double lambdamin = 1.0e-20;
+	double lambdamax = 1.0e20;
+	double lambdaeps = 1.0e-15;
 	double movelimit = 0.15;
 
-	double weightlimit = 0.25;
+	double weightlimit = 0.3;
 	double objectivebefore = 0.0;
 	double objectiveeps = 1.0e-5;
 	
@@ -178,7 +179,7 @@ int main() {
                 d2ddtheta2e = d2ddtheta2e.Vstack(d2ddtheta2v[elements[i][j]]);
             }
 
-            dobjectives[i] = p*(- E0 + E1)*pow(s[i], p - 1.0)*(- (phi0e.Transpose()*Ke*de)(0) - (phi1e.Transpose()*Ke*dddthetae)(0) - (phi2e.Transpose()*Ke*d2ddtheta2e)(0));
+            dobjectives[i] = -p*(- E0 + E1)*pow(s[i], p - 1.0)*(- (phi0e*(Ke*de)) - (phi1e*(Ke*dddthetae)) - (phi2e*(Ke*d2ddtheta2e)));
         }
 
         
@@ -193,7 +194,7 @@ int main() {
 		AddPointVectors(dv, "d", fout, true);
 		AddElementScalers(s, "s", fout, true);
 		fout.close();
-        
+       
 
         //*************************************************
         //  Update design variables with OC method

@@ -47,9 +47,9 @@ int main() {
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
 
 	//----------Add Initial Condition----------
-	std::vector<Vector<double> > dn = std::vector<Vector<double> >(nodes.size(), Vector<double>(3));	//	Displacement of nodes at step n
-	std::vector<Vector<double> > vn = std::vector<Vector<double> >(nodes.size(), Vector<double>(3));	//	Velocity of nodes at step n
-	std::vector<Vector<double> > an = std::vector<Vector<double> >(nodes.size(), Vector<double>(3));	//	Acceraration of nodes at step n
+	std::vector<Vector<double> > dn = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Displacement of nodes at step n
+	std::vector<Vector<double> > vn = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Velocity of nodes at step n
+	std::vector<Vector<double> > an = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Acceraration of nodes at step n
     	
 	//----------Define parameters----------
 	double E = 210000.0;				//	Young moduls
@@ -63,7 +63,7 @@ int main() {
 	
 	//----------Time step loop----------
 	for(int t = 1; t <= 100; t++){
-		std::cout << "t = " << (double)t*dt << "\t";
+		std::cout << "t = " << (double)t*dt << std::endl;
 
 
         //*************************************************
@@ -98,18 +98,18 @@ int main() {
 		for(int i = 0; i < qfixednp1.size(); i++){
 			qfixednp1[i] *= sin(2.0*3.141592*(double)t*dt);
 		}
-	    SetNeumann(b, isqfixed, qfixed);
+	    SetNeumann(b, isqfixed, qfixednp1);
 
 		//----------Set Dirichlet Boundary Condition----------
 		SetDirichlet(A, b, isufixed, ufixed, 1.0e10);
-        
+     
         //----------Solve linear system----------
         CSR<double> Amod = CSR<double>(A);	
         std::vector<double> results = ScalingCG(Amod, b, 100000, 1.0e-10);
 
 		//----------Get d, v, a at step n+1----------
-		std::vector<Vector<double> > dnp1;	//	Displacement of nodes at step n+1
-		std::vector<Vector<double> > vnp1;	//	Velocity of nodes at step n+1
+		std::vector<Vector<double> > dnp1 = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Displacement of nodes at step n+1
+		std::vector<Vector<double> > vnp1 = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Velocity of nodes at step n+1
 		std::vector<Vector<double> > anp1;	//	Acceraration of nodes at step n+1
 
 		FieldResultToNodeValue(results, anp1, field);

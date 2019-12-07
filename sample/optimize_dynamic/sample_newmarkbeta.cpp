@@ -47,9 +47,9 @@ int main() {
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
 
 	//----------Add Initial Condition----------
-	std::vector<Vector<double> > dn;	//	Displacement of nodes at step n
-	std::vector<Vector<double> > vn;	//	Velocity of nodes at step n
-	std::vector<Vector<double> > an;	//	Acceraration of nodes at step n
+	std::vector<Vector<double> > dn = std::vector<Vector<double> >(nodes.size(), Vector<double>(3));	//	Displacement of nodes at step n
+	std::vector<Vector<double> > vn = std::vector<Vector<double> >(nodes.size(), Vector<double>(3));	//	Velocity of nodes at step n
+	std::vector<Vector<double> > an = std::vector<Vector<double> >(nodes.size(), Vector<double>(3));	//	Acceraration of nodes at step n
     	
 	//----------Define parameters----------
 	double E = 210000.0;				//	Young moduls
@@ -62,8 +62,8 @@ int main() {
 	double ganma = 0.5;					//	Parameter ganma for Newmark beta method
 	
 	//----------Time step loop----------
-	for(int t = 0; t < 100; t++){
-		std::cout << "t = " << t << "\t";
+	for(int t = 1; t <= 100; t++){
+		std::cout << "t = " << (double)t*dt << "\t";
 
 
         //*************************************************
@@ -94,6 +94,10 @@ int main() {
 		}
 
         //----------Set Neumann Boundary Condition----------
+		std::vector<double> qfixednp1 = qfixed;
+		for(int i = 0; i < qfixednp1.size(); i++){
+			qfixednp1[i] *= sin(2.0*3.141592*(double)t*dt);
+		}
 	    SetNeumann(b, isqfixed, qfixed);
 
 		//----------Set Dirichlet Boundary Condition----------
@@ -115,6 +119,14 @@ int main() {
 		}
 
 
+		//*************************************************
+		//	Update d, v, a
+		//*************************************************
+		dn = dnp1;
+		vn = vnp1;
+		an = anp1;
+
+
         //*************************************************
         //  Post Process
         //*************************************************
@@ -125,14 +137,6 @@ int main() {
 		AddElementTypes(std::vector<int>(elements.size(), 23), fout);
 		AddPointVectors(dn, "d", fout, true);
 		fout.close();
-
-
-		//*************************************************
-		//	Update d, v, a
-		//*************************************************
-		dn = dnp1;
-		vn = vnp1;
-		an = anp1;
 	}
 	
 	return 0;

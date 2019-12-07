@@ -45,10 +45,23 @@ int main() {
 	std::vector<int> isqfixed;
 	std::vector<double> qfixed;
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
+
+	//----------Add Initial Condition----------
+
     	
-	//----------Define design parameters----------
-	double E = 210000.0;
-	double Poisson = 0.3;
+	//----------Define parameters----------
+	double E = 210000.0;				//	Young moduls
+	double Poisson = 0.3;				//	Poisson ratio
+	double rho = 0.000086;				//	Density
+
+	double dt = 0.01;					//	Time step
+
+	double beta = 0.25;					//	Parameter beta for Newmark beta method
+	double ganma = 0.5;					//	Parameter ganma for Newmark beta method
+
+	std::vector<Vector<double> > dn;	//	Displacement of nodes at step n
+	std::vector<Vector<double> > vn;	//	Velocity of nodes at step n
+	std::vector<Vector<double> > an;	//	Acceraration of nodes at step n
 	
 	//----------Time step loop----------
 	for(int t = 0; t < 100; t++){
@@ -60,37 +73,68 @@ int main() {
         //*************************************************
     
         //----------Assembling----------
-		LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
-        std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
+		LILCSR<double> A = LILCSR<double>(KDEGREE, KDEGREE);
+        std::vector<double> b = std::vector<double>(KDEGREE, 0.0);
 		for (int i = 0; i < elements.size(); i++) {
-			Matrix<double> Ke;
+			Vector<double> dne = Vector<double>();
+			Vector<double> vne = Vector<double>();
+            Vector<double> ane = Vector<double>();
+            for(int j = 0; j < elements[i].size(); j++){
+                dne = dne.Vstack(dn[elements[i][j]]);
+                vne = vne.Vstack(vn[elements[i][j]]);
+                ane = ane.Vstack(an[elements[i][j]]);
+            }
+
+			Matrix<double> Ke, Me;
 			PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
-			Assembling(K, Ke, elements[i], field);
+			PlaneMass<double, ShapeFunction8Square, Gauss9Square >(Me, nodes, elements[i], rho, 1.0);
+
+			Matrix<double> Ae = Me + pow(dt, 2.0)*beta*Ke;
+			Vector<double> be = -Ke*(dne + dt*vne + pow(dt, 2.0)*(0.5 - beta)*ane);
+
+			Assembling(A, b, Ae, be, elements[i], field);
 		}
 
         //----------Set Neumann Boundary Condition----------
-	    SetNeumann(F, isqfixed, qfixed);
+	    SetNeumann(b, isqfixed, qfixed);
 
 		//----------Set Dirichlet Boundary Condition----------
-		SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
+		SetDirichlet(A, b, isufixed, ufixed, 1.0e10);
         
         //----------Solve linear system----------
-        CSR<double> Kmod = CSR<double>(K);	
-        std::vector<double> d = ScalingCG(Kmod, F, 100000, 1.0e-10);
-                
+        CSR<double> Amod = CSR<double>(A);	
+        std::vector<double> results = ScalingCG(Amod, b, 100000, 1.0e-10);
+
+		//----------Get d, v, a at step n+1----------
+		std::vector<Vector<double> > dnp1;	//	Displacement of nodes at step n+1
+		std::vector<Vector<double> > vnp1;	//	Velocity of nodes at step n+1
+		std::vector<Vector<double> > anp1;	//	Acceraration of nodes at step n+1
+
+		FieldResultToNodeValue(results, anp1, field);
+		for(int i = 0; i < nodes.size(); i++){
+			dnp1[i] = dn[i] + dt*vn[i] + pow(dt, 2.0)*(0.5 - beta)*an[i] + pow(dt, 2.0)*beta*anp1[i];
+			vnp1[i] = vn[i] + dt*(1.0 - ganma)*an[i] + dt*ganma*anp1[i];
+		}
+
 
         //*************************************************
         //  Post Process
         //*************************************************
-        std::vector<Vector<double> > dv;
-		FieldResultToNodeValue(d, dv, field);
 		std::ofstream fout(model_path + "result" + std::to_string(t) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(nodes, fout);
 		AddElementToVTK(elements, fout);
 		AddElementTypes(std::vector<int>(elements.size(), 23), fout);
-		AddPointVectors(dv, "d", fout, true);
+		AddPointVectors(dn, "d", fout, true);
 		fout.close();
+
+
+		//*************************************************
+		//	Update d, v, a
+		//*************************************************
+		dn = dnp1;
+		vn = vnp1;
+		an = anp1;
 	}
 	
 	return 0;

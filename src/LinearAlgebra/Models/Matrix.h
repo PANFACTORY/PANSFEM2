@@ -67,6 +67,8 @@ public:
         friend Matrix<U> Vector<U>::Transpose();
         template<class U>
         friend Matrix<U> Vector<U>::operator*(const Matrix<U>& _mat);
+        template<class U>
+        friend Matrix<U> operator*(U _a, const Matrix<U>& _mat);
 
 
         template<class U>
@@ -279,6 +281,16 @@ protected:
             }
         }
         return vec;
+    }
+
+
+    template<class U>
+    Matrix<U> operator*(U _a, const Matrix<U>& _mat){
+        Matrix<U> mat = _mat;
+        for(int i = 0; i < mat.row * mat.col; i++){
+            mat.values[i] *= _a;
+        }
+        return mat;
     }
 
 

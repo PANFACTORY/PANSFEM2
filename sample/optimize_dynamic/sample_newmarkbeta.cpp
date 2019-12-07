@@ -47,21 +47,19 @@ int main() {
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
 
 	//----------Add Initial Condition----------
-
+	std::vector<Vector<double> > dn;	//	Displacement of nodes at step n
+	std::vector<Vector<double> > vn;	//	Velocity of nodes at step n
+	std::vector<Vector<double> > an;	//	Acceraration of nodes at step n
     	
 	//----------Define parameters----------
 	double E = 210000.0;				//	Young moduls
 	double Poisson = 0.3;				//	Poisson ratio
-	double rho = 0.000086;				//	Density
+	double rho = 0.0000078;				//	Density
 
 	double dt = 0.01;					//	Time step
 
-	double beta = 0.25;					//	Parameter beta for Newmark beta method
+	double beta = 0.3333333333;			//	Parameter beta for Newmark beta method
 	double ganma = 0.5;					//	Parameter ganma for Newmark beta method
-
-	std::vector<Vector<double> > dn;	//	Displacement of nodes at step n
-	std::vector<Vector<double> > vn;	//	Velocity of nodes at step n
-	std::vector<Vector<double> > an;	//	Acceraration of nodes at step n
 	
 	//----------Time step loop----------
 	for(int t = 0; t < 100; t++){

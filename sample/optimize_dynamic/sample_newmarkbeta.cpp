@@ -56,7 +56,7 @@ int main() {
 	double Poisson = 0.3;				//	Poisson ratio
 	double rho = 0.0000078;				//	Density
 
-	double dt = 0.01;					//	Time step
+	double dt = 0.001;					//	Time step
 
 	double beta = 0.3333333333;			//	Parameter beta for Newmark beta method
 	double ganma = 0.5;					//	Parameter ganma for Newmark beta method
@@ -94,12 +94,10 @@ int main() {
 		}
 
         //----------Set Neumann Boundary Condition----------
-		std::vector<double> qfixednp1 = qfixed;
-		for(int i = 0; i < qfixednp1.size(); i++){
-			qfixednp1[i] *= sin(2.0*3.141592*(double)t*dt);
+		if(t == 1){
+			SetNeumann(b, isqfixed, qfixed);
 		}
-	    SetNeumann(b, isqfixed, qfixednp1);
-
+		
 		//----------Set Dirichlet Boundary Condition----------
 		SetDirichlet(A, b, isufixed, ufixed, 1.0e10);
      

@@ -46,23 +46,24 @@ int main() {
 	std::vector<double> qfixed;
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
 
-	//----------Add Initial Condition----------
-	std::vector<Vector<double> > dn = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Displacement of nodes at step n
-	std::vector<Vector<double> > vn = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Velocity of nodes at step n
-	std::vector<Vector<double> > an = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Acceraration of nodes at step n
-    	
 	//----------Define parameters----------
 	double E = 210000.0;				//	Young moduls
 	double Poisson = 0.3;				//	Poisson ratio
 	double rho = 0.0000078;				//	Density
 
 	double dt = 0.001;					//	Time step
+	int step = 101;						//	Step number
 
 	double beta = 0.3333333333;			//	Parameter beta for Newmark beta method
 	double ganma = 0.5;					//	Parameter ganma for Newmark beta method
-	
+
+	//----------Add Initial Condition----------
+	std::vector<std::vector<Vector<double> > > d = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Displacement of nodes
+	std::vector<std::vector<Vector<double> > > v = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Velocity of nodes
+	std::vector<std::vector<Vector<double> > > a = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Acceraration of nodes
+    		
 	//----------Time step loop----------
-	for(int t = 1; t <= 100; t++){
+	for(int t = 1; t < step; t++){
 		std::cout << "t = " << (double)t*dt << std::endl;
 
 
@@ -78,9 +79,9 @@ int main() {
 			Vector<double> vne = Vector<double>();
             Vector<double> ane = Vector<double>();
             for(int j = 0; j < elements[i].size(); j++){
-                dne = dne.Vstack(dn[elements[i][j]]);
-                vne = vne.Vstack(vn[elements[i][j]]);
-                ane = ane.Vstack(an[elements[i][j]]);
+                dne = dne.Vstack(d[t - 1][elements[i][j]]);
+                vne = vne.Vstack(v[t - 1][elements[i][j]]);
+                ane = ane.Vstack(a[t - 1][elements[i][j]]);
             }
 
 			Matrix<double> Ke, Me;
@@ -106,24 +107,11 @@ int main() {
         std::vector<double> results = ScalingCG(Amod, b, 100000, 1.0e-10);
 
 		//----------Get d, v, a at step n+1----------
-		std::vector<Vector<double> > dnp1 = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Displacement of nodes at step n+1
-		std::vector<Vector<double> > vnp1 = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Velocity of nodes at step n+1
-		std::vector<Vector<double> > anp1 = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Acceraration of nodes at step n+1
-
-		FieldResultToNodeValue(results, anp1, field);
+		FieldResultToNodeValue(results, a[t], field);
 		for(int i = 0; i < nodes.size(); i++){
-			dnp1[i] = dn[i] + dt*vn[i] + pow(dt, 2.0)*(0.5 - beta)*an[i] + pow(dt, 2.0)*beta*anp1[i];
-			vnp1[i] = vn[i] + dt*(1.0 - ganma)*an[i] + dt*ganma*anp1[i];
+			d[t][i] = d[t - 1][i] + dt*v[t - 1][i] + pow(dt, 2.0)*(0.5 - beta)*a[t - 1][i] + pow(dt, 2.0)*beta*a[t][i];
+			v[t][i] = v[t - 1][i] + dt*(1.0 - ganma)*a[t - 1][i] + dt*ganma*a[t][i];
 		}
-
-
-		//*************************************************
-		//	Update d, v, a
-		//*************************************************
-		dn = dnp1;
-		vn = vnp1;
-		an = anp1;
-
 
         //*************************************************
         //  Post Process
@@ -133,7 +121,7 @@ int main() {
 		AddPointsToVTK(nodes, fout);
 		AddElementToVTK(elements, fout);
 		AddElementTypes(std::vector<int>(elements.size(), 23), fout);
-		AddPointVectors(dn, "d", fout, true);
+		AddPointVectors(d[t], "d", fout, true);
 		fout.close();
 	}
 	

@@ -8,6 +8,7 @@
 
 #pragma once
 #include <vector>
+#include <cassert>
 
 
 #include "../../LinearAlgebra/Models/LILCSR.h"
@@ -56,7 +57,7 @@ namespace PANSFEM2 {
 
 
 	//********************FieldResultToNodeVector********************
-	template<class T>
+	/*template<class T>
 	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<Vector<T> >& _values, const std::vector<int>& _field) {
 		int resultindex = 0;
 		for (int i = 0; i < _field.size() - 1; i++) {
@@ -66,6 +67,21 @@ namespace PANSFEM2 {
 				resultindex++;
 			}
 			_values.push_back(Vector<T>(value));
+		}
+	}*/
+
+	template<class T>
+	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<Vector<T> >& _values, const std::vector<int>& _field) {
+		assert(_values.size() == _field.size() - 1);
+
+		int resultindex = 0;
+		for (int i = 0; i < _field.size() - 1; i++) {
+			std::vector<T> value;
+			for (int k = _field[i]; k < _field[i + 1]; k++) {
+				value.push_back(_result[resultindex]);
+				resultindex++;
+			}
+			_values[i] = Vector<T>(value);
 		}
 	}
 

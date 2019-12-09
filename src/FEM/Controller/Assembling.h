@@ -76,6 +76,8 @@ namespace PANSFEM2 {
 	//********************FieldResultToNodeScaler********************
 	template<class T>
 	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<T>& _values, const std::vector<int>& _field) {
+		assert(_values.size() == _field.size() - 1);
+		
 		int resultindex = 0;
 		for (int i = 0; i < _field.size() - 1; i++) {
 			T value = T();
@@ -83,7 +85,7 @@ namespace PANSFEM2 {
 				value = _result[resultindex];
 				resultindex++;
 			}
-			_values.push_back(value);
+			_values[i] = value;
 		}
 	}
 }

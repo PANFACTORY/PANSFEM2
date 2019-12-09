@@ -147,17 +147,17 @@ int main() {
         std::vector<double> phi1 = ScalingCG(Kmod, F1, 100000, 1.0e-10);
         std::vector<double> phi0 = ScalingCG(Kmod, F0, 100000, 1.0e-10);
 
-        std::vector<Vector<double> > phi0v;
+        std::vector<Vector<double> > phi0v = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(phi0, phi0v, field);
-        std::vector<Vector<double> > dv;
+        std::vector<Vector<double> > dv = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(d, dv, field);
-        std::vector<Vector<double> > phi1v;
+        std::vector<Vector<double> > phi1v = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(phi1, phi1v, field);
-        std::vector<Vector<double> > dddthetav;
+        std::vector<Vector<double> > dddthetav = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(dddtheta, dddthetav, field);
-        std::vector<Vector<double> > phi2v;
+        std::vector<Vector<double> > phi2v = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(phi2, phi2v, field);
-        std::vector<Vector<double> > d2ddtheta2v;
+        std::vector<Vector<double> > d2ddtheta2v = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(d2ddtheta2, d2ddtheta2v, field);
 
         for(int i = 0; i < elements.size(); i++){

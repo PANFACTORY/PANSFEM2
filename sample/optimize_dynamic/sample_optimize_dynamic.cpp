@@ -64,13 +64,13 @@ int main() {
 	double beta = 0.3333333333;			
 	double ganma = 0.5;					
 
-	double iota = 0.75;
+	double iota = 1.0;
 	double lambdamin = 1.0e-20;
 	double lambdamax = 1.0e20;
 	double lambdaeps = 1.0e-15;
-	double movelimit = 0.15;
+	double movelimit = 0.05;
 
-	double weightlimit = 0.3;
+	double weightlimit = 0.5;
 	double objectivebefore = 0.0;
 	double objectiveeps = 1.0e-5;
 
@@ -93,6 +93,7 @@ int main() {
 		//*************************************************
 		//  Direct time step with Newmark beta method
 		//*************************************************
+		std::cout << "--->\t"; 
 		std::vector<std::vector<Vector<double> > > d = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Displacement of nodes
 		std::vector<std::vector<Vector<double> > > v = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Velocity of nodes
 		std::vector<std::vector<Vector<double> > > a = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Acceraration of nodes
@@ -147,6 +148,7 @@ int main() {
 		//*************************************************
 		//  Invert time step with Newmark beta method
 		//*************************************************
+		std::cout << "<---\t"; 
 		std::vector<std::vector<Vector<double> > > l = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Displacement of nodes
 		std::vector<std::vector<Vector<double> > > m = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Velocity of nodes
 		std::vector<std::vector<Vector<double> > > n = std::vector<std::vector<Vector<double> > >(step, std::vector<Vector<double> >(nodes.size(), Vector<double>(2)));	//	Acceraration of nodes
@@ -198,6 +200,7 @@ int main() {
 		//*************************************************
 		//	Integration by time
 		//*************************************************
+		std::cout << "<--->\t"; 
 		double objective = 0.0;													//Function value of compliance
 		std::vector<double> dobjectives = std::vector<double>(s.size(), 0.0);	//Sensitivities of compliance
 		for(int t = 1; t < step; t++){

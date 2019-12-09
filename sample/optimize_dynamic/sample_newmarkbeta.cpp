@@ -108,7 +108,7 @@ int main() {
 		//----------Get d, v, a at step n+1----------
 		std::vector<Vector<double> > dnp1 = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Displacement of nodes at step n+1
 		std::vector<Vector<double> > vnp1 = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Velocity of nodes at step n+1
-		std::vector<Vector<double> > anp1;	//	Acceraration of nodes at step n+1
+		std::vector<Vector<double> > anp1 = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));	//	Acceraration of nodes at step n+1
 
 		FieldResultToNodeValue(results, anp1, field);
 		for(int i = 0; i < nodes.size(); i++){

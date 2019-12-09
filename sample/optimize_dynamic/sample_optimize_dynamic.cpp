@@ -114,7 +114,7 @@ int main() {
 
 				Matrix<double> Ke, Me;
 				double E = E0*(1.0 - pow(s[i], p)) + E1*pow(s[i], p);
-				double D = Density*(rho0*(1.0 - s[i]) + rho1*s[i]);
+				double D = Density*(rho0*(1.0 - pow(s[i], p)) + rho1*pow(s[i], p));
 				PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
 				PlaneMass<double, ShapeFunction8Square, Gauss9Square >(Me, nodes, elements[i], D, 1.0);
 
@@ -171,7 +171,7 @@ int main() {
 
 				Matrix<double> Ke, Me;
 				double E = E0*(1.0 - pow(s[i], p)) + E1*pow(s[i], p);
-				double D = Density*(rho0*(1.0 - s[i]) + rho1*s[i]);
+				double D = Density*(rho0*(1.0 - pow(s[i], p)) + rho1*pow(s[i], p));
 				PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
 				PlaneMass<double, ShapeFunction8Square, Gauss9Square >(Me, nodes, elements[i], D, 1.0);
 
@@ -203,32 +203,31 @@ int main() {
 		std::cout << "<--->\t"; 
 		double objective = 0.0;													//Function value of compliance
 		std::vector<double> dobjectives = std::vector<double>(s.size(), 0.0);	//Sensitivities of compliance
-		for(int t = 1; t < step; t++){
+		for(int t = 0; t < step; t++){
 			for (int i = 0; i < elements.size(); i++) {
 				Vector<double> dne = Vector<double>();
 				Vector<double> ane = Vector<double>();
 				Vector<double> lne = Vector<double>();
-				Vector<double> dnm1e = Vector<double>();
-				Vector<double> anm1e = Vector<double>();
-				Vector<double> lnm1e = Vector<double>();
 				for(int j = 0; j < elements[i].size(); j++){
 					dne = dne.Vstack(d[t][elements[i][j]]);
 					ane = ane.Vstack(a[t][elements[i][j]]);
 					lne = lne.Vstack(l[step - t - 1][elements[i][j]]);
-					dnm1e = dnm1e.Vstack(d[t - 1][elements[i][j]]);
-					anm1e = anm1e.Vstack(a[t - 1][elements[i][j]]);
-					lnm1e = lnm1e.Vstack(l[step - t][elements[i][j]]);
 				}
 
 				Matrix<double> Ke, Me;
 				double E = E0*(1.0 - pow(s[i], p)) + E1*pow(s[i], p);
 				double dE = p*(- E0 + E1)*pow(s[i], p - 1.0);
-				double dD = Density*(- rho0 + rho1);
+				double dD = Density*p*(- rho0 + rho1)*pow(s[i], p - 1.0);
 				PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
 				PlaneMass<double, ShapeFunction8Square, Gauss9Square >(Me, nodes, elements[i], 1.0, 1.0);
 
-				objective += 0.5*(0.5*dne*(E*Ke*dne) + 0.5*dnm1e*(E*Ke*dnm1e))*dt;
-				dobjectives[i] += 0.5*(0.5*dne*(dE*Ke*dne) + 0.5*dnm1e*(dE*Ke*dnm1e))*dt + 0.5*(lne*(dD*Me*ane + dE*Ke*dne) + lnm1e*(dD*Me*anm1e + dE*Ke*dnm1e))*dt;
+				if(t == 0 || t == step - 1){
+					objective += 0.5*0.5*dne*(E*Ke*dne)*dt;
+					dobjectives[i] += 0.5*0.5*dne*(dE*Ke*dne)*dt + 0.5*lne*(dD*Me*ane + dE*Ke*dne)*dt;
+				} else {
+					objective += 0.5*dne*(E*Ke*dne)*dt;
+					dobjectives[i] += 0.5*dne*(dE*Ke*dne)*dt + lne*(dD*Me*ane + dE*Ke*dne)*dt;
+				}
 			}
 		}
 

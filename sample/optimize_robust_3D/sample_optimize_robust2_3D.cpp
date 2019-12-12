@@ -86,7 +86,7 @@ int main() {
 	double lambdaeps = 1.0e-15;
 	double movelimit = 0.15;
 
-	double weightlimit = 0.25;
+	double weightlimit = 0.05;
 	double objectivebefore = 0.0;
 	double objectiveeps = 1.0e-5;
 	
@@ -127,9 +127,9 @@ int main() {
         CSR<double> Kmod = CSR<double>(K);	
 
         //----------Get function value and sensitivities----------
-        std::vector<double> d = ScalingCG(Kmod, F, 100000, 1.0e-10);
-        std::vector<double> dddtheta = ScalingCG(Kmod, dFdtheta, 100000, 1.0e-10);
-        std::vector<double> d2ddtheta2 = ScalingCG(Kmod, d2Fdtheta2, 100000, 1.0e-10);
+        std::vector<double> d = ScalingCG(Kmod, F, KDEGREE, 1.0e-10);
+        std::vector<double> dddtheta = ScalingCG(Kmod, dFdtheta, KDEGREE, 1.0e-10);
+        std::vector<double> d2ddtheta2 = ScalingCG(Kmod, d2Fdtheta2, KDEGREE, 1.0e-10);
 
         double c0 = std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
         double c1 = std::inner_product(dFdtheta.begin(), dFdtheta.end(), d.begin(), 0.0) + std::inner_product(F.begin(), F.end(), dddtheta.begin(), 0.0);
@@ -150,9 +150,9 @@ int main() {
             F1[i] = beta1*F[i] + 2.0*beta2*dFdtheta[i];
             F0[i] = F[i] + beta1*dFdtheta[i] + beta2*d2Fdtheta2[i];
         }
-        std::vector<double> phi2 = ScalingCG(Kmod, F2, 100000, 1.0e-10);
-        std::vector<double> phi1 = ScalingCG(Kmod, F1, 100000, 1.0e-10);
-        std::vector<double> phi0 = ScalingCG(Kmod, F0, 100000, 1.0e-10);
+        std::vector<double> phi2 = ScalingCG(Kmod, F2, KDEGREE, 1.0e-10);
+        std::vector<double> phi1 = ScalingCG(Kmod, F1, KDEGREE, 1.0e-10);
+        std::vector<double> phi0 = ScalingCG(Kmod, F0, KDEGREE, 1.0e-10);
 
         std::vector<Vector<double> > phi0v = std::vector<Vector<double> >(nodes.size(), Vector<double>(3));
 		FieldResultToNodeValue(phi0, phi0v, field);
@@ -219,7 +219,7 @@ int main() {
         //*************************************************
 
 		//----------Check convergence----------
-        std::cout << "Objective:\t" << objective << "\tWeight:\t" << weight << "\t";
+        std::cout << "Objective:\t" << objective << "\t(" << EC << "\t" << VC << ")\tWeight:\t" << weight << "\t";
 		if(fabs((objective - objectivebefore) / (objective + objectivebefore)) < objectiveeps) {
 			std::cout << std::endl << "----------Convergence----------" << std::endl;
 			break;
@@ -247,8 +247,7 @@ int main() {
 
 			if (weightnext > 0.0) {
 				lambda0 = lambda;
-			}
-			else {
+			} else {
 				lambda1 = lambda;
 			}
 		}

@@ -21,7 +21,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/optimize_robust_3D/";
+	std::string model_path = "sample/optimize_robust_3D/model3/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;

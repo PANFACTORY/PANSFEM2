@@ -28,7 +28,7 @@ public:
 	CSR();
 	~CSR();
 	CSR(int _rows, int _cols);	//_rows�F�s���C_cols�F��
-	CSR(LILCSR<T> _matrix);		//LILCSR����CSR�𐶐�
+	CSR(LILCSR<T>& _matrix);		//LILCSR����CSR�𐶐�
 
 
 	const int ROWS;				//�s��
@@ -90,7 +90,7 @@ inline CSR<T>::CSR(int _rows, int _cols) : ROWS(_rows), COLS(_cols) {
 
 
 template<class T>
-inline CSR<T>::CSR(LILCSR<T> _matrix) : ROWS(_matrix.ROWS), COLS(_matrix.COLS) {
+inline CSR<T>::CSR(LILCSR<T>& _matrix) : ROWS(_matrix.ROWS), COLS(_matrix.COLS) {
 	this->indptr = std::vector<int>(this->ROWS + 1, 0);
 
 	for (int i = 0; i < this->ROWS; i++) {

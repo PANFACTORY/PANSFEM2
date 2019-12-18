@@ -35,23 +35,23 @@ public:
 
 
 	template<class T1, class T2>
-	friend const std::vector<T1> operator*(const LILCSR<T1>& _m, const std::vector<T2> &_vec);		//�x�N�g���Ƃ̐�
+	friend const std::vector<T1> operator*(const LILCSR<T1>& _m, const std::vector<T2> &_vec);	//Operator : Multiple with vector
 	template<class T1, class T2>
-	friend const LILCSR<T1> operator+(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//�s��Ƃ̘a
+	friend const LILCSR<T1> operator+(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);			//Operator : Add with LILCSR matrix
 	template<class T1, class T2>
-	friend const LILCSR<T1> operator-(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);	//�s��Ƃ̍�
+	friend const LILCSR<T1> operator-(const LILCSR<T1>& _m1, const LILCSR<T2>& _m2);			//Operator : Subtruct with LILCSR matrix
 	template<class T1, class T2>
-	friend const LILCSR<T2> operator*(T1 _a, const LILCSR<T2>& _m);	//�����Ƃ̐�
+	friend const LILCSR<T2> operator*(T1 _a, const LILCSR<T2>& _m);								//Operator : Multiple with real number
 	template<class T1, class T2>
-	friend const LILCSR<T1> operator*(const LILCSR<T1>& _m, T2 _a);	//�����Ƃ̐�
+	friend const LILCSR<T1> operator*(const LILCSR<T1>& _m, T2 _a);								//Operator : Multiple with real number
 	template<class T1, class T2>
-	friend const LILCSR<T1> operator/(const LILCSR<T1>& _m, T2 _a);	//�����Ƃ̏�
+	friend const LILCSR<T1> operator/(const LILCSR<T1>& _m, T2 _a);								//Operator : 
 	template<class F>
-	friend std::ostream& operator << (std::ostream &_out, const LILCSR<F> &_mat);		//stream�ɏo��
+	friend std::ostream& operator << (std::ostream &_out, const LILCSR<F> &_mat);				//Operator : to stream
 
 
-	bool set(int _row, int _col, T _data);		//�l�̃Z�b�g
-	T get(int _row, int _col) const;			//�l�̎擾
+	bool set(int _row, int _col, T _data);	//Set value
+	T get(int _row, int _col) const;		//Get value
 
 
 	template<class F>

@@ -182,7 +182,7 @@ int main() {
                 d2ddtheta2e = d2ddtheta2e.Vstack(d2ddtheta2v[elements[i][j]]);
             }
 
-            dobjectives[2*i] = -p*(- E0 + E1)*pow(s[i], p - 1.0)*(- (phi0e*(Ke*de)) - (phi1e*(Ke*dddthetae)) - (phi2e*(Ke*d2ddtheta2e)));
+            dobjectives[i] = -p*(- E0 + E1)*pow(s[i], p - 1.0)*(- (phi0e*(Ke*de)) - (phi1e*(Ke*dddthetae)) - (phi2e*(Ke*d2ddtheta2e)));
         }
 
         

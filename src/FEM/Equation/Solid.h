@@ -166,8 +166,8 @@ namespace PANSFEM2 {
 	template<class T, template<class>class SF, template<class>class IC>
 	void UpdatedLagrangeSolid(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, std::vector<int>& _element, T _E, T _V) {
 		//----------Initialize element stiffness matrix and load vector----------
-		_Ke = Matrix<T>(3 * _element.size(), 3 * _element.size());
-		_Fe = Vector<T>(3 * _element.size());
+		_Ke = Matrix<T>(3*_element.size(), 3*_element.size());
+		_Fe = Vector<T>(3*_element.size());
 
 		//----------Generate cordinate matrix X----------
 		Matrix<T> X = Matrix<T>(_element.size(), 3);
@@ -188,15 +188,9 @@ namespace PANSFEM2 {
 		//----------Generate cordinate matrix x----------
 		Matrix<T> x = X + U;
 
-		//----------Generate D matrix----------
-		Matrix<T> C = Matrix<T>(6, 6);
-		C(0, 0) = 1.0 - _V;	C(0, 1) = _V;		C(0, 2) = _V;		C(0, 3) = 0.0;					C(0, 4) = 0.0;					C(0, 5) = 0.0;
-		C(1, 0) = _V;		C(1, 1) = 1.0 - _V;	C(1, 2) = _V;		C(1, 3) = 0.0;					C(1, 4) = 0.0;					C(1, 5) = 0.0;
-		C(2, 0) = _V;		C(2, 1) = _V;		C(2, 2) = 1.0 - _V;	C(2, 3) = 0.0;					C(2, 4) = 0.0;					C(2, 5) = 0.0;
-		C(3, 0) = 0.0;		C(3, 1) = 0.0;		C(3, 2) = 0.0;		C(3, 3) = 0.5*(1.0 - 2.0*_V);	C(3, 4) = 0.0;					C(3, 5) = 0.0;
-		C(4, 0) = 0.0;		C(4, 1) = 0.0;		C(4, 2) = 0.0;		C(4, 3) = 0.0;					C(4, 4) = 0.5*(1.0 - 2.0*_V);	C(4, 5) = 0.0;
-		C(5, 0) = 0.0;		C(5, 1) = 0.0;		C(5, 2) = 0.0;		C(5, 3) = 0.0;					C(5, 4) = 0.0;					C(5, 5) = 0.5*(1.0 - 2.0*_V);
-		C *= _E / ((1.0 + _V)*(1.0 - 2.0*_V));
+		//----------Get Lame parameters----------
+		T mu0 = 0.5*_E/(1.0 + _V);
+		T lambda0 = 2.0*mu0*_V/(1.0 - 2.0*_V);
 
 		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC<T>::N; g++) {
@@ -204,15 +198,29 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function by x----------
-			Matrix<T> dxdr = dNdr * x;
+			Matrix<T> dxdr = dNdr*x;
 			T J = dxdr.Determinant();
-			Matrix<T> dNdx = dxdr.Inverse() * dNdr;
+			Matrix<T> dNdx = dxdr.Inverse()*dNdr;
 
-			//----------Get deformation gradient----------
-			Matrix<T> Z = (dNdx * U).Transpose();
+			//----------Get Almansi strain----------
+			Matrix<T> Z = (dNdx*U).Transpose();
+			Matrix<T> E = (Z + Z.Transpose())/2.0;
 
+			//----------Generate D matrix----------
+			T detF = (((dNdr*X).Inverse()*dNdr)*x).Transpose().Determinant();
+			T mu = (mu0 - lambda0*log(detF))/detF;
+			T lambda = lambda0/detF;
+
+			Matrix<T> C = Matrix<T>(6, 6);
+			C(0, 0) = lambda + 2.0*mu;	C(0, 1) = lambda;			C(0, 2) = lambda;			C(0, 3) = T();	C(0, 4) = T();	C(0, 5) = T();
+			C(1, 0) = lambda;			C(1, 1) = lambda + 2.0*mu;	C(1, 2) = lambda;			C(1, 3) = T();	C(1, 4) = T();	C(1, 5) = T();
+			C(2, 0) = lambda;			C(2, 1) = lambda;			C(2, 2) = lambda + 2.0*mu;	C(2, 3) = T();	C(2, 4) = T();	C(2, 5) = T();
+			C(3, 0) = T();				C(3, 1) = T();				C(3, 2) = T();				C(3, 3) = mu;	C(3, 4) = T();	C(3, 5) = T();
+			C(4, 0) = T();				C(4, 1) = T();				C(4, 2) = T();				C(4, 3) = T();	C(4, 4) = mu;	C(4, 5) = T();
+			C(5, 0) = T();				C(5, 1) = T();				C(5, 2) = T();				C(5, 3) = T();	C(5, 4) = T();	C(5, 5) = mu;
+			
 			//----------Generate initial displacement stiffness matrix----------
-			Matrix<T> BL = Matrix<T>(6, 3 * _element.size());
+			Matrix<T> BL = Matrix<T>(6, 3*_element.size());
 			for (int n = 0; n < _element.size(); n++) {
 				BL(0, 3 * n) = dNdx(0, n);	BL(0, 3 * n + 1) = T();			BL(0, 3 * n + 2) = T();
 				BL(1, 3 * n) = T();			BL(1, 3 * n + 1) = dNdx(1, n);	BL(1, 3 * n + 2) = T();
@@ -224,16 +232,13 @@ namespace PANSFEM2 {
 
 			//----------Update element stiffness matrix----------
 			_Ke += BL.Transpose()*C*BL*J*IC<T>::Weights[g][0] * IC<T>::Weights[g][1] * IC<T>::Weights[g][2];
-
-			//----------Get Green-Lagrange strain----------
-			Matrix<T> E = (Z + Z.Transpose()) / 2.0;
-
-			//----------Get Piola-Kirchhoff stress----------
-			Vector<T> Ev = Vector<T>({ E(0, 0), E(1, 1), E(2, 2), E(0, 1) + E(1, 0), E(1, 2) + E(2, 1), E(2, 0) + E(0, 2) });
-			Vector<T> Sv = C * Ev;
+			
+			//----------Get Caucy stress----------
+			Vector<T> Ev = Vector<T>({ E(0, 0), E(1, 1), E(2, 2), E(0, 1) + E(1, 0), E(1, 2) + E(2, 1), E(2, 0) + E(0, 2) });		
+			Vector<T> Sv = C*Ev;
 
 			//----------Generate initial stress stiffness matrix----------
-			Matrix<T> BNL = Matrix<T>(9, 3 * _element.size());
+			Matrix<T> BNL = Matrix<T>(9, 3*_element.size());
 			for (int n = 0; n < _element.size(); n++) {
 				BNL(0, 3 * n) = dNdx(0, n);	BNL(0, 3 * n + 1) = T();		BNL(0, 3 * n + 2) = T();
 				BNL(1, 3 * n) = T();		BNL(1, 3 * n + 1) = dNdx(0, n);	BNL(1, 3 * n + 2) = T();

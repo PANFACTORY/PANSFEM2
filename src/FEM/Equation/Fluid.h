@@ -99,10 +99,10 @@ namespace PANSFEM2 {
 				A(0, 2*n) = N(n);	A(0, 2*n + 1) = T();		
 				A(1, 2*n) = T();	A(1, 2*n + 1) = N(n);
 				
-				B(0, 2*n) = dNdX(n, 0);	B(0, 2*n + 1) = T();		
-				B(1, 2*n) = T();		B(1, 2*n + 1) = dNdX(n, 0);
-				B(2, 2*n) = dNdX(n, 1);	B(2, 2*n + 1) = T();		
-				B(3, 2*n) = T();		B(3, 2*n + 1) = dNdX(n, 1);
+				B(0, 2*n) = dNdX(0, n);	B(0, 2*n + 1) = T();		
+				B(1, 2*n) = T();		B(1, 2*n + 1) = dNdX(0, n);
+				B(2, 2*n) = dNdX(1, n);	B(2, 2*n + 1) = T();		
+				B(3, 2*n) = T();		B(3, 2*n + 1) = dNdX(1, n);
 			}
 
 			//----------Update element stiffness matrix----------
@@ -138,10 +138,10 @@ namespace PANSFEM2 {
 			//----------Get B matrix----------
 			Matrix<T> B = Matrix<T>(4, 2*_element.size());
 			for (int n = 0; n < _element.size(); n++) {
-				B(0, 2*n) = dNdX(n, 0);	B(0, 2*n + 1) = T();		
-				B(1, 2*n) = T();		B(1, 2*n + 1) = dNdX(n, 0);
-				B(2, 2*n) = dNdX(n, 1);	B(2, 2*n + 1) = T();		
-				B(3, 2*n) = T();		B(3, 2*n + 1) = dNdX(n, 1);
+				B(0, 2*n) = dNdX(0, n);	B(0, 2*n + 1) = T();		
+				B(1, 2*n) = T();		B(1, 2*n + 1) = dNdX(0, n);
+				B(2, 2*n) = dNdX(1, n);	B(2, 2*n + 1) = T();		
+				B(3, 2*n) = T();		B(3, 2*n + 1) = dNdX(1, n);
 			}
 
 			//----------Update element stiffness matrix----------

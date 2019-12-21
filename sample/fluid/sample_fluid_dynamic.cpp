@@ -62,23 +62,24 @@ int main() {
 	ImportNeumannFromCSV(isqfixedp, qfixedp, fieldp, model_path + "NeumannP.csv");
 
 	//----------Initialize velocity and pressure----------
-	std::vector<Vector<double> > u = std::vector<Vector<double> >(2*nodes.size(), 0.0);     //  Velocity
-    std::vector<Vector<double> > v = std::vector<Vector<double> >(2*nodes.size(), 0.0);     //  Auxiliary velocity
-    std::vector<double> p = std::vector<double>(nodes.size(), 0.0);                         //  Pressure
+	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));     //  Velocity
+    std::vector<Vector<double> > v = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));     //  Auxiliary velocity
+    std::vector<double> p = std::vector<double>(nodes.size(), 0.0);                         			//  Pressure
 
 	//----------Define parameters----------
 	double dt = 0.01;   //  Time step
 	double rho = 1.0;   //  Dencity of fluid
-    double nu = 1.0;    //  Kinematic viscosity
+    double nu = 0.00001604;    //  Kinematic viscosity
 
 	//----------Time step loop----------
-	for(int t = 0; t < 100; t++){
+	for(int t = 0; t < 1; t++){
 		std::cout << "t = " << t << std::endl;
 
 
         //*************************************************
         //  Get auxiliary velocity
         //*************************************************
+		std::cout << "\tGet auxiliary velocity...";
 
 		//----------Culculate Ke Fe and Assembling----------
 		LILCSR<double> KV = LILCSR<double>(KDEGREEU, KDEGREEU);         //  System stiffness matrix
@@ -86,7 +87,7 @@ int main() {
 		for (auto element : elements) {
 			Vector<double> ue = Vector<double>();
 			for(auto i : element){
-				ue.Vstack(u[i]);
+				ue = ue.Vstack(u[i]);
 			}
 
 			Matrix<double> Me;
@@ -113,10 +114,12 @@ int main() {
 		std::vector<double> resultv = ScalingCG(KVmod, FV, 100000, 1.0e-10);
 		FieldResultToNodeValue(resultv, v, fieldu);
 
+		std::cout << "done" << std::endl;
 
         //*************************************************
         //  Solve Poisson equation for pressure
         //*************************************************
+		std::cout << "\tGet pressure distribution...";
 
         //----------Culculate Ke Fe and Assembling----------
 		LILCSR<double> KP = LILCSR<double>(KDEGREEP, KDEGREEP);         //  System stiffness matrix
@@ -137,11 +140,13 @@ int main() {
 		std::vector<double> resultp = ScalingCG(KPmod, FP, 100000, 1.0e-10);
 		FieldResultToNodeValue(resultp, p, fieldp);
 
+		std::cout << "done" << std::endl;
 
         //*************************************************
         //  Get velocities of next step
         //*************************************************
-        
+        std::cout << "\tGet velocity...";
+
 		//----------Culculate Ke Fe and Assembling----------
 		LILCSR<double> KU = LILCSR<double>(KDEGREEU, KDEGREEU);         //  System stiffness matrix
 		std::vector<double> FU = std::vector<double>(KDEGREEU, 0.0);	//  External load vector
@@ -153,7 +158,7 @@ int main() {
 
             Vector<double> ve = Vector<double>();
 			for(auto i : element){
-				ve.Vstack(v[i]);
+				ve = ve.Vstack(v[i]);
 			}
 			
 			Matrix<double> Me;
@@ -176,6 +181,7 @@ int main() {
 		std::vector<double> resultu = ScalingCG(KUmod, FU, 100000, 1.0e-10);
 		FieldResultToNodeValue(resultu, u, fieldu);
 
+		std::cout << "done" << std::endl;
 
         //*************************************************		
 		//  Save values
@@ -186,7 +192,7 @@ int main() {
 		AddElementToVTK(elements, fout);
 		AddElementTypes(std::vector<int>(elements.size(), 5), fout);
         AddPointVectors(u, "u", fout, true);
-		AddPointScalers(p, "p", fout, true);
+		AddPointScalers(p, "p", fout, false);
 		fout.close();
 	}
 

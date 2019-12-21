@@ -6,8 +6,6 @@
 //*****************************************************************************
 
 
-
-
 #pragma once
 #include <vector>
 #include <cassert>
@@ -19,6 +17,41 @@
 
 namespace PANSFEM2 {
     //********************Mass term matrix(Lumped mass)********************
+	template<class T, template<class>class SF, template<class>class IC>
+	void FluidMass(Matrix<T>& _Me, std::vector<Vector<T> >& _x, std::vector<int>& _element) {
+		//----------Initialize element mass matrix----------
+		_Me = Matrix<T>(2*_element.size(), 2*_element.size());
+
+		//----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			for(int j = 0; j < 2; j++){
+				X(i, j) = _x[_element[i]](j);
+			}
+		}
+
+		//----------Loop of Gauss Integration----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get shape function and difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+
+			//----------Generate B matrix----------
+			Matrix<T> B = Matrix<T>(2, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2*n) = N(n);	B(0, 2*n + 1) = T();			
+				B(1, 2*n) = T();	B(1, 2*n + 1) = N(n);	
+			}
+
+			//----------Make C matrix----------
+			_Me += B.Transpose()*B*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
+
 
     //********************Convective term matrix(Gradient form)********************
     template<class T, template<class>class SF, template<class>class IC>
@@ -73,7 +106,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Update element stiffness matrix----------
-			_Ke += A.Transpose()*Z*B*J*IC<T>::Weights[g][0] * IC<T>::Weights[g][1] * IC<T>::Weights[g][2];
+			_Ke += A.Transpose()*Z*B*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1]*IC<T>::Weights[g][2];
 		}
     }
 
@@ -112,7 +145,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Update element stiffness matrix----------
-			_Ke += B.Transpose()*B*J*_alpha*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+			_Ke += B.Transpose()*B*J*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
 		}
 	}
 
@@ -133,10 +166,10 @@ namespace PANSFEM2 {
 		}
 
 		//----------Generate cordinate matrix U----------
-		Matrix<T> U = Matrix<T>(_element.size(), 2);
+		Vector<T> U = Vector<T>(2*_element.size());
 		for(int i = 0; i < _element.size(); i++){
 			for(int j = 0; j < 2; j++){
-				U(i, j) = _u[_element[i]](j);
+				U(2*i + j) = _u[_element[i]](j);
 			}
 		}
 
@@ -147,17 +180,56 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr * X;
+			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
-			Matrix<T> B = dXdr.Inverse() * dNdr;
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			Matrix<T> B = Matrix<T>(1, 2*_element.size());
+			for(int n = 0; n < _element.size(); n++){
+				B(0, 2*n) = dNdX(0, n);	B(0, 2*n + 1) = dNdX(1, n);
+			}
 
 			//----------Update Ke and Fe----------
-			_Ke += B.Transpose()*B*J*_alpha*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
-			_Fe += N.Transpose()
+			_Ke += dNdX.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Fe += N*B*U*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 
 
     //********************Coefficient matrix for updating velocity********************
-	
+	template<class T, template<class>class SF, template<class>class IC>
+	void UpdateVelocity(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element) {
+		//----------Initialize element matrix----------
+		_Ke = Matrix<T>(2*_element.size(), _element.size());
+
+		//----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			for(int j = 0; j < 2; j++){
+				X(i, j) = _x[_element[i]](j);
+			}
+		}
+
+		//----------Loop of Gauss Integration----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			//----------Get B matrix----------
+			Matrix<T> B = Matrix<T>(2, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2*n) = N(n);	B(0, 2*n + 1) = T();		
+				B(1, 2*n) = T();	B(1, 2*n + 1) = N(n);
+			}
+
+			//----------Update element stiffness matrix----------
+			_Ke += B.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
 }

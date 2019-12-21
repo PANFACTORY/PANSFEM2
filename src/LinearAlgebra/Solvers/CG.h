@@ -91,7 +91,7 @@ std::vector<T> CG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> pk = rk;
-	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
+	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
@@ -108,7 +108,7 @@ std::vector<T> CG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 		pk = pkp1;
 
 		//----------Check convergence----------
-		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
+		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
@@ -129,7 +129,7 @@ std::vector<T> BiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> rdash = rk;
 	std::vector<T> pk = rk;
-	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
+	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
@@ -150,7 +150,7 @@ std::vector<T> BiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 		pk = pkp1;
 
 		//----------Check convergence----------
-		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
+		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
@@ -234,7 +234,7 @@ std::vector<T> ILU0CG(CSR<T>& _A, CSR<T>& _M, std::vector<T>& _b, int _itrmax, T
 	std::vector<T> pk = PreILU0(_M, rk);
 	std::vector<T> Mrk = pk;							//Preconditioning
 	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
-	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
+	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
@@ -258,7 +258,7 @@ std::vector<T> ILU0CG(CSR<T>& _A, CSR<T>& _M, std::vector<T>& _b, int _itrmax, T
 		Mrkdotrk = Mrkp1dotrkp1;
 
 		//----------Check convergence----------
-		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
+		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
@@ -279,7 +279,7 @@ std::vector<T> ILU0BiCGSTAB(CSR<T>& _A, CSR<T>& _M, std::vector<T>& _b, int _itr
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> rdash = rk;
 	std::vector<T> pk = rk;
-	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
+	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
@@ -305,7 +305,7 @@ std::vector<T> ILU0BiCGSTAB(CSR<T>& _A, CSR<T>& _M, std::vector<T>& _b, int _itr
 		pk = pkp1;
 
 		//----------Check convergence----------
-		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
+		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
@@ -348,7 +348,7 @@ std::vector<T> ScalingCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> pk = Scaling(D, rk);				//Scaling rk
-	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
+	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	std::vector<T> Mrk = Scaling(D, rk);			//Scaling rk
 	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
@@ -372,10 +372,10 @@ std::vector<T> ScalingCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 		Mrkdotrk = Mrkp1dotrkp1;
 
 		//----------Check convergence----------
-		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
+		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
-			//std::cout << "\tConvergence:" << k << std::endl;
+			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;
 		}
 	}
@@ -427,7 +427,7 @@ std::vector<T> SORCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps, T _ome
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> pk = SOR(_A, rk, _omega, 50, 1.0e-10);				//Preconditioning SOR
-	T bnorm = std::inner_product(_b.begin(), _b.end(), _b.begin(), T());
+	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	std::vector<T> Mrk = SOR(_A, rk, _omega, 50, 1.0e-10);				//Preconditioning SOR
 	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
@@ -451,7 +451,7 @@ std::vector<T> SORCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps, T _ome
 		Mrkdotrk = Mrkp1dotrkp1;
 
 		//----------Check convergence----------
-		T rnorm = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
+		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
 		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;

@@ -67,12 +67,12 @@ int main() {
     std::vector<double> p = std::vector<double>(nodes.size(), 0.0);                         			//  Pressure
 
 	//----------Define parameters----------
-	double dt = 0.01;   //  Time step
+	double dt = 0.001;	//  Time step
 	double rho = 1.0;   //  Dencity of fluid
-    double nu = 0.00001604;    //  Kinematic viscosity
+    double nu = 0.01;   //  Kinematic viscosity
 
 	//----------Time step loop----------
-	for(int t = 0; t < 1; t++){
+	for(int t = 0; t < 100; t++){
 		std::cout << "t = " << t << std::endl;
 
 
@@ -107,11 +107,11 @@ int main() {
 
 		//----------Set Boundary Condition----------
 		SetNeumann(FV, isqfixedu, qfixedu);
-		SetDirichlet(KV, FV, isufixedu, ufixedu, 1.0e10);
+		SetDirichlet(KV, FV, isufixedu, ufixedu, 1.0e5);
 
 		//----------Solve System Equation----------
 		CSR<double> KVmod = CSR<double>(KV);
-		std::vector<double> resultv = ScalingCG(KVmod, FV, 100000, 1.0e-10);
+		std::vector<double> resultv = ScalingCG(KVmod, FV, 100000, 1.0e-12);
 		FieldResultToNodeValue(resultv, v, fieldu);
 
 		std::cout << "done" << std::endl;
@@ -128,6 +128,7 @@ int main() {
 			Matrix<double> Ke;
             Vector<double> Fe;
 			Poisson<double, ShapeFunction4Square, Gauss4Square>(Ke, Fe, nodes, v, element);
+			Fe *= (rho/dt);
 			Assembling(KP, FP, Ke, Fe, element, fieldp);
 		}
 
@@ -174,11 +175,11 @@ int main() {
 
 		//----------Set Boundary Condition----------
 		SetNeumann(FU, isqfixedu, qfixedu);
-		SetDirichlet(KU, FU, isufixedu, ufixedu, 1.0e10);
+		SetDirichlet(KU, FU, isufixedu, ufixedu, 1.0e5);
 
 		//----------Solve System Equation----------
 		CSR<double> KUmod = CSR<double>(KU);
-		std::vector<double> resultu = ScalingCG(KUmod, FU, 100000, 1.0e-10);
+		std::vector<double> resultu = ScalingCG(KUmod, FU, 100000, 1.0e-12);
 		FieldResultToNodeValue(resultu, u, fieldu);
 
 		std::cout << "done" << std::endl;
@@ -192,6 +193,7 @@ int main() {
 		AddElementToVTK(elements, fout);
 		AddElementTypes(std::vector<int>(elements.size(), 5), fout);
         AddPointVectors(u, "u", fout, true);
+		AddPointVectors(v, "v", fout, false);
 		AddPointScalers(p, "p", fout, false);
 		fout.close();
 	}

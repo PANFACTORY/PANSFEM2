@@ -152,7 +152,7 @@ namespace PANSFEM2 {
 
     //********************Poisson equation for pressure********************
 	template<class T, template<class>class SF, template<class>class IC>
-	void PPoisson(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, std::vector<int>& _element) {
+	void Poisson(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, std::vector<int>& _element) {
 		//----------Initialize element matrix----------
 		_Ke = Matrix<T>(_element.size(), _element.size());
 		_Fe = Vector<T>(_element.size());
@@ -191,7 +191,7 @@ namespace PANSFEM2 {
 
 			//----------Update Ke and Fe----------
 			_Ke += dNdX.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
-			_Fe += N*B*U*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Fe += -N*B*U*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 

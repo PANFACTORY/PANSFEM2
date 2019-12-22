@@ -259,7 +259,7 @@ std::vector<T> ILU0CG(CSR<T>& _A, CSR<T>& _M, std::vector<T>& _b, int _itrmax, T
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;
@@ -409,6 +409,7 @@ std::vector<T> SOR(CSR<T>& _A, std::vector<T>& _b, T _w, int _itrmax, T _eps) {
 
 			error += fabs((tmp - x[i]) / tmp);
 		}
+		//std::cout << error << std::endl;
 		if (error < _eps) {
 			//std::cout << "\tConvergence:" << itr << std::endl;
 			return x;
@@ -426,10 +427,10 @@ std::vector<T> SORCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps, T _ome
 	//----------Initialize----------
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
-	std::vector<T> pk = SOR(_A, rk, _omega, 50, 1.0e-10);				//Preconditioning SOR
+	std::vector<T> pk = SOR(_A, rk, _omega, 1000, 1.0e-3);				//Preconditioning SOR
 	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
-	std::vector<T> Mrk = SOR(_A, rk, _omega, 50, 1.0e-10);				//Preconditioning SOR
+	std::vector<T> Mrk = SOR(_A, rk, _omega, 1000, 1.0e-3);				//Preconditioning SOR
 	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
 
 	//----------Iteration----------
@@ -438,7 +439,7 @@ std::vector<T> SORCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps, T _ome
 		T alpha = Mrkdotrk / std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
 		std::vector<T> xkp1 = add(xk, alpha, pk);
 		std::vector<T> rkp1 = subtract(rk, alpha, Apk);
-		std::vector<T> Mrkp1 = SOR(_A, rkp1, _omega, 50, 1.0e-10);		//Preconditioning SOR
+		std::vector<T> Mrkp1 = SOR(_A, rkp1, _omega, 500, 1.0e-3);		//Preconditioning SOR
 		T Mrkp1dotrkp1 = std::inner_product(Mrkp1.begin(), Mrkp1.end(), rkp1.begin(), T());
 		T beta = Mrkp1dotrkp1 / Mrkdotrk;
 		std::vector<T> pkp1 = add(Mrkp1, beta, pk);

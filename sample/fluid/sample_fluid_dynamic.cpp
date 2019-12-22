@@ -66,13 +66,14 @@ int main() {
     std::vector<Vector<double> > v = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));     //  Auxiliary velocity
     std::vector<double> p = std::vector<double>(nodes.size(), 0.0);                         			//  Pressure
 
+	ImportInitialFromCSV(u, model_path + "DirichletU.csv");
+
 	//----------Define parameters----------
-	double dt = 0.001;	//  Time step
-	double rho = 1.0;   //  Dencity of fluid
-    double nu = 0.01;   //  Kinematic viscosity
+	double dt = 0.05;	//  Time step
+	double Re = 10.0;	//	Reynolds number
 
 	//----------Time step loop----------
-	for(int t = 0; t < 100; t++){
+	for(int t = 0; t < 10; t++){
 		std::cout << "t = " << t << std::endl;
 
 
@@ -90,8 +91,8 @@ int main() {
 				ue = ue.Vstack(u[i]);
 			}
 
-			Matrix<double> Me;
-			FluidMass<double, ShapeFunction4Square, Gauss4Square>(Me, nodes, element);
+			Matrix<double> MassTerm;
+			FluidMass<double, ShapeFunction4Square, Gauss4Square>(MassTerm, nodes, element);
 			
             Matrix<double> ConvectiveTerm;
             Convective<double, ShapeFunction4Square, Gauss4Square>(ConvectiveTerm, nodes, u, element);
@@ -99,15 +100,14 @@ int main() {
             Matrix<double> DiffusionTerm;
             Diffusion<double, ShapeFunction4Square, Gauss4Square>(DiffusionTerm, nodes, element);
 
-            Me /= dt;
-            Vector<double> Fe = (Me - ConvectiveTerm - nu*DiffusionTerm)*ue;
+            Vector<double> Fe = (MassTerm - dt*(ConvectiveTerm + DiffusionTerm/Re))*ue;
 
-			Assembling(KV, FV, Me, Fe, element, fieldu);
+			Assembling(KV, FV, MassTerm, Fe, element, fieldu);
 		}
 
 		//----------Set Boundary Condition----------
 		SetNeumann(FV, isqfixedu, qfixedu);
-		SetDirichlet(KV, FV, isufixedu, ufixedu, 1.0e5);
+		SetDirichlet(KV, FV, isufixedu, ufixedu, 1.0e10);
 
 		//----------Solve System Equation----------
 		CSR<double> KVmod = CSR<double>(KV);
@@ -128,7 +128,7 @@ int main() {
 			Matrix<double> Ke;
             Vector<double> Fe;
 			Poisson<double, ShapeFunction4Square, Gauss4Square>(Ke, Fe, nodes, v, element);
-			Fe *= (rho/dt);
+			Fe /= dt;
 			Assembling(KP, FP, Ke, Fe, element, fieldp);
 		}
 
@@ -168,14 +168,14 @@ int main() {
             Matrix<double> Ke;
             UpdateVelocity<double, ShapeFunction4Square, Gauss4Square>(Ke, nodes, element);
 
-            Vector<double> Fe = Me*ve - (dt/rho)*Ke*pe;
+            Vector<double> Fe = Me*ve - dt*Ke*pe;
 
 			Assembling(KU, FU, Me, Fe, element, fieldu);
 		}
 
 		//----------Set Boundary Condition----------
 		SetNeumann(FU, isqfixedu, qfixedu);
-		SetDirichlet(KU, FU, isufixedu, ufixedu, 1.0e5);
+		SetDirichlet(KU, FU, isufixedu, ufixedu, 1.0e10);
 
 		//----------Solve System Equation----------
 		CSR<double> KUmod = CSR<double>(KU);

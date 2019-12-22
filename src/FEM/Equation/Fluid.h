@@ -23,11 +23,9 @@ namespace PANSFEM2 {
 		_Me = Matrix<T>(2*_element.size(), 2*_element.size());
 
 		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		Matrix<T> X = Matrix<T>(0, 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Loop of Gauss Integration----------
@@ -36,9 +34,8 @@ namespace PANSFEM2 {
 			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
-			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr*X;
-			T J = dXdr.Determinant();
+			//----------Get Jacobian----------
+			T J = (dNdr*X).Determinant();
 
 			//----------Generate B matrix----------
 			Matrix<T> B = Matrix<T>(2, 2*_element.size());
@@ -47,7 +44,7 @@ namespace PANSFEM2 {
 				B(1, 2*n) = T();	B(1, 2*n + 1) = N(n);	
 			}
 
-			//----------Make C matrix----------
+			//----------Make Me matrix----------
 			_Me += B.Transpose()*B*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
@@ -60,19 +57,15 @@ namespace PANSFEM2 {
 		_Ke = Matrix<T>(2*_element.size(), 2*_element.size());
 		
 		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		Matrix<T> X = Matrix<T>(0, 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
         //----------Generate velocity matrix U----------
-		Matrix<T> U = Matrix<T>(_element.size(), 2);
+		Matrix<T> U = Matrix<T>(0, 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				U(i, j) = _u[_element[i]](j);
-			}
+			U = U.Vstack(_u[_element[i]].Transpose());
 		}
 
         //----------Loop of Gauss Integration----------
@@ -118,11 +111,9 @@ namespace PANSFEM2 {
 		_Ke = Matrix<T>(2*_element.size(), 2*_element.size());
 
 		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		Matrix<T> X = Matrix<T>(0, 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Loop of Gauss Integration----------
@@ -131,9 +122,9 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr * X;
+			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
-			Matrix<T> dNdX = dXdr.Inverse() * dNdr;
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
 			//----------Get B matrix----------
 			Matrix<T> B = Matrix<T>(4, 2*_element.size());
@@ -158,19 +149,15 @@ namespace PANSFEM2 {
 		_Fe = Vector<T>(_element.size());
 
 		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		Matrix<T> X = Matrix<T>(0, 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Generate cordinate matrix U----------
-		Vector<T> U = Vector<T>(2*_element.size());
+		Vector<T> U = Vector<T>();
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				U(2*i + j) = _u[_element[i]](j);
-			}
+			U = U.Vstack(_u[_element[i]]);
 		}
 
 		//----------Loop of Gauss Integration----------
@@ -203,11 +190,9 @@ namespace PANSFEM2 {
 		_Ke = Matrix<T>(2*_element.size(), _element.size());
 
 		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		Matrix<T> X = Matrix<T>(0, 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Loop of Gauss Integration----------

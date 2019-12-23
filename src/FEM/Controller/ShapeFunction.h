@@ -120,6 +120,36 @@ public:
 	}
 
 
+	//********************4NodesTetrahedron********************
+	template<class T>
+	class ShapeFunction4Tetrahedron {
+public:
+		static Vector<T> N(const std::vector<T>& _r);
+		static Matrix<T> dNdr(const std::vector<T>& _r);
+	};
+
+
+	template<class T>
+	Vector<T> ShapeFunction4Tetrahedron<T>::N(const std::vector<T>& _r) {
+		Vector<T> N = Vector<T>(4);
+		N(0) = _r[0];
+		N(1) = _r[1];
+		N(2) = _r[2];
+		N(3) = 1.0 - _r[0] - _r[1] - _r[2];
+		return N;
+	}
+
+
+	template<class T>
+	Matrix<T> ShapeFunction4Tetrahedron<T>::dNdr(const std::vector<T>& _r) {
+		Matrix<T> dNdr = Matrix<T>(3, 4);
+		dNdr(0, 0) = 1.0;	dNdr(0, 1) = 0.0;	dNdr(0, 2) = 0.0;	dNdr(0, 3) = -1.0;
+		dNdr(1, 0) = 0.0;	dNdr(1, 1) = 1.0;	dNdr(1, 2) = 0.0;	dNdr(1, 3) = -1.0;
+		dNdr(2, 0) = 0.0;	dNdr(2, 1) = 0.0;	dNdr(2, 2) = 1.0;	dNdr(2, 3) = -1.0;
+		return dNdr;
+	}
+
+
 	//********************8NodesCubic********************
 	template<class T>
 	class ShapeFunction8Cubic{

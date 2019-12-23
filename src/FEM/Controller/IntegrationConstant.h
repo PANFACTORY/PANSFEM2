@@ -12,7 +12,7 @@
 
 
 namespace PANSFEM2 {
-	//********************GaussIntegrationConstant2D1Points********************
+	//********************GaussIntegrationConstant2D1PointsForTriangle********************
 	template<class T>
 	class Gauss1Triangle{
 public:
@@ -97,6 +97,28 @@ public:
 													{ 5.0 / 9.0, 5.0 / 9.0 },
 													{ 8.0 / 9.0, 5.0 / 9.0 },
 													{ 5.0 / 9.0, 5.0 / 9.0 }
+												};
+
+
+	//********************GaussIntegrationConstant3D1PointsForTetrahedron********************
+	template<class T>
+	class Gauss1Tetrahedron{
+public:
+		static const int N = 1;								//Number of integration point
+		static const std::vector<std::vector<T> > Points;	//Cordinate values of integration point
+		static const std::vector<std::vector<T> > Weights;	//Weights of integration point
+	};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss1Tetrahedron<T>::Points = { 
+													{ 1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0 },
+												};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss1Tetrahedron<T>::Weights = { 
+													{ 1.0 / cbrt(6.0), 1.0 / cbrt(6.0), 1.0 / cbrt(6.0) },
 												};
 
 

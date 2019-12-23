@@ -100,7 +100,7 @@ int main() {
             Matrix<double> DiffusionTerm;
             Diffusion<double, ShapeFunction4Square, Gauss4Square>(DiffusionTerm, nodes, element);
 
-            Vector<double> Fe = (MassTerm - dt*(ConvectiveTerm + DiffusionTerm/Re))*ue;
+            Vector<double> Fe = (MassTerm - dt*(/*ConvectiveTerm + */DiffusionTerm/Re))*ue;
 
 			Assembling(KV, FV, MassTerm, Fe, element, fieldu);
 		}

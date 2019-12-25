@@ -3,17 +3,17 @@
 #include <cmath>
 
 
-#include "LinearAlgebra/Models/Vector.h"
-#include "LinearAlgebra/Models/Matrix.h"
-#include "LinearAlgebra/Models/LILCSR.h"
-#include "PrePost/Import/ImportFromCSV.h"
-#include "FEM/Controller/Assembling.h"
-#include "FEM/Equation/Advection.h"
-#include "FEM/Controller/BoundaryCondition.h"
-#include "LinearAlgebra/Solvers/CG.h"
-#include "PrePost/Export/ExportToVTK.h"
-#include "FEM/Controller/ShapeFunction.h"
-#include "FEM/Controller/IntegrationConstant.h"
+#include "../../src/LinearAlgebra/Models/Vector.h"
+#include "../../src/LinearAlgebra/Models/Matrix.h"
+#include "../../src/LinearAlgebra/Models/LILCSR.h"
+#include "../../src/PrePost/Import/ImportFromCSV.h"
+#include "../../src/FEM/Controller/Assembling.h"
+#include "../../src/FEM/Equation/Advection.h"
+#include "../../src/FEM/Controller/BoundaryCondition.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
+#include "../../src/FEM/Controller/ShapeFunction.h"
+#include "../../src/FEM/Controller/IntegrationConstant.h"
 
 
 using namespace PANSFEM2;
@@ -43,10 +43,12 @@ int main() {
 
 	//----------Initialize T----------
 	std::vector<double> T = std::vector<double>(nodes.size(), 0.0);
-	T[12] = 100.0;
-
+	T[5000] = 1.0;	T[5101] = 1.0;	T[5202] = 1.0;
+	T[4999] = 1.0;	T[5100] = 2.0;	T[5201] = 1.0;
+	T[4998] = 1.0;	T[5099] = 1.0;	T[5200] = 1.0;
+	
 	//----------Define time step and theta----------
-	double dt = 0.1;
+	double dt = 0.001;
 	double theta = 0.5;
 
 	//----------Time step loop----------
@@ -64,24 +66,22 @@ int main() {
 			Vector<double> Te = Vector<double>(Ttmp);
 
 			Matrix<double> Ke;
-			Advection<double, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodes, element, 1.0, 1.0, 1.0);
+			Advection<double, ShapeFunction4Square, Gauss4Square>(Ke, nodes, element, 0.1, 0.1, 1.0);
 			Matrix<double> Ce;
-			Mass<double, ShapeFunction3Triangle, Gauss1Triangle>(Ce, nodes, element, 1.0);
-			Matrix<double> Ae = Ce / dt + Ke * theta;
-			Vector<double> be = (Ce / dt - Ke * (1.0 - theta)) * Te; 
+			Mass<double, ShapeFunction4Square, Gauss4Square>(Ce, nodes, element, 1.0);
+			Matrix<double> Ae = Ce/dt + theta*Ke;
+			Vector<double> be = (Ce/dt - (1.0 - theta)*Ke)*Te; 
 			Assembling(K, F, Ae, be, element, field);
 		}
 
 		//----------Set Dirichlet Boundary Condition----------
-		SetDirichlet(K, F, isufixed, ufixed, 1.0e4);
+		SetDirichlet(K, F, isufixed, ufixed, 1.0e5);
 
 		//----------Solve System Equation----------
 		CSR<double> Kmod = CSR<double>(K);
-		CSR<double> M = ILU0(Kmod);
-		std::vector<double> result = ILU0BiCGSTAB(Kmod, M, F, 10000, 1.0e-10);
+		std::vector<double> result = ScalingBiCGSTAB(Kmod, F, 100000, 1.0e-10);
 
 		//----------Update T----------
-		T.clear();
 		FieldResultToNodeValue(result, T, field);
 				
 		//----------Save initial value----------
@@ -89,9 +89,8 @@ int main() {
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(nodes, fout);
 		AddElementToVTK(elements, fout);
-		std::vector<int> et = std::vector<int>(elements.size(), 5);
-		AddElementTypes(et, fout);
-		AddPointScalers(T, "T", fout);
+		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
+		AddPointScalers(T, "T", fout, true);
 		fout.close();
 	}
 

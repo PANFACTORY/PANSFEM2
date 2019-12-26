@@ -259,7 +259,7 @@ std::vector<T> ILU0CG(CSR<T>& _A, CSR<T>& _M, std::vector<T>& _b, int _itrmax, T
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;
@@ -385,54 +385,6 @@ std::vector<T> ScalingCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 }
 
 
-//*******************Scaling preconditioning BiCGSTAB method*******************
-template<class T>
-std::vector<T> ScalingBiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
-	//----------Iniialize----------
-	std::vector<T> D = GetDiagonal(_A);				//Scaling A matrix
-	std::vector<T> xk(_b.size(), T());
-	std::vector<T> rk = subtract(_b, _A*xk);
-	std::vector<T> rdash = rk;
-	std::vector<T> pk = rk;
-	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
-
-	//----------Iteration----------
-	for (int k = 0; k < _itrmax; ++k) {
-		std::vector<T> Mpk = Scaling(D, pk);		//Preconditioning
-
-		std::vector<T> AMpk = _A * Mpk;
-		T rdashdotrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
-		T alpha = rdashdotrk / std::inner_product(rdash.begin(), rdash.end(), AMpk.begin(), T());
-		std::vector<T> sk = subtract(rk, alpha, AMpk);
-
-		std::vector<T> Msk = Scaling(D, sk);		//Preconditioning
-
-		std::vector<T> AMsk = _A * Msk;
-		T omega = std::inner_product(AMsk.begin(), AMsk.end(), sk.begin(), T()) / std::inner_product(AMsk.begin(), AMsk.end(), AMsk.begin(), T());
-		std::vector<T> xkp1 = add(xk, alpha, Mpk, omega, Msk);
-		std::vector<T> rkp1 = subtract(sk, omega, AMsk);
-		T beta = alpha / omega * std::inner_product(rdash.begin(), rdash.end(), rkp1.begin(), T()) / rdashdotrk;
-		std::vector<T> pkp1 = addsubstract(rk, beta, pk, omega, AMpk);
-
-		//----------Update values----------
-		xk = xkp1;
-		rk = rkp1;
-		pk = pkp1;
-
-		//----------Check convergence----------
-		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
-		if (rnorm < _eps*bnorm) {
-			std::cout << "\tConvergence:" << k << std::endl;
-			return xk;
-		}
-	}
-
-	std::cout << "\nConvergence:faild" << std::endl;
-	return xk;
-}
-
-
 //********************Solve with SOR********************
 template<class T>
 std::vector<T> SOR(CSR<T>& _A, std::vector<T>& _b, T _w, int _itrmax, T _eps) {
@@ -475,10 +427,10 @@ std::vector<T> SORCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps, T _ome
 	//----------Initialize----------
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
-	std::vector<T> pk = SOR(_A, rk, _omega, 10000, 1.0e-4);				//Preconditioning SOR
+	std::vector<T> pk = SOR(_A, rk, _omega, 1000, 1.0e-3);				//Preconditioning SOR
 	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
-	std::vector<T> Mrk = pk;
+	std::vector<T> Mrk = SOR(_A, rk, _omega, 1000, 1.0e-3);				//Preconditioning SOR
 	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
 
 	//----------Iteration----------
@@ -487,7 +439,7 @@ std::vector<T> SORCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps, T _ome
 		T alpha = Mrkdotrk / std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
 		std::vector<T> xkp1 = add(xk, alpha, pk);
 		std::vector<T> rkp1 = subtract(rk, alpha, Apk);
-		std::vector<T> Mrkp1 = SOR(_A, rkp1, _omega, 1000, 1.0e-4);		//Preconditioning SOR
+		std::vector<T> Mrkp1 = SOR(_A, rkp1, _omega, 500, 1.0e-3);		//Preconditioning SOR
 		T Mrkp1dotrkp1 = std::inner_product(Mrkp1.begin(), Mrkp1.end(), rkp1.begin(), T());
 		T beta = Mrkp1dotrkp1 / Mrkdotrk;
 		std::vector<T> pkp1 = add(Mrkp1, beta, pk);
@@ -501,7 +453,7 @@ std::vector<T> SORCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps, T _ome
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;

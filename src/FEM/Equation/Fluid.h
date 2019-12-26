@@ -142,74 +142,64 @@ namespace PANSFEM2 {
 
 
     //********************Poisson equation for pressure********************
-	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC>
-	void Poisson(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, std::vector<int>& _elementu, std::vector<int>& _elementp) {
+	template<class T, template<class>class SF, template<class>class IC>
+	void Poisson(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, std::vector<int>& _element) {
 		//----------Initialize element matrix----------
-		_Ke = Matrix<T>(_elementp.size(), _elementp.size());
-		_Fe = Vector<T>(_elementp.size());
+		_Ke = Matrix<T>(_element.size(), _element.size());
+		_Fe = Vector<T>(_element.size());
 
 		//----------Generate cordinate matrix X----------
 		Matrix<T> X = Matrix<T>(0, 2);
-		for(int i = 0; i < _elementp.size(); i++){
+		for(int i = 0; i < _element.size(); i++){
 			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Generate cordinate matrix U----------
 		Vector<T> U = Vector<T>();
-		for(int i = 0; i < _elementu.size(); i++){
+		for(int i = 0; i < _element.size(); i++){
 			U = U.Vstack(_u[_element[i]]);
 		}
 
 		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function for pressure----------
-			Vector<T> N = SFP<T>::N(IC<T>::Points[g]);
-			Matrix<T> dNdr = SFP<T>::dNdr(IC<T>::Points[g]);
+			//----------Get difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
-			//----------Update Ke----------
-			_Ke += dNdX.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
-
-
-			//----------Get shape function for velocity----------
-			Matrix<T> dMdr = SFU<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
-			Matrix<T> dMdX = dXdr.Inverse()*dMdr;
-			Matrix<T> B = Matrix<T>(1, 2*_elementu.size());
-			for(int n = 0; n < _elementu.size(); n++){
-				B(0, 2*n) = dMdX(0, n);	B(0, 2*n + 1) = dMdX(1, n);
+			Matrix<T> B = Matrix<T>(1, 2*_element.size());
+			for(int n = 0; n < _element.size(); n++){
+				B(0, 2*n) = dNdX(0, n);	B(0, 2*n + 1) = dNdX(1, n);
 			}
 
-			//----------Update Fe----------
-			_Fe += N*B*U*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			//----------Update Ke and Fe----------
+			_Ke += dNdX.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Fe += -N*B*U*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 
 
     //********************Coefficient matrix for updating velocity********************
-	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC>
-	void UpdateVelocity(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _elementu, std::vector<int>& _elementp) {
+	template<class T, template<class>class SF, template<class>class IC>
+	void UpdateVelocity(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element) {
 		//----------Initialize element matrix----------
-		_Ke = Matrix<T>(2*_elementu.size(), _elementp.size());
+		_Ke = Matrix<T>(2*_element.size(), _element.size());
 
 		//----------Generate cordinate matrix X----------
 		Matrix<T> X = Matrix<T>(0, 2);
-		for(int i = 0; i < _elementp.size(); i++){
-			X = X.Vstack(_x[_elementp[i]].Transpose());
+		for(int i = 0; i < _element.size(); i++){
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function for pressure----------
-			Matrix<T> dNdr = SFP<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get shape function for velocity----------
-			Vector<T> M = SFU<T>::N(IC<T>::Points[g]);
+			//----------Get difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
@@ -217,10 +207,10 @@ namespace PANSFEM2 {
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
 			//----------Get B matrix----------
-			Matrix<T> B = Matrix<T>(2, 2*_elementu.size());
-			for (int n = 0; n < _elementu.size(); n++) {
-				B(0, 2*n) = M(n);	B(0, 2*n + 1) = T();		
-				B(1, 2*n) = T();	B(1, 2*n + 1) = M(n);
+			Matrix<T> B = Matrix<T>(2, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2*n) = N(n);	B(0, 2*n + 1) = T();		
+				B(1, 2*n) = T();	B(1, 2*n + 1) = N(n);
 			}
 
 			//----------Update element stiffness matrix----------

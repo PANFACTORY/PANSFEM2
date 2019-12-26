@@ -54,10 +54,20 @@ int main() {
 	std::vector<double> ufixedu;
 	ImportDirichletFromCSV(isufixedu, ufixedu, fieldu, model_path + "DirichletU.csv");
 
+	//----------Add Neumann Condition for velocity----------
+	std::vector<int> isqfixedu;
+	std::vector<double> qfixedu;
+	ImportNeumannFromCSV(isqfixedu, qfixedu, fieldu, model_path + "NeumannU.csv");
+
     //----------Add Dirichlet Condition for pressure----------
 	std::vector<int> isufixedp;
 	std::vector<double> ufixedp;
 	ImportDirichletFromCSV(isufixedp, ufixedp, fieldp, model_path + "DirichletP.csv");
+
+	//----------Add Neumann Condition for pressure----------
+	std::vector<int> isqfixedp;
+	std::vector<double> qfixedp;
+	ImportNeumannFromCSV(isqfixedp, qfixedp, fieldp, model_path + "NeumannP.csv");
 
 	//----------Initialize velocity and pressure----------
 	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));     //  Velocity
@@ -103,6 +113,7 @@ int main() {
 		}
 
 		//----------Set Boundary Condition----------
+		SetNeumann(FV, isqfixedu, qfixedu);
 		SetDirichlet(KV, FV, isufixedu, ufixedu, 1.0e10);
 
 		//----------Solve System Equation----------
@@ -123,12 +134,13 @@ int main() {
 		for (int j = 0; j < elementssize; j++) {
 			Matrix<double> Ke;
             Vector<double> Fe;
-			Poisson<double, ShapeFunction8Square, ShapeFunction4Square, Gauss4Square>(Ke, Fe, nodes, v, elementsu[j], elementsp[j]);
+			Poisson<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ke, Fe, nodes, v, elementsu[j], elementsp[j]);
 			Fe /= -dt;
 			Assembling(KP, FP, Ke, Fe, elementsp[j], fieldp);
 		}
 
 		//----------Set Boundary Condition----------
+		SetNeumann(FP, isqfixedp, qfixedp);
 		SetDirichlet(KP, FP, isufixedp, ufixedp, 1.0e10);
 
 		//----------Solve System Equation----------
@@ -161,7 +173,7 @@ int main() {
 			FluidMass<double, ShapeFunction8Square, Gauss9Square>(Me, nodes, elementsu[j]);
 			
             Matrix<double> Ke;
-            UpdateVelocity<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ke, nodes, elementsu[j], elementsp[j]);
+            UpdateVelocity<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ke, nodes, elementsu[j]);
 
             Vector<double> Fe = Me*ve - dt*Ke*pe;
 
@@ -169,6 +181,7 @@ int main() {
 		}
 
 		//----------Set Boundary Condition----------
+		SetNeumann(FU, isqfixedu, qfixedu);
 		SetDirichlet(KU, FU, isufixedu, ufixedu, 1.0e10);
 
 		//----------Solve System Equation----------
@@ -184,12 +197,11 @@ int main() {
 		std::ofstream fout(model_path + "result" + std::to_string(t) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(nodes, fout);
-		AddElementToVTK(elementsp, fout);
-		AddElementTypes(std::vector<int>(elementsp.size(), 9), fout);
+		AddElementToVTK(elements, fout);
+		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
         AddPointVectors(u, "u", fout, true);
 		AddPointVectors(v, "v", fout, false);
 		AddPointScalers(p, "p", fout, false);
-		AddPointScalers(FP, "fp", fout, false);
 		fout.close();
 	}
 

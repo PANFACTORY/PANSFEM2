@@ -151,13 +151,13 @@ namespace PANSFEM2 {
 		//----------Generate cordinate matrix X----------
 		Matrix<T> X = Matrix<T>(0, 2);
 		for(int i = 0; i < _elementp.size(); i++){
-			X = X.Vstack(_x[_element[i]].Transpose());
+			X = X.Vstack(_x[_elementp[i]].Transpose());
 		}
 
 		//----------Generate cordinate matrix U----------
 		Vector<T> U = Vector<T>();
 		for(int i = 0; i < _elementu.size(); i++){
-			U = U.Vstack(_u[_element[i]]);
+			U = U.Vstack(_u[_elementu[i]]);
 		}
 
 		//----------Loop of Gauss Integration----------

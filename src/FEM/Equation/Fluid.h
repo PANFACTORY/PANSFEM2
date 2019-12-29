@@ -75,7 +75,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr*X;
+			Matrix<T> dXdr = (dNdr*X).Transpose();
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
@@ -99,7 +99,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Update element stiffness matrix----------
-			_Ke += A.Transpose()*Z*B*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1]*IC<T>::Weights[g][2];
+			_Ke += A.Transpose()*Z*B*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
     }
 
@@ -122,7 +122,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr*X;
+			Matrix<T> dXdr = (dNdr*X).Transpose();
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
@@ -136,7 +136,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Update element stiffness matrix----------
-			_Ke += B.Transpose()*B*J*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+			_Ke += B.Transpose()*B*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 
@@ -167,7 +167,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr*X;
+			Matrix<T> dXdr = (dNdr*X).Transpose();
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
@@ -178,7 +178,7 @@ namespace PANSFEM2 {
 
 			//----------Update Ke and Fe----------
 			_Ke += dNdX.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
-			_Fe += -N*B*U*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Fe += N*B*U*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 
@@ -202,7 +202,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr*X;
+			Matrix<T> dXdr = (dNdr*X).Transpose();
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 

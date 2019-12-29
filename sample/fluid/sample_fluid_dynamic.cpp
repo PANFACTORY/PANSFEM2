@@ -69,11 +69,11 @@ int main() {
 	ImportInitialFromCSV(u, model_path + "DirichletU.csv");
 
 	//----------Define parameters----------
-	double dt = 0.05;	//  Time step
-	double Re = 10.0;	//	Reynolds number
+	double dt = 0.01;		//  Time step
+	double Re = 1.0;		//	Reynolds number
 
 	//----------Time step loop----------
-	for(int t = 0; t < 10; t++){
+	for(int t = 0; t < 100; t++){
 		std::cout << "t = " << t << std::endl;
 
 
@@ -100,7 +100,7 @@ int main() {
             Matrix<double> DiffusionTerm;
             Diffusion<double, ShapeFunction4Square, Gauss4Square>(DiffusionTerm, nodes, element);
 
-            Vector<double> Fe = (MassTerm - dt*(/*ConvectiveTerm + */DiffusionTerm/Re))*ue;
+            Vector<double> Fe = (MassTerm - dt*(ConvectiveTerm + DiffusionTerm/Re))*ue;
 
 			Assembling(KV, FV, MassTerm, Fe, element, fieldu);
 		}
@@ -111,7 +111,7 @@ int main() {
 
 		//----------Solve System Equation----------
 		CSR<double> KVmod = CSR<double>(KV);
-		std::vector<double> resultv = ScalingCG(KVmod, FV, 100000, 1.0e-12);
+		std::vector<double> resultv = ScalingCG(KVmod, FV, 100000, 1.0e-10);
 		FieldResultToNodeValue(resultv, v, fieldu);
 
 		std::cout << "done" << std::endl;
@@ -128,7 +128,7 @@ int main() {
 			Matrix<double> Ke;
             Vector<double> Fe;
 			Poisson<double, ShapeFunction4Square, Gauss4Square>(Ke, Fe, nodes, v, element);
-			Fe /= dt;
+			Fe /= -dt;
 			Assembling(KP, FP, Ke, Fe, element, fieldp);
 		}
 
@@ -179,7 +179,7 @@ int main() {
 
 		//----------Solve System Equation----------
 		CSR<double> KUmod = CSR<double>(KU);
-		std::vector<double> resultu = ScalingCG(KUmod, FU, 100000, 1.0e-12);
+		std::vector<double> resultu = ScalingCG(KUmod, FU, 100000, 1.0e-10);
 		FieldResultToNodeValue(resultu, u, fieldu);
 
 		std::cout << "done" << std::endl;
@@ -191,7 +191,7 @@ int main() {
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(nodes, fout);
 		AddElementToVTK(elements, fout);
-		AddElementTypes(std::vector<int>(elements.size(), 5), fout);
+		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
         AddPointVectors(u, "u", fout, true);
 		AddPointVectors(v, "v", fout, false);
 		AddPointScalers(p, "p", fout, false);

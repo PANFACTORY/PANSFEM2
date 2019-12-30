@@ -29,7 +29,7 @@ int main() {
 	
 	//----------Add Elements----------
 	std::vector<std::vector<int> > elements;
-	ImportElementsFromCSV(elements, model_path + "Element.csv");
+	ImportElementsFromCSV(elements, model_path + "ElementT.csv");
 
 	//----------Add Field----------
 	std::vector<int> field;
@@ -41,22 +41,29 @@ int main() {
 	std::vector<double> ufixed;
 	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
 
+    //----------Define parameters----------
+    double a = 1.0;         //  Advection velocity
+    double theta = 60.0;    //  Advection direction
+    double k = 1.0e-6;      //  Diffusion coefficient
+
     //----------Culculate Ke Fe and Assembling----------
     LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
     std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
     for (auto element : elements) {
         Matrix<double> AdvectionTerm;
-        Advection<double, ShapeFunction3Triangle, Gauss1Triangle>(AdvectionTerm, nodes, element, 0.5, 0.5*sqrt(3.0));
+        Advection<double, ShapeFunction3Triangle, Gauss1Triangle>(AdvectionTerm, nodes, element, a*cos(theta*M_PI/180.0), a*sin(theta*M_PI/180.0));
         Matrix<double> DiffusionTerm;
-        Diffusion<double, ShapeFunction3Triangle, Gauss1Triangle>(DiffusionTerm, nodes, element, 1.0e-6);
+        Diffusion<double, ShapeFunction3Triangle, Gauss1Triangle>(DiffusionTerm, nodes, element, k);
         Matrix<double> AdvectionSUPGTerm;
-        AdvectionSUPG<double, ShapeFunction3Triangle, Gauss1Triangle>(AdvectionSUPGTerm, nodes, element, 0.5, 0.5*sqrt(3.0), 1.0e-6);
-        Matrix<double> Ke = AdvectionTerm + DiffusionTerm + AdvectionSUPGTerm;
+        AdvectionSUPG<double, ShapeFunction3Triangle, Gauss1Triangle>(AdvectionSUPGTerm, nodes, element, a*cos(theta*M_PI/180.0), a*sin(theta*M_PI/180.0), k);
+        Matrix<double> AdvectionSCTerm;
+        AdvectionShockCapturing<double, ShapeFunction3Triangle, Gauss1Triangle>(AdvectionSCTerm, nodes, element, a*cos(theta*M_PI/180.0), a*sin(theta*M_PI/180.0), k);
+        Matrix<double> Ke = AdvectionTerm + DiffusionTerm + AdvectionSUPGTerm;// + AdvectionSCTerm;
         Assembling(K, Ke, element, field);
     }
 
     //----------Set Dirichlet Boundary Condition----------
-    SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
+    SetDirichlet(K, F, isufixed, ufixed, 1.0e5);
 
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);

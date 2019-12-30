@@ -107,7 +107,7 @@ int main() {
 
 		//----------Set Boundary Condition----------
 		SetNeumann(FV, isqfixedu, qfixedu);
-		SetDirichlet(KV, FV, isufixedu, ufixedu, 1.0e10);
+		SetDirichlet(KV, FV, isufixedu, ufixedu, 1.0e5);
 
 		//----------Solve System Equation----------
 		CSR<double> KVmod = CSR<double>(KV);
@@ -134,7 +134,7 @@ int main() {
 
 		//----------Set Boundary Condition----------
 		SetNeumann(FP, isqfixedp, qfixedp);
-		SetDirichlet(KP, FP, isufixedp, ufixedp, 1.0e10);
+		SetDirichlet(KP, FP, isufixedp, ufixedp, 1.0e5);
 
 		//----------Solve System Equation----------
 		CSR<double> KPmod = CSR<double>(KP);
@@ -175,7 +175,7 @@ int main() {
 
 		//----------Set Boundary Condition----------
 		SetNeumann(FU, isqfixedu, qfixedu);
-		SetDirichlet(KU, FU, isufixedu, ufixedu, 1.0e10);
+		SetDirichlet(KU, FU, isufixedu, ufixedu, 1.0e5);
 
 		//----------Solve System Equation----------
 		CSR<double> KUmod = CSR<double>(KU);

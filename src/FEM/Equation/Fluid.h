@@ -75,7 +75,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = (dNdr*X).Transpose();
+			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
@@ -122,7 +122,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = (dNdr*X).Transpose();
+			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
@@ -167,7 +167,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = (dNdr*X).Transpose();
+			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
@@ -202,7 +202,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
-			Matrix<T> dXdr = (dNdr*X).Transpose();
+			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 

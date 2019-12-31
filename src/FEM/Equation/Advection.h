@@ -237,7 +237,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Update element mass matrix of SUPG----------
-			_Ce += tau*N*a.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Ce += tau*dNdX.Transpose()*a*N.Transpose()*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 }

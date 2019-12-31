@@ -54,10 +54,10 @@ int main() {
 	//----------Define time step and theta----------
 	double dt = M_PI/50.0;		//	Time step
 	double theta = 0.5;			//	FDM parameter for time
-	double k = 1.0e-15;				//	Diffusion coefficient
+	double k = 0.0;				//	Diffusion coefficient
 
 	//----------Time step loop----------
-	for(int t = 0; t <= 100; t++){
+	for(int t = 0; t < 100; t++){
 		std::cout << "t = " << t << std::endl;
 
 		//----------Culculate Ke Fe and Assembling----------

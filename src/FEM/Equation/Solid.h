@@ -170,19 +170,15 @@ namespace PANSFEM2 {
 		_Fe = Vector<T>(3*_element.size());
 
 		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 3);
+		Matrix<T> X = Matrix<T>(0, 3);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 3; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Generate displacement matrix U----------
-		Matrix<T> U = Matrix<T>(_element.size(), 3);
+		Matrix<T> U = Matrix<T>(0, 3);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 3; j++){
-				U(i, j) = _u[_element[i]](j);
-			}
+			U = U.Vstack(_u[_element[i]].Transpose());
 		}
 
 		//----------Generate cordinate matrix x----------
@@ -222,16 +218,16 @@ namespace PANSFEM2 {
 			//----------Generate initial displacement stiffness matrix----------
 			Matrix<T> BL = Matrix<T>(6, 3*_element.size());
 			for (int n = 0; n < _element.size(); n++) {
-				BL(0, 3 * n) = dNdx(0, n);	BL(0, 3 * n + 1) = T();			BL(0, 3 * n + 2) = T();
-				BL(1, 3 * n) = T();			BL(1, 3 * n + 1) = dNdx(1, n);	BL(1, 3 * n + 2) = T();
-				BL(2, 3 * n) = T();			BL(2, 3 * n + 1) = T();			BL(2, 3 * n + 2) = dNdx(2, n);
-				BL(3, 3 * n) = dNdx(1, n);	BL(3, 3 * n + 1) = dNdx(0, n);	BL(3, 3 * n + 2) = T();
-				BL(4, 3 * n) = T();			BL(4, 3 * n + 1) = dNdx(2, n);	BL(4, 3 * n + 2) = dNdx(1, n);
-				BL(5, 3 * n) = dNdx(2, n);	BL(5, 3 * n + 1) = T();			BL(5, 3 * n + 2) = dNdx(0, n);
+				BL(0, 3*n) = dNdx(0, n);	BL(0, 3*n + 1) = T();			BL(0, 3*n + 2) = T();
+				BL(1, 3*n) = T();			BL(1, 3*n + 1) = dNdx(1, n);	BL(1, 3*n + 2) = T();
+				BL(2, 3*n) = T();			BL(2, 3*n + 1) = T();			BL(2, 3*n + 2) = dNdx(2, n);
+				BL(3, 3*n) = dNdx(1, n);	BL(3, 3*n + 1) = dNdx(0, n);	BL(3, 3*n + 2) = T();
+				BL(4, 3*n) = T();			BL(4, 3*n + 1) = dNdx(2, n);	BL(4, 3*n + 2) = dNdx(1, n);
+				BL(5, 3*n) = dNdx(2, n);	BL(5, 3*n + 1) = T();			BL(5, 3*n + 2) = dNdx(0, n);
 			}
 
 			//----------Update element stiffness matrix----------
-			_Ke += BL.Transpose()*C*BL*J*IC<T>::Weights[g][0] * IC<T>::Weights[g][1] * IC<T>::Weights[g][2];
+			_Ke += BL.Transpose()*C*BL*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1]*IC<T>::Weights[g][2];
 			
 			//----------Get Caucy stress----------
 			Vector<T> Ev = Vector<T>({ E(0, 0), E(1, 1), E(2, 2), E(0, 1) + E(1, 0), E(1, 2) + E(2, 1), E(2, 0) + E(0, 2) });		
@@ -240,15 +236,15 @@ namespace PANSFEM2 {
 			//----------Generate initial stress stiffness matrix----------
 			Matrix<T> BNL = Matrix<T>(9, 3*_element.size());
 			for (int n = 0; n < _element.size(); n++) {
-				BNL(0, 3 * n) = dNdx(0, n);	BNL(0, 3 * n + 1) = T();		BNL(0, 3 * n + 2) = T();
-				BNL(1, 3 * n) = T();		BNL(1, 3 * n + 1) = dNdx(0, n);	BNL(1, 3 * n + 2) = T();
-				BNL(2, 3 * n) = T();		BNL(2, 3 * n + 1) = T();		BNL(2, 3 * n + 2) = dNdx(0, n);
-				BNL(3, 3 * n) = dNdx(1, n);	BNL(3, 3 * n + 1) = T();		BNL(3, 3 * n + 2) = T();
-				BNL(4, 3 * n) = T();		BNL(4, 3 * n + 1) = dNdx(1, n);	BNL(4, 3 * n + 2) = T();
-				BNL(5, 3 * n) = T();		BNL(5, 3 * n + 1) = T();		BNL(5, 3 * n + 2) = dNdx(1, n);
-				BNL(6, 3 * n) = dNdx(2, n);	BNL(6, 3 * n + 1) = T();		BNL(6, 3 * n + 2) = T();
-				BNL(7, 3 * n) = T();		BNL(7, 3 * n + 1) = dNdx(2, n);	BNL(7, 3 * n + 2) = T();
-				BNL(8, 3 * n) = T();		BNL(8, 3 * n + 1) = T();		BNL(8, 3 * n + 2) = dNdx(2, n);
+				BNL(0, 3*n) = dNdx(0, n);	BNL(0, 3*n + 1) = T();			BNL(0, 3*n + 2) = T();
+				BNL(1, 3*n) = T();			BNL(1, 3*n + 1) = dNdx(0, n);	BNL(1, 3*n + 2) = T();
+				BNL(2, 3*n) = T();			BNL(2, 3*n + 1) = T();			BNL(2, 3*n + 2) = dNdx(0, n);
+				BNL(3, 3*n) = dNdx(1, n);	BNL(3, 3*n + 1) = T();			BNL(3, 3*n + 2) = T();
+				BNL(4, 3*n) = T();			BNL(4, 3*n + 1) = dNdx(1, n);	BNL(4, 3*n + 2) = T();
+				BNL(5, 3*n) = T();			BNL(5, 3*n + 1) = T();			BNL(5, 3*n + 2) = dNdx(1, n);
+				BNL(6, 3*n) = dNdx(2, n);	BNL(6, 3*n + 1) = T();			BNL(6, 3*n + 2) = T();
+				BNL(7, 3*n) = T();			BNL(7, 3*n + 1) = dNdx(2, n);	BNL(7, 3*n + 2) = T();
+				BNL(8, 3*n) = T();			BNL(8, 3*n + 1) = T();			BNL(8, 3*n + 2) = dNdx(2, n);
 			}
 
 			Matrix<T> S00 = Sv(0)*Identity<T>(3);	Matrix<T> S01 = Sv(3)*Identity<T>(3);	Matrix<T> S02 = Sv(5)*Identity<T>(3);
@@ -256,10 +252,10 @@ namespace PANSFEM2 {
 			Matrix<T> S20 = Sv(5)*Identity<T>(3);	Matrix<T> S21 = Sv(4)*Identity<T>(3);	Matrix<T> S22 = Sv(2)*Identity<T>(3);
 			Matrix<T> S = (S00.Hstack(S01.Hstack(S02))).Vstack((S10.Hstack(S11.Hstack(S12))).Vstack((S20.Hstack(S21.Hstack(S22)))));
 
-			_Ke += BNL.Transpose()*S*BNL*J*IC<T>::Weights[g][0] * IC<T>::Weights[g][1] * IC<T>::Weights[g][2];
+			_Ke += BNL.Transpose()*S*BNL*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1]*IC<T>::Weights[g][2];
 
 			//----------Update load vector----------
-			_Fe += BL.Transpose()*Sv*J*IC<T>::Weights[g][0] * IC<T>::Weights[g][1] * IC<T>::Weights[g][2];
+			_Fe += BL.Transpose()*Sv*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1]*IC<T>::Weights[g][2];
 		}
 	}
 }

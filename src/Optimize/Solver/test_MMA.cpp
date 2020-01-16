@@ -3,7 +3,7 @@
 #include <cmath>
 
 
-#include "MMA.h"
+#include "MMA2.h"
 
 
 using namespace PANSFEM2;
@@ -16,10 +16,17 @@ int main() {
 
 	//----------Initialize optimization solver----------
 	std::vector<double> s = std::vector<double>(5, 5.0);
-	MMA<double> optimizer = MMA<double>(5, 1, { 1.0, 1.0, 1.0, 1.0, 1.0}, { 10.0, 10.0, 10.0, 10.0, 10.0 });
+	MMA<double> optimizer = MMA<double>(5, 1, 
+		1.0, 
+		std::vector<double>(1, 0.0), 
+		std::vector<double>(1, 1000.0), 
+		std::vector<double>(1, 1.0), 
+		std::vector<double>(5, 1.0), 
+		std::vector<double>(5, 10.0)
+	);
 	
 	//----------Optimize loop----------
-	for(int k = 0; k < 100; k++){
+	for(int k = 0; k < 10; k++){
 		std::cout << std::endl << "k = " << k << "\t";
 
 		//**************************************************
@@ -27,8 +34,8 @@ int main() {
 		//**************************************************
 		double objective;											                                        //Function value of compliance
 		std::vector<double> dobjective = std::vector<double>(5);               								//Sensitivities of compliance
-		Vector<double> constraints = Vector<double>(1);														//Function values of weight
-		std::vector<Vector<double> > dconstraints = std::vector<Vector<double> >(5, Vector<double>(1));	    //Sensitivities of weight
+		std::vector<double> constraints = std::vector<double>(1);											//Function values of weight
+		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(5, std::vector<double>(1));	    //Sensitivities of weight
 
 		//----------Get function values and sensitivities----------
 		//  Objective
@@ -40,15 +47,15 @@ int main() {
         dobjective[4] = C1;
 
         //  Constraint
-        constraints(0) = 61.0*pow(s[0], -3.0) + 37.0*pow(s[1], -3.0) + 19.0*pow(s[2], -3.0) + 7.0*pow(s[3], -3.0) + 1.0*pow(s[4], -3.0) - C2;
-        dconstraints[0](0) = -3.0*61.0*pow(s[0], -4.0);
-        dconstraints[1](0) = -3.0*37.0*pow(s[1], -4.0);
-        dconstraints[2](0) = -3.0*19.0*pow(s[2], -4.0);
-        dconstraints[3](0) = -3.0*7.0*pow(s[3], -4.0);
-        dconstraints[4](0) = -3.0*1.0*pow(s[4], -4.0); 
+        constraints[0] = 61.0*pow(s[0], -3.0) + 37.0*pow(s[1], -3.0) + 19.0*pow(s[2], -3.0) + 7.0*pow(s[3], -3.0) + 1.0*pow(s[4], -3.0) - C2;
+        dconstraints[0][0] = -3.0*61.0*pow(s[0], -4.0);
+        dconstraints[0][1] = -3.0*37.0*pow(s[1], -4.0);
+        dconstraints[0][2] = -3.0*19.0*pow(s[2], -4.0);
+        dconstraints[0][3] = -3.0*7.0*pow(s[3], -4.0);
+        dconstraints[0][4] = -3.0*1.0*pow(s[4], -4.0); 
 
 		std::cout << "Objective:\t" << objective << "\t";
-		std::cout << "Constraints:\t" << constraints(0) << "\t";
+		std::cout << "Constraints:\t" << constraints[0] << "\t";
 
         for(auto si : s){
             std::cout << "\t" << si; 

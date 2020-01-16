@@ -16,13 +16,16 @@ namespace PANSFEM2{
     template<class T>
     class MMA{
 public:
-        MMA(int _n, int _m, const std::vector<T>& _xmin, const std::vector<T>& _xmax);
+        MMA(int _n, int _m, T _a0, std::vector<T> _a, std::vector<T> _c, std::vector<T> _d, const std::vector<T>& _xmin, const std::vector<T>& _xmax);
         ~MMA();
 
 
         bool IsConvergence(T _currentf0);
         void UpdateVariables(std::vector<T>& _xk, T _f, std::vector<T> _dfdx, std::vector<T> _g, std::vector<std::vector<T> > _dgdx);
-        T KKTNorm();
+        T KKTNorm(std::vector<T> _x, std::vector<T> _y, T _z, std::vector<T> _lambda, std::vector<T> _gsi, std::vector<T> _ita, std::vector<T> _mu, T _zeta, std::vector<T> _s,
+            T _eps, std::vector<std::vector<T> > _p, std::vector<std::vector<T> > _q, std::vector<T> _p0, std::vector<T> _q0, std::vector<T> _alpha, std::vector<T> _beta, std::vector<T> _b);
+        std::vector<T> solvels(std::vector<std::vector<T> > _A, std::vector<T> _b);
+
 
 private:
         //----------Parameters for solver----------
@@ -53,7 +56,7 @@ private:
 
 
     template<class T>
-    MMA<T>::MMA(int _n, int _m, const std::vector<T>& _xmin, const std::vector<T>& _xmax) : n(_n), m(_m) {
+    MMA<T>::MMA(int _n, int _m, T _a0, std::vector<T> _a, std::vector<T> _c, std::vector<T> _d, const std::vector<T>& _xmin, const std::vector<T>& _xmax) : n(_n), m(_m) {
         //----------Initialize solver parameter----------
         this->k = 0;
         this->previousvalue = T();
@@ -61,6 +64,10 @@ private:
         this->xmax = _xmax;
         this->xkm2 = std::vector<T>(this->n);
         this->xkm1 = std::vector<T>(this->n);
+        this->a0 = _a0;
+        this->a = _a;
+        this->c = _c;
+        this->d = _d;
 
 
         //----------Set MMA parameters----------
@@ -81,6 +88,9 @@ private:
 
     template<class T>
     bool MMA<T>::IsConvergence(T _currentf0){
+        if(fabs(_currentf0 - this->previousvalue) / (_currentf0 + this->previousvalue) < 1.0e-5){
+            return true;
+        } 
         return false;
     }
 
@@ -148,7 +158,6 @@ private:
                 }
             }
         }
-
         
         //----------Inner loop----------
         T eps = 1.0;
@@ -172,7 +181,7 @@ private:
             ita[j] = std::max(1.0, 1.0/(beta[j] - x[j]));
         }
         
-        for(int l = 0; epsl > 1.0e-7; l++){
+        for(int l = 0; eps > 1.0e-7; l++){
             //.....Get coefficients.....
             std::vector<T> plambda = std::vector<T>(this->n);
             std::vector<T> qlambda = std::vector<T>(this->n);
@@ -279,11 +288,13 @@ private:
                     }
                 }
                 B[this->m] = deltilz;
-                //+++++++++++++++++++++++++++++++++++++++++++++++++
-                //+++++ここで連立方程式[A]{dlambda,dz}={B}を解く+++++
-                //+++++++++++++++++++++++++++++++++++++++++++++++++ 
+                std::vector<T> dlambdaz = this->solvels(A, B);
+                for(int i = 0; i < this->m; i++){
+                    dlambda[i] = dlambdaz[i];
+                }
+                dz = dlambdaz[this->m];
                 for(int j = 0; j < this->n; j++){
-                    dx[j] =  -deltilx[i]/Dx[i];
+                    dx[j] =  -deltilx[j]/Dx[j];
                     for(int i = 0; i < this->m; i++){
                         dx[j] -= G[i][j]*dlambda[i]/Dx[j];
                     }
@@ -317,13 +328,15 @@ private:
                 for(int jj = 0; jj < this->m; jj++){
                     B[this->n] += this->a[jj]*deltillambday[jj]/Dlambday[jj];
                 }
-                //++++++++++++++++++++++++++++++++++++++++++++
-                //+++++ここで連立方程式[A]{dx,dz}={B}を解く+++++
-                //++++++++++++++++++++++++++++++++++++++++++++
+                std::vector<T> dxz = this->solvels(A, B);
+                for(int j = 0; j < this->n; j++){
+                    dx[j] = dxz[j];
+                }
+                dz = dxz[this->n];
                 for(int i = 0; i < this->m; i++){
                     dlambda[i] = -this->a[i]*dz/Dlambday[i] + deltillambday[i]/Dlambday[i];
                     for(int j = 0; j < this->n; j++){
-                        dlambda[i] += G[i][j]dx[j]/Dlambday[i];
+                        dlambda[i] += G[i][j]*dx[j]/Dlambday[i];
                     }
                 }
             }
@@ -352,27 +365,202 @@ private:
 
             //.....Get step size.....
             T tau = 1.0;
-            T deltawl;
-            T deltawlp1;
-            while(deltawlp1 > deltal){
+            T deltawl = this->KKTNorm(x, y, z, lambda, gsi, ita, mu, zeta, s, eps, p, q, p0, q0, alpha, beta, b);
+            std::vector<T> xpdx = std::vector<T>(this->n);
+            std::vector<T> ypdy = std::vector<T>(this->m);
+            T zpdz;
+            std::vector<T> lambdapdlambda = std::vector<T>(this->m);
+            std::vector<T> gsipdgsi = std::vector<T>(this->n);
+            std::vector<T> itapdita = std::vector<T>(this->n);
+            std::vector<T> mupdmu = std::vector<T>(this->m);
+            T zetapdzeta;
+            std::vector<T> spds = std::vector<T>(this->m);
+            while(1){
+                for(int j = 0; j < this->m; j++){
+                    xpdx[j] = x[j] + tau*dx[j];
+                }
+                for(int i = 0; i < this->n; i++){
+                    ypdy[i] = y[i] + tau*dy[i];
+                }
+                zpdz = z + tau*dz;
+                for(int i = 0; i < this->m; i++){
+                    lambdapdlambda[i] = lambda[i] + tau*dlambda[i];
+                }
+                for(int j = 0; j < this->n; j++){
+                    gsipdgsi[j] = gsi[j] + tau*dgsi[j];
+                }
+                for(int j = 0; j < this->n; j++){
+                    itapdita[j] = ita[j] + tau*dita[j];
+                }
+                for(int i = 0; i < this->m; i++){
+                    mupdmu[i] = mu[i] + tau*dmu[i];
+                }
+                zetapdzeta = zeta + tau*dzeta;
+                for(int i = 0; i < this->m; i++){
+                    spds[i] = s[i] + tau*ds[i];
+                }
+                T deltawlp1 = this->KKTNorm(xpdx, ypdy, zpdz, lambdapdlambda, gsipdgsi, itapdita, mupdmu, zetapdzeta, spds, eps, p, q, p0, q0, alpha, beta, b);
+                if(deltawlp1 < deltawl){
+                    break;
+                }
                 tau *= 0.5;
             }
 
             //.....Update w.....
-
+            x = xpdx;
+            y = ypdy;
+            z = zpdz;
+            lambda = lambdapdlambda;
+            gsi = gsipdgsi;
+            ita = itapdita;
+            mu = mupdmu;
+            zeta = zetapdzeta;
+            s = spds;
 
             //.....Update epsl.....
-            if(deltalp1 < 0,9*eps){
+            T deltawlp1 = this->KKTNorm(x, y, z, lambda, gsi, ita, mu, zeta, s, eps, p, q, p0, q0, alpha, beta, b);
+            if(deltawlp1 < 0,9*eps){
                 eps *= 0.1;
             } else {
                 eps *= 1.0;
             }
         }
 
-
         //----------Update outer loop counter k----------
+        this->previousvalue = _f;
         this->k++;
         this->xkm2 = this->xkm1;
-        this->xkm1 = _xk;   //←用検討
+        this->xkm1 = _xk;
+        _xk = x; 
+    }
+
+
+    template<class T>
+    T MMA<T>::KKTNorm(std::vector<T> _x, std::vector<T> _y, T _z, std::vector<T> _lambda, std::vector<T> _gsi, std::vector<T> _ita, std::vector<T> _mu, T _zeta, std::vector<T> _s, T _eps, std::vector<std::vector<T> > _p, std::vector<std::vector<T> > _q, std::vector<T> _p0, std::vector<T> _q0, std::vector<T> _alpha, std::vector<T> _beta, std::vector<T> _b){
+        T norm = T();
+
+        //----------Get parameters----------
+        std::vector<T> plambda = std::vector<T>(this->n);
+        std::vector<T> qlambda = std::vector<T>(this->n);
+        for(int j = 0; j < this->n; j++){
+            plambda[j] = _p0[j];
+            qlambda[j] = _q0[j];
+            for(int i = 0; i < this->m; i++){
+                plambda[j] += _lambda[i]*_p[i][j];
+                qlambda[j] += _lambda[i]*_q[i][j];
+            }
+        }
+
+        std::vector<T> g = std::vector<T>(this->m, T());
+        for(int i = 0; i < this->m; i++){
+            for(int j = 0; j < this->n; j++){
+                g[i] += _p[i][j]/(this->U[j] - _x[j]) + _q[i][j]/(_x[j] - this->L[j]);
+            }
+        }
+
+        //----------Equation(5.9a)----------
+        for(int j = 0; j < this->n; j++){
+            T tmp = plambda[j]/pow(this->U[j] - _x[j], 2.0) - qlambda[j]/pow(_x[j] - this->L[j], 2.0) - _gsi[j] + _ita[j];
+            norm += pow(tmp, 2.0);
+        }
+
+        //----------Equation(5.9b)----------
+        for(int i = 0; i < this->m; i++){
+            T tmp = this->c[i] + this->d[i]*_y[i] - _lambda[i] - _mu[i];
+            norm += pow(tmp, 2.0);
+        }
+
+        //----------Equation(5.9c)----------
+        {
+            T tmp = this->a0 - _zeta;
+            for(int i = 0; i < this->n; i++){
+                tmp -= _lambda[i]*this->a[i];
+            }
+            norm += pow(tmp, 2.0);
+        }
+        
+        //----------Equation(5.9d)----------
+        for(int i = 0; i < this->m; i++){
+            T tmp = g[i] - this->a[i]*_z - _y[i] + _s[i] - _b[i];
+            norm += pow(tmp, 2.0);
+        }
+
+        //----------Equation(5.9e)----------
+        for(int j = 0; j < this->n; j++){
+            T tmp = _gsi[j]*(_x[j] - _alpha[j]) - _eps;
+            norm += pow(tmp, 2.0);
+        }
+
+        //----------Equation(5.9f)----------
+        for(int j = 0; j < this->n; j++){
+            T tmp = _ita[j]*(_beta[j] - _x[j]) - _eps;
+            norm += pow(tmp, 2.0);
+        }
+
+        //----------Equation(5.9g)----------
+        for(int i = 0; i < this->m; i++){
+            T tmp = _mu[i]*_y[i] - _eps;
+            norm += pow(tmp, 2.0);
+        }
+
+        //----------Equation(5.9h)----------
+        {
+            T tmp = _zeta*_z - _eps;
+        }
+
+        //----------Equation(5.9i)----------
+        for(int i = 0; i < this->m; i++){
+            T tmp = _lambda[i]*_s[i] - _eps;
+        }
+
+        return sqrt(norm);
+    }
+
+
+    template<class T>
+    std::vector<T> MMA<T>::solvels(std::vector<std::vector<T> > _A, std::vector<T> _b){
+        std::vector<T> x = std::vector<T>(_b.size());
+        for(int i = 0; i < _b.size() - 1; i++){
+            //----------Get pivot----------
+            T pivot = fabs(_A[i][i]);
+            int pivoti = i;
+            for(int j = i + 1; j < _b.size(); j++){
+                if(pivot < fabs(_A[j][i])){
+                    pivot = fabs(_A[j][i]);
+                    pivoti = j;
+                }
+            }
+            
+            //----------Exchange pivot----------
+            if(pivoti != i){
+                T tmp = _b[i];
+                _b[i] = _b[pivoti];
+                _b[pivoti] = tmp;
+                for(int j = i; j < _b.size(); j++){
+                    tmp = _A[i][j];
+                    _A[i][j] = _A[pivoti][j];
+                    _A[pivoti][j] = tmp;
+                }
+            
+            }
+            
+            //----------Forward erase----------
+            for(int j = i + 1; j < _b.size(); j++){
+                for(int k = i + 1; k < _b.size(); k++){
+                    _A[j][k] -= _A[i][k]*_A[j][i]/_A[i][i];
+                }
+                _b[j] -= _b[i]*_A[j][i]/_A[i][i];
+            }
+        }
+        
+        //----------Back substitution----------
+        for(int i = _b.size() - 1; i >= 0; i--){
+            x[i] = _b[i];
+            for(int j = _b.size() - 1; j > i; j--){
+                x[i] -= x[j]*_A[i][j];
+            }
+            x[i] /= _A[i][i];
+        }
+        return x;
     }
 }

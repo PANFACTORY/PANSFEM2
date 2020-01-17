@@ -3,7 +3,7 @@
 #include <cmath>
 
 
-#include "MMA.h"
+#include "MMA2.h"
 
 
 using namespace PANSFEM2;
@@ -16,7 +16,7 @@ int main() {
 
 	//----------Initialize optimization solver----------
 	std::vector<double> s = { 1.5, 0.5 };
-	MMA<double> optimizer = MMA<double>(2, 2, { 0.2, 0.1 }, { 4.0, 1.6 });
+	MMA<double> optimizer = MMA<double>(2, 2, 1.0, {0.0, 0.0}, {1000.0, 1000.0}, {1.0, 1.0}, { 0.2, 0.1 }, { 4.0, 1.6 });
 	
 	//----------Optimize loop----------
 	for(int k = 0; k < 100; k++){
@@ -25,10 +25,10 @@ int main() {
 		//**************************************************
 		//	Update design variables
 		//**************************************************
-		double objective;											                                        //Function value of compliance
-		std::vector<double> dobjective = std::vector<double>(2);               								//Sensitivities of compliance
-		Vector<double> constraints = Vector<double>(2);														//Function values of weight
-		std::vector<Vector<double> > dconstraints = std::vector<Vector<double> >(2, Vector<double>(2));	    //Sensitivities of weight
+		double objective;											                                        	//Function value of compliance
+		std::vector<double> dobjective = std::vector<double>(2);               									//Sensitivities of compliance
+		std::vector<double> constraints = std::vector<double>(2);												//Function values of weight
+		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(2, std::vector<double>(2));	//Sensitivities of weight
 
 		//----------Get function values and sensitivities----------
 		//  Objective
@@ -37,16 +37,16 @@ int main() {
         dobjective[1] = C1*s[0]*s[1]/sqrt(1.0 + pow(s[1], 2.0));
 
         //  Constraint
-        constraints(0) = C2*sqrt(1.0 + pow(s[1], 2.0))*(8.0*pow(s[0], -1.0) + 1.0*pow(s[0], -1.0)*pow(s[1], -1.0)) - 1.0;
-        dconstraints[0](0) = C2*sqrt(1.0 + pow(s[1], 2.0))*(-8.0*pow(s[0], -2.0) - 1.0*pow(s[0], -2.0)*pow(s[1], -1.0));
-        dconstraints[1](0) = C2*s[1]/sqrt(1.0 + pow(s[1], 2.0))*(8.0*pow(s[0], -1.0) + 1.0*pow(s[0], -1.0)*pow(s[1], -1.0)) + C2*sqrt(1.0 + pow(s[1], 2.0))*(-1.0*pow(s[0], -1.0)*pow(s[1], -2.0));
-        constraints(1) = C2*sqrt(1.0 + pow(s[1], 2.0))*(8.0*pow(s[0], -1.0) - 1.0*pow(s[0], -1.0)*pow(s[1], -1.0)) - 1.0;
-        dconstraints[0](1) = C2*sqrt(1.0 + pow(s[1], 2.0))*(-8.0*pow(s[0], -2.0) + 1.0*pow(s[0], -2.0)*pow(s[1], -1.0));
-        dconstraints[1](1) = C2*s[1]/sqrt(1.0 + pow(s[1], 2.0))*(8.0*pow(s[0], -1.0) - 1.0*pow(s[0], -1.0)*pow(s[1], -1.0)) + C2*sqrt(1.0 + pow(s[1], 2.0))*(1.0*pow(s[0], -1.0)*pow(s[1], -2.0));
+        constraints[0] = C2*sqrt(1.0 + pow(s[1], 2.0))*(8.0*pow(s[0], -1.0) + 1.0*pow(s[0], -1.0)*pow(s[1], -1.0)) - 1.0;
+        dconstraints[0][0] = C2*sqrt(1.0 + pow(s[1], 2.0))*(-8.0*pow(s[0], -2.0) - 1.0*pow(s[0], -2.0)*pow(s[1], -1.0));
+        dconstraints[0][1] = C2*s[1]/sqrt(1.0 + pow(s[1], 2.0))*(8.0*pow(s[0], -1.0) + 1.0*pow(s[0], -1.0)*pow(s[1], -1.0)) + C2*sqrt(1.0 + pow(s[1], 2.0))*(-1.0*pow(s[0], -1.0)*pow(s[1], -2.0));
+        constraints[1] = C2*sqrt(1.0 + pow(s[1], 2.0))*(8.0*pow(s[0], -1.0) - 1.0*pow(s[0], -1.0)*pow(s[1], -1.0)) - 1.0;
+        dconstraints[1][0] = C2*sqrt(1.0 + pow(s[1], 2.0))*(-8.0*pow(s[0], -2.0) + 1.0*pow(s[0], -2.0)*pow(s[1], -1.0));
+        dconstraints[1][1] = C2*s[1]/sqrt(1.0 + pow(s[1], 2.0))*(8.0*pow(s[0], -1.0) - 1.0*pow(s[0], -1.0)*pow(s[1], -1.0)) + C2*sqrt(1.0 + pow(s[1], 2.0))*(1.0*pow(s[0], -1.0)*pow(s[1], -2.0));
         
 		std::cout << "Objective:\t" << objective << "\t";
-		std::cout << "Constraints0:\t" << constraints(0) << "\t";
-        std::cout << "Constraints1:\t" << constraints(1) << "\t";
+		std::cout << "Constraints0:\t" << constraints[0] << "\t";
+        std::cout << "Constraints1:\t" << constraints[1] << "\t";
 
         for(auto si : s){
             std::cout << "\t" << si; 

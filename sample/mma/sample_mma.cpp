@@ -62,21 +62,25 @@ int main() {
 	double objectivebefore = 0.0;
 	double objectiveeps = 1.0e-5;
 
-    MMA<double> optimizer = MMA<double>(s.size(), 1, std::vector<double>(s.size(), 0.0), std::vector<double>(s.size(), 1.0));
+    MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
+		std::vector<double>(1, 0.0),
+		std::vector<double>(1, 1000.0),
+		std::vector<double>(1, 1.0), 
+		std::vector<double>(s.size(), 0.1), std::vector<double>(s.size(), 1.0));
 		
 	//----------Optimize loop----------
-	for(int k = 0; k < 200; k++){
+	for(int k = 0; k < 100; k++){
 		std::cout << "\nk = " << k << "\t";
 
         
         //*************************************************
 		//  Get weight value and sensitivities
 		//*************************************************
-        Vector<double> constraints = Vector<double>(1);															//Function values of weight
-		std::vector<Vector<double> > dconstraints = std::vector<Vector<double> >(s.size(), Vector<double>(1));	//Sensitivities of weight
+        std::vector<double> constraints = std::vector<double>(1);																//Function values of weight
+		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size()));	//Sensitivities of weight
         for (int i = 0; i < elements.size(); i++) {						
-			constraints(0) += s[i] - weightlimit;
-			dconstraints[i](0) = 1.0;
+			constraints[0] += s[i] - weightlimit;
+			dconstraints[0][i] = 1.0;
 		}
 
         
@@ -116,7 +120,7 @@ int main() {
                 de = de.Vstack(dv[elements[i][j]]);
             }
 
-            dobjectives[i] = p*(- E0 + E1)*pow(s[i], p - 1.0)*(de*(Ke*de));
+            dobjectives[i] = -p*(- E0 + E1)*pow(s[i], p - 1.0)*(de*(Ke*de));
         }
 
         
@@ -138,9 +142,9 @@ int main() {
         //*************************************************
 
 		//----------Check convergence----------
-        std::cout << "Objective:\t" << objective << "\tWeight:\t" << constraints(0) << "\t";
+        std::cout << "Objective:\t" << objective << "\tWeight:\t" << constraints[0] << "\t";
 		if(optimizer.IsConvergence(objective)){
-			std::cout << "--------------------Optimized--------------------" << std::endl;
+			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
 			break;
 		}
 		

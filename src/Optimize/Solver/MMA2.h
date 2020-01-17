@@ -376,10 +376,10 @@ private:
             T zetapdzeta;
             std::vector<T> spds = std::vector<T>(this->m);
             while(1){
-                for(int j = 0; j < this->m; j++){
+                for(int j = 0; j < this->n; j++){
                     xpdx[j] = x[j] + tau*dx[j];
                 }
-                for(int i = 0; i < this->n; i++){
+                for(int i = 0; i < this->m; i++){
                     ypdy[i] = y[i] + tau*dy[i];
                 }
                 zpdz = z + tau*dz;
@@ -419,7 +419,7 @@ private:
 
             //.....Update epsl.....
             T deltawlp1 = this->KKTNorm(x, y, z, lambda, gsi, ita, mu, zeta, s, eps, p, q, p0, q0, alpha, beta, b);
-            if(deltawlp1 < 0,9*eps){
+            if(deltawlp1 < 0.9*eps){
                 eps *= 0.1;
             } else {
                 eps *= 1.0;
@@ -471,13 +471,11 @@ private:
         }
 
         //----------Equation(5.9c)----------
-        {
-            T tmp = this->a0 - _zeta;
-            for(int i = 0; i < this->n; i++){
-                tmp -= _lambda[i]*this->a[i];
-            }
-            norm += pow(tmp, 2.0);
+        T tmpc = this->a0 - _zeta;
+        for(int i = 0; i < this->m; i++){
+            tmpc -= _lambda[i]*this->a[i];
         }
+        norm += pow(tmpc, 2.0);
         
         //----------Equation(5.9d)----------
         for(int i = 0; i < this->m; i++){
@@ -504,13 +502,13 @@ private:
         }
 
         //----------Equation(5.9h)----------
-        {
-            T tmp = _zeta*_z - _eps;
-        }
+        T tmph = _zeta*_z - _eps;
+        norm += pow(tmph, 2.0);
 
         //----------Equation(5.9i)----------
         for(int i = 0; i < this->m; i++){
             T tmp = _lambda[i]*_s[i] - _eps;
+            norm += pow(tmp, 2.0);
         }
 
         return sqrt(norm);

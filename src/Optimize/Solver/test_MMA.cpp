@@ -35,7 +35,7 @@ int main() {
 		double objective;											                                        //Function value of compliance
 		std::vector<double> dobjective = std::vector<double>(5);               								//Sensitivities of compliance
 		std::vector<double> constraints = std::vector<double>(1);											//Function values of weight
-		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(5, std::vector<double>(1));	    //Sensitivities of weight
+		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(5));	    //Sensitivities of weight
 
 		//----------Get function values and sensitivities----------
 		//  Objective

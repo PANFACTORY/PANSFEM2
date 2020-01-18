@@ -50,22 +50,29 @@ int main() {
 	SetNeumann(F, isqfixed, qfixed);
 
 	//----------Initialize design variables----------
-	std::vector<double> s = std::vector<double>(elements.size(), 0.5);
+	std::vector<double> s = std::vector<double>(elements.size()*2, 0.5);
 
 	//----------Define design parameters----------
-	double E0 = 0.0;
-	double E1 = 210000.0;
+	double E0 = 0.001;
+	double E1 = 823.0;
+    double E2 = 210000.0;
 	double Poisson = 0.3;
-	double p = 3.0;
+    double rho0 = 0.0;
+    double rho1 = 0.0323;
+    double rho2 = 1.0;
 
-	double weightlimit = 0.5;
+	double p = 3.0;
+    double q = 3.0;
+
+	double weightlimit = 0.3;
+	double weightlimit2 = 0.5;
 	double objectivebefore = 0.0;
 	double objectiveeps = 1.0e-5;
 
-    MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
-		std::vector<double>(1, 0.0),
-		std::vector<double>(1, 1000.0),
-		std::vector<double>(1, 0.0), 
+    MMA<double> optimizer = MMA<double>(s.size(), 2, 1.0,
+		std::vector<double>(2, 0.0),
+		std::vector<double>(2, 1000.0),
+		std::vector<double>(2, 1.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
 		
 	//----------Optimize loop----------
@@ -76,12 +83,18 @@ int main() {
         //*************************************************
 		//  Get weight value and sensitivities
 		//*************************************************
-        std::vector<double> constraints = std::vector<double>(1);																//Function values of weight
-		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size()));	//Sensitivities of weight
+        std::vector<double> constraints = std::vector<double>(2);																//Function values of weight
+		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(2, std::vector<double>(s.size()));	//Sensitivities of weight
         for (int i = 0; i < elements.size(); i++) {						
-			constraints[0] += s[i] - weightlimit;
-			dconstraints[0][i] = 1.0;
+			constraints[0] += rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i] - weightlimit;
+            dconstraints[0][2*i] = - rho0 + rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1];
+			dconstraints[0][2*i + 1] = (- rho1 + rho2)*s[2*i];
+
+			constraints[1] += -s[2*i] + weightlimit2;
+            dconstraints[1][2*i] = -1.0;
+			dconstraints[1][2*i + 1] = 0.0;
 		}
+
         
         //*************************************************
         //  Get compliance value and sensitivities
@@ -119,7 +132,8 @@ int main() {
                 de = de.Vstack(dv[elements[i][j]]);
             }
 
-            dobjectives[i] = -p*(- E0 + E1)*pow(s[i], p - 1.0)*(de*(Ke*de));
+			dobjectives[2*i] = -p*(-E0 + (E1*(1.0 - pow(s[2*i + 1], q)) + E2*pow(s[2*i + 1], q)))*pow(s[2*i], p - 1.0)*(de*(Ke*de));
+            dobjectives[2*i + 1] = -q*(-E1 + E2)*pow(s[2*i + 1], q - 1.0)*pow(s[2*i], p)*(de*(Ke*de));
         }
 
         
@@ -132,7 +146,17 @@ int main() {
 		AddElementToVTK(elements, fout);
 		AddElementTypes(std::vector<int>(elements.size(), 23), fout);
 		AddPointVectors(dv, "d", fout, true);
-		AddElementScalers(s, "s", fout, true);
+		std::vector<double> s0 = std::vector<double>(elements.size());
+        std::vector<double> s1 = std::vector<double>(elements.size());
+        std::vector<double> rho = std::vector<double>(elements.size());
+        for(int i = 0; i < elements.size(); i++){
+            s0[i] = s[2*i];
+            s1[i] = s[2*i + 1];
+            rho[i] = rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i];
+        }
+		AddElementScalers(s0, "s0", fout, true);
+        AddElementScalers(s1, "s1", fout, false);
+        AddElementScalers(rho, "rho", fout, false);
 		fout.close();
        
 
@@ -142,10 +166,10 @@ int main() {
 
 		//----------Check convergence----------
         std::cout << "Objective:\t" << objective << "\tWeight:\t" << constraints[0] << "\t";
-		/*if(optimizer.IsConvergence(objective)){
+		if(optimizer.IsConvergence(objective)){
 			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
 			break;
-		}*/
+		}
 		
 		//----------Get updated design variables with OC method----------
 		optimizer.UpdateVariables(s, objective, dobjectives, constraints, dconstraints);	

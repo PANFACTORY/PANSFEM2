@@ -9,6 +9,7 @@
 #pragma once
 #include <vector>
 #include <algorithm>
+#include <numeric>
 
 
 namespace PANSFEM2{

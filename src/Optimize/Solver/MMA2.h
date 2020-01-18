@@ -1,7 +1,7 @@
 //*****************************************************************************
-//  Title       :src/Optimize/Solver/MMA2.h
+//  Title       :src/Optimize/Solver/MMA.h
 //  Author      :Tanabe Yuta
-//  Date        :2020/01/16
+//  Date        :2020/01/17
 //  Copyright   :(C)2020 TanabeYuta
 //*****************************************************************************
 
@@ -9,6 +9,8 @@
 #pragma once
 #include <vector>
 #include <algorithm>
+#include <numeric>
+#include <chrono>
 
 
 namespace PANSFEM2{
@@ -22,10 +24,7 @@ public:
 
         bool IsConvergence(T _currentf0);
         void UpdateVariables(std::vector<T>& _xk, T _f, std::vector<T> _dfdx, std::vector<T> _g, std::vector<std::vector<T> > _dgdx);
-        T KKTNorm(std::vector<T> _x, std::vector<T> _y, T _z, std::vector<T> _lambda, std::vector<T> _gsi, std::vector<T> _ita, std::vector<T> _mu, T _zeta, std::vector<T> _s,
-            T _eps, std::vector<std::vector<T> > _p, std::vector<std::vector<T> > _q, std::vector<T> _p0, std::vector<T> _q0, std::vector<T> _alpha, std::vector<T> _beta, std::vector<T> _b);
-        std::vector<T> solvels(std::vector<std::vector<T> > _A, std::vector<T> _b);
-
+        
 
 private:
         //----------Parameters for solver----------
@@ -50,8 +49,15 @@ private:
         T asyinit;              //  Used in equation(3.11)
         T asydecr;              //  Used in equation(3.13)
         T asyincr;              //  Used in equation(3.13)
+        T asymin;
+        T asymax;
         std::vector<T> L;       //  Parameter of asymptotes
         std::vector<T> U;       //  Parameter of asymptotes
+
+
+		T KKTNorm(const std::vector<T>& _x, const std::vector<T>& _y, T _z, const std::vector<T>& _lambda, const std::vector<T>& _gsi, const std::vector<T>& _ita, const std::vector<T>& _mu, T _zeta, const std::vector<T>& _s,
+            T _eps, const std::vector<std::vector<T> >& _p, const std::vector<std::vector<T> >& _q, const std::vector<T>& _p0, const std::vector<T>&  _q0, const std::vector<T>& _alpha, const std::vector<T>& _beta, const std::vector<T>& _b);
+        std::vector<T> solvels(std::vector<std::vector<T> > _A, std::vector<T> _b);
 	};
 
 
@@ -77,6 +83,8 @@ private:
         this->asyinit = 0.5;
         this->asydecr = 0.7;
         this->asyincr = 1.2;
+        this->asymin = 0.01;
+        this->asymax = 10.0;
         this->L = std::vector<T>(this->n);
         this->U = std::vector<T>(this->n);
     }
@@ -97,68 +105,65 @@ private:
 
     template<class T>
     void MMA<T>::UpdateVariables(std::vector<T>& _xk, T _f, std::vector<T> _dfdx, std::vector<T> _g, std::vector<std::vector<T> > _dgdx){       
-        //----------Get MMA subproblem at k----------
-        std::vector<T> alpha = std::vector<T>(this->n);
+		//----------Get asymptotes parameter L and U----------
+		if(this->k < 2){
+			for(int j = 0; j < this->n; j++){
+				this->L[j] = _xk[j] - this->asyinit*(this->xmax[j] - this->xmin[j]);
+				this->U[j] = _xk[j] + this->asyinit*(this->xmax[j] - this->xmin[j]);
+                this->L[j] = std::min(std::max(_xk[j] - this->asymax*(this->xmax[j] - this->xmin[j]), this->L[j]), _xk[j] - this->asymin*(this->xmax[j] - this->xmin[j]));
+				this->U[j] = std::min(std::max(_xk[j] + this->asymin*(this->xmax[j] - this->xmin[j]), this->U[j]), _xk[j] + this->asymax*(this->xmax[j] - this->xmin[j]));
+            }
+		} else {
+			for(int j = 0; j < this->n; j++){
+				T tmp = (_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]);
+				if(tmp < T()){
+					this->L[j] = _xk[j] - this->asydecr*(this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + this->asydecr*(this->U[j] - this->xkm1[j]);
+				} else if(tmp > T()){
+					this->L[j] = _xk[j] - this->asyincr*(this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + this->asyincr*(this->U[j] - this->xkm1[j]);
+				} else{
+					this->L[j] = _xk[j] - (this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + (this->U[j] - this->xkm1[j]);
+				}
+                this->L[j] = std::min(std::max(_xk[j] - this->asymax*(this->xmax[j] - this->xmin[j]), this->L[j]), _xk[j] - this->asymin*(this->xmax[j] - this->xmin[j]));
+				this->U[j] = std::min(std::max(_xk[j] + this->asymin*(this->xmax[j] - this->xmin[j]), this->U[j]), _xk[j] + this->asymax*(this->xmax[j] - this->xmin[j]));
+			}
+		}
+
+		//----------Get movelimit at k----------
+		std::vector<T> alpha = std::vector<T>(this->n);
         std::vector<T> beta = std::vector<T>(this->n);
-        std::vector<T> p0 = std::vector<T>(this->n);
+		for(int j = 0; j < this->n; j++){
+			alpha[j] = std::max({this->xmin[j], this->L[j] + this->albefa*(_xk[j] - this->L[j]), _xk[j] - this->move*(this->xmax[j] - this->xmin[j])});
+			beta[j] = std::min({this->xmax[j], this->U[j] - this->albefa*(this->U[j] - _xk[j]), _xk[j] + this->move*(this->xmax[j] - this->xmin[j])});
+		}
+
+		//----------Get p0 and q0----------
+		std::vector<T> p0 = std::vector<T>(this->n);
         std::vector<T> q0 = std::vector<T>(this->n);
-        std::vector<std::vector<T> > p = std::vector<std::vector<T> >(this->m, std::vector<T>(this->n));
+		for(int j = 0; j < this->n; j++){
+			T dfdxp = std::max(_dfdx[j], T());
+			T dfdxm = std::max(-_dfdx[j], T());
+			p0[j] = pow(this->U[j] - _xk[j], 2.0)*(1.001*dfdxp + 0.001*dfdxm + this->raa0/(this->xmax[j] - this->xmin[j]));
+			q0[j] = pow(_xk[j] - this->L[j], 2.0)*(0.001*dfdxp + 1.001*dfdxm + this->raa0/(this->xmax[j] - this->xmin[j]));
+		}
+
+		//----------Get p, q and b----------
+		std::vector<std::vector<T> > p = std::vector<std::vector<T> >(this->m, std::vector<T>(this->n));
         std::vector<std::vector<T> > q = std::vector<std::vector<T> >(this->m, std::vector<T>(this->n));
         std::vector<T> b = std::vector<T>(this->m);
-        {
-            //.....Get asymptotes parameter L and U.....
-            if(this->k < 2){
-                for(int j = 0; j < this->n; j++){
-                    this->L[j] = _xk[j] - this->asyinit*(this->xmax[j] - this->xmin[j]);
-                    this->U[j] = _xk[j] + this->asyinit*(this->xmax[j] - this->xmin[j]);
-                }
-            } else {
-                for(int j = 0; j < this->n; j++){
-                    T tmp = (_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]);
-                    if(tmp < T()){
-                        this->L[j] = _xk[j] - this->asydecr*(this->xkm1[j] - this->L[j]);
-                        this->U[j] = _xk[j] + this->asydecr*(this->U[j] - this->xkm1[j]);
-                    } else if(tmp > T()){
-                        this->L[j] = _xk[j] - this->asyincr*(this->xkm1[j] - this->L[j]);
-                        this->U[j] = _xk[j] + this->asyincr*(this->U[j] - this->xkm1[j]);
-                    } else{
-                        this->L[j] = _xk[j] - (this->xkm1[j] - this->L[j]);
-                        this->U[j] = _xk[j] + (this->U[j] - this->xkm1[j]);
-                    }
-                }
-            }
-
-            for(int j = 0; j < this->n; j++){
-                this->L[j] = std::min(std::max(_xk[j] - 10.0*(this->xmax[j] - this->xmin[j]), this->L[j]), _xk[j] - 0.01*(this->xmax[j] - this->xmin[j]));
-                this->U[j] = std::min(std::max(_xk[j] + 0.01*(this->xmax[j] - this->xmin[j]), this->U[j]), _xk[j] + 10.0*(this->xmax[j] - this->xmin[j]));
-            }
-
-            //.....Get movelimit at k.....
-            for(int j = 0; j < this->n; j++){
-                alpha[j] = std::max({this->xmin[j], this->L[j] + this->albefa*(_xk[j] - this->L[j]), _xk[j] - this->move*(this->xmax[j] - this->xmin[j])});
-                beta[j] = std::min({this->xmax[j], this->U[j] - this->albefa*(this->U[j] - _xk[j]), _xk[j] + this->move*(this->xmax[j] - this->xmin[j])});
-            }
-
-            //.....Get p and q.....
-            for(int j = 0; j < this->n; j++){
-                T dfdxp = std::max(_dfdx[j], T());
-                T dfdxm = std::max(-_dfdx[j], T());
-                p0[j] = pow(this->U[j] - _xk[j], 2.0)*(1.001*dfdxp + 0.001*dfdxm + this->raa0/(this->xmax[j] - this->xmin[j]));
-                q0[j] = pow(_xk[j] - this->L[j], 2.0)*(0.001*dfdxp + 1.001*dfdxm + this->raa0/(this->xmax[j] - this->xmin[j]));
-            }
-
-            for(int i = 0; i < this->m; i++){
-                b[i] = -_g[i];
-                for(int j = 0; j < this->n; j++){
-                    T dfdxp = std::max(_dgdx[i][j], T());
-                    T dfdxm = std::max(-_dgdx[i][j], T());
-                    p[i][j] = pow(this->U[j] - _xk[j], 2.0)*(1.001*dfdxp + 0.001*dfdxm + this->raa0/(this->xmax[j] - this->xmin[j]));
-                    q[i][j] = pow(_xk[j] - this->L[j], 2.0)*(0.001*dfdxp + 1.001*dfdxm + this->raa0/(this->xmax[j] - this->xmin[j]));
-                    b[i] += p[i][j]/(this->U[j] - _xk[j]) + q[i][j]/(_xk[j] - this->L[j]);
-                }
-            }
-        }
-        
+		for(int i = 0; i < this->m; i++){
+			b[i] = -_g[i];
+			for(int j = 0; j < this->n; j++){
+				T dfdxp = std::max(_dgdx[i][j], T());
+				T dfdxm = std::max(-_dgdx[i][j], T());
+				p[i][j] = pow(this->U[j] - _xk[j], 2.0)*(1.001*dfdxp + 0.001*dfdxm + this->raa0/(this->xmax[j] - this->xmin[j]));
+				q[i][j] = pow(_xk[j] - this->L[j], 2.0)*(0.001*dfdxp + 1.001*dfdxm + this->raa0/(this->xmax[j] - this->xmin[j]));
+				b[i] += p[i][j]/(this->U[j] - _xk[j]) + q[i][j]/(_xk[j] - this->L[j]);
+			}
+		}
+     
         //----------Inner loop----------
         T eps = 1.0;
         std::vector<T> x = std::vector<T>(this->n);
@@ -181,10 +186,13 @@ private:
             ita[j] = std::max(1.0, 1.0/(beta[j] - x[j]));
         }
         
+        std::chrono::system_clock::time_point start, end;
+        start = std::chrono::system_clock::now();
+
         for(int l = 0; eps > 1.0e-7; l++){
             //.....Get coefficients.....
             std::vector<T> plambda = std::vector<T>(this->n);
-            std::vector<T> qlambda = std::vector<T>(this->n);
+            std::vector<T> qlambda = std::vector<T>(this->n);          
             for(int j = 0; j < this->n; j++){
                 plambda[j] = p0[j];
                 qlambda[j] = q0[j];
@@ -192,11 +200,6 @@ private:
                     plambda[j] += lambda[i]*p[i][j];
                     qlambda[j] += lambda[i]*q[i][j];
                 }
-            }
-
-            std::vector<T> psi = std::vector<T>(this->n);
-            for(int j = 0; j < this->n; j++){
-                psi[j] = 2.0*plambda[j]/pow(this->U[j] - x[j], 3.0) + 2.0*qlambda[j]/pow(x[j] - this->L[j], 3.0);
             }
 
             std::vector<std::vector<T> > G = std::vector<std::vector<T> >(this->m, std::vector<T>(this->n));
@@ -207,51 +210,33 @@ private:
             }
 
             std::vector<T> Dx = std::vector<T>(this->n);
+			std::vector<T> deltilx = std::vector<T>(this->n);       
             for(int j = 0; j < this->n; j++){
-                Dx[j] = psi[j] + gsi[j]/(x[j] - alpha[j]) + ita[j]/(beta[j] - x[j]);
-            }
+                Dx[j] = 2.0*plambda[j]/pow(this->U[j] - x[j], 3.0) + 2.0*qlambda[j]/pow(x[j] - this->L[j], 3.0) + gsi[j]/(x[j] - alpha[j]) + ita[j]/(beta[j] - x[j]);
+				deltilx[j] = plambda[j]/pow(this->U[j] - x[j], 2.0) - qlambda[j]/pow(x[j] - this->L[j], 2.0) - eps/(x[j] - alpha[j]) + eps/(beta[j] - x[j]);
+			}
 
             std::vector<T> Dy = std::vector<T>(this->m);
+			std::vector<T> Dlambda = std::vector<T>(this->m);
+			std::vector<T> deltily = std::vector<T>(this->m);
             for(int i = 0; i < this->m; i++){
                 Dy[i] = d[i] + mu[i]/y[i];
+				Dlambda[i] = s[i]/lambda[i];
+				deltily[i] = c[i] + this->d[i]*y[i] - lambda[i] - eps/y[i];
             }
 
-            std::vector<T> Dlambda = std::vector<T>(this->m);
-            for(int i = 0; i < this->m; i++){
-                Dlambda[i] = s[i]/lambda[i];
-            }
-
-            std::vector<T> deltilx = std::vector<T>(this->n);
-            for(int j = 0; j < this->n; j++){
-                deltilx[j] = plambda[j]/pow(this->U[j] - x[j], 2.0) - qlambda[j]/pow(x[j] - this->L[j], 2.0) - eps/(x[j] - alpha[j]) + eps/(beta[j] - x[j]);
-            }
-
-            std::vector<T> deltily = std::vector<T>(this->m);
-            for(int i = 0; i < this->m; i++){
-                deltily[i] = c[i] + this->d[i]*y[i] - lambda[i] - eps/y[i];
-            }
-
-            T deltilz = this->a0 - eps/z;
-            for(int i = 0; i < this->m; i++){
-                deltilz -= lambda[i]*this->a[i];
-            }
-
+            T deltilz = this->a0 - eps/z - std::inner_product(lambda.begin(), lambda.end(), this->a.begin(), T());
+            
             std::vector<T> deltillambda = std::vector<T>(this->m);
+			std::vector<T> Dlambday = std::vector<T>(this->m);
+			std::vector<T> deltillambday = std::vector<T>(this->m);
             for(int i = 0; i < this->m; i++){
                 deltillambda[i] = -this->a[i]*z - y[i] - b[i] + eps/lambda[i];
                 for(int j = 0; j < this->n; j++){
                     deltillambda[i] += p[i][j]/(this->U[j] - x[j]) + q[i][j]/(x[j] - this->L[j]);
                 }
-            }
-
-            std::vector<T> Dlambday = std::vector<T>(this->m);
-            for(int i = 0; i < this->m; i++){
-                Dlambday[i] = Dlambda[i] + 1.0/Dy[i];
-            }
-
-            std::vector<T> deltillambday = std::vector<T>(this->m);
-            for(int i = 0; i < this->m; i++){
-                deltillambday[i] = deltillambda[i] + deltily[i]/Dy[i];
+				Dlambday[i] = Dlambda[i] + 1.0/Dy[i];
+				deltillambday[i] = deltillambda[i] + deltily[i]/Dy[i];
             }
 
             //.....Get Newton direction.....
@@ -273,9 +258,7 @@ private:
                             A[ii][jj] += G[ii][kk]*G[jj][kk]/Dx[kk];
                         }
                     }
-                }
-                for(int ii = 0; ii < this->m; ii++){
-                    A[ii][ii] += Dlambday[ii];
+					A[ii][ii] += Dlambday[ii];
                     A[ii][this->m] = this->a[ii];
                     A[this->m][ii] = this->a[ii];
                 }
@@ -300,16 +283,14 @@ private:
                     }
                 }
             } else {
-                std::vector<std::vector<T> > A = std::vector<std::vector<T> >(this->n + 1, std::vector<T>(this->n + 1, T()));
+                std::vector<std::vector<T> > A = std::vector<std::vector<T> >(this->n + 1, std::vector<T>(this->n + 1, T()));             
                 for(int ii = 0; ii < this->n; ii++){
                     for(int jj = 0; jj < this->n; jj++){
                         for(int kk = 0; kk < this->m; kk++){
                             A[ii][jj] += G[kk][ii]*G[kk][jj]/Dlambday[kk];
                         }
                     }
-                }
-                for(int ii = 0; ii < this->n; ii++){
-                    A[ii][ii] += Dx[ii];
+					A[ii][ii] += Dx[ii];
                     for(int jj = 0; jj < this->m; jj++){
                         A[ii][this->n] -= G[jj][ii]*this->a[jj]/Dlambday[jj];
                         A[this->n][ii] -= G[jj][ii]*this->a[jj]/Dlambday[jj];
@@ -343,25 +324,16 @@ private:
             
             for(int i = 0; i < this->m; i++){
                 dy[i] = dlambda[i]/Dy[i] - deltily[i]/Dy[i];
+				dmu[i] = -mu[i]*dy[i]/y[i] - mu[i] + eps/y[i];
+				ds[i] = -s[i]*dlambda[i]/lambda[i] - s[i] + eps/lambda[i];
             }
 
             for(int j = 0; j < this->n; j++){
                 dgsi[j] = -gsi[j]*dx[j]/(x[j] - alpha[j]) - gsi[j] + eps/(x[j] - alpha[j]);
-            }
-
-            for(int j = 0; j < this->n; j++){
-                dita[j] = ita[j]*dx[j]/(beta[j] - x[j]) - ita[j] + eps/(beta[j] - x[j]);
-            }
-
-            for(int i = 0; i < this->m; i++){
-                dmu[i] = -mu[i]*dy[i]/y[i] - mu[i] + eps/y[i];
-            }
+				dita[j] = ita[j]*dx[j]/(beta[j] - x[j]) - ita[j] + eps/(beta[j] - x[j]);
+			}
 
             dzeta = -zeta*dz/z - zeta + eps/z;
-
-            for(int i = 0; i < this->m; i++){
-                ds[i] = -s[i]*dlambda[i]/lambda[i] - s[i] + eps/lambda[i];
-            }
 
             //.....Get step size.....
             T tau = 1.0;
@@ -378,27 +350,18 @@ private:
             while(1){
                 for(int j = 0; j < this->n; j++){
                     xpdx[j] = x[j] + tau*dx[j];
+					gsipdgsi[j] = gsi[j] + tau*dgsi[j];
+					itapdita[j] = ita[j] + tau*dita[j];
                 }
                 for(int i = 0; i < this->m; i++){
                     ypdy[i] = y[i] + tau*dy[i];
+					lambdapdlambda[i] = lambda[i] + tau*dlambda[i];
+					mupdmu[i] = mu[i] + tau*dmu[i];
+					spds[i] = s[i] + tau*ds[i];
                 }
                 zpdz = z + tau*dz;
-                for(int i = 0; i < this->m; i++){
-                    lambdapdlambda[i] = lambda[i] + tau*dlambda[i];
-                }
-                for(int j = 0; j < this->n; j++){
-                    gsipdgsi[j] = gsi[j] + tau*dgsi[j];
-                }
-                for(int j = 0; j < this->n; j++){
-                    itapdita[j] = ita[j] + tau*dita[j];
-                }
-                for(int i = 0; i < this->m; i++){
-                    mupdmu[i] = mu[i] + tau*dmu[i];
-                }
                 zetapdzeta = zeta + tau*dzeta;
-                for(int i = 0; i < this->m; i++){
-                    spds[i] = s[i] + tau*ds[i];
-                }
+                
                 T deltawlp1 = this->KKTNorm(xpdx, ypdy, zpdz, lambdapdlambda, gsipdgsi, itapdita, mupdmu, zetapdzeta, spds, eps, p, q, p0, q0, alpha, beta, b);
                 if(deltawlp1 < deltawl){
                     break;
@@ -426,6 +389,9 @@ private:
             }
         }
 
+        end = std::chrono::system_clock::now();
+        std::cout << "\t" << static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0) << "\t";
+
         //----------Update outer loop counter k----------
         this->previousvalue = _f;
         this->k++;
@@ -436,80 +402,42 @@ private:
 
 
     template<class T>
-    T MMA<T>::KKTNorm(std::vector<T> _x, std::vector<T> _y, T _z, std::vector<T> _lambda, std::vector<T> _gsi, std::vector<T> _ita, std::vector<T> _mu, T _zeta, std::vector<T> _s, T _eps, std::vector<std::vector<T> > _p, std::vector<std::vector<T> > _q, std::vector<T> _p0, std::vector<T> _q0, std::vector<T> _alpha, std::vector<T> _beta, std::vector<T> _b){
+    T MMA<T>::KKTNorm(const std::vector<T>& _x, const std::vector<T>& _y, T _z, const std::vector<T>& _lambda, const std::vector<T>& _gsi, const std::vector<T>& _ita, const std::vector<T>& _mu, T _zeta, const std::vector<T>& _s,
+            T _eps, const std::vector<std::vector<T> >& _p, const std::vector<std::vector<T> >& _q, const std::vector<T>& _p0, const std::vector<T>&  _q0, const std::vector<T>& _alpha, const std::vector<T>& _beta, const std::vector<T>& _b){
         T norm = T();
 
         //----------Get parameters----------
         std::vector<T> plambda = std::vector<T>(this->n);
         std::vector<T> qlambda = std::vector<T>(this->n);
+        std::vector<T> g = std::vector<T>(this->m, T());
         for(int j = 0; j < this->n; j++){
             plambda[j] = _p0[j];
             qlambda[j] = _q0[j];
             for(int i = 0; i < this->m; i++){
                 plambda[j] += _lambda[i]*_p[i][j];
                 qlambda[j] += _lambda[i]*_q[i][j];
-            }
-        }
-
-        std::vector<T> g = std::vector<T>(this->m, T());
-        for(int i = 0; i < this->m; i++){
-            for(int j = 0; j < this->n; j++){
                 g[i] += _p[i][j]/(this->U[j] - _x[j]) + _q[i][j]/(_x[j] - this->L[j]);
             }
         }
 
-        //----------Equation(5.9a)----------
+        //----------Equation(5.9a)(5.9e)(5.9f)----------
         for(int j = 0; j < this->n; j++){
-            T tmp = plambda[j]/pow(this->U[j] - _x[j], 2.0) - qlambda[j]/pow(_x[j] - this->L[j], 2.0) - _gsi[j] + _ita[j];
-            norm += pow(tmp, 2.0);
+            norm += pow(plambda[j]/pow(this->U[j] - _x[j], 2.0) - qlambda[j]/pow(_x[j] - this->L[j], 2.0) - _gsi[j] + _ita[j], 2.0);    //  Equation(5.9a)
+            norm += pow(_gsi[j]*(_x[j] - _alpha[j]) - _eps, 2.0);   //  Equation(5.9e)
+            norm += pow(_ita[j]*(_beta[j] - _x[j]) - _eps, 2.0);    //  Equation(5.9f)
         }
 
-        //----------Equation(5.9b)----------
+        //----------Equation(5.9b)(5.9d)(5.9g)(5.9i)----------
         for(int i = 0; i < this->m; i++){
-            T tmp = this->c[i] + this->d[i]*_y[i] - _lambda[i] - _mu[i];
-            norm += pow(tmp, 2.0);
+            norm += pow(this->c[i] + this->d[i]*_y[i] - _lambda[i] - _mu[i], 2.0);      //  Equation(5.9b)
+            norm += pow(g[i] - this->a[i]*_z - _y[i] + _s[i] - _b[i], 2.0);             //  Equation(5.9d)
+            norm += pow(_mu[i]*_y[i] - _eps, 2.0);                                      //  Equation(5.9g)
+            norm += pow(_lambda[i]*_s[i] - _eps, 2.0);                                  //  Equation(5.9i)
         }
 
-        //----------Equation(5.9c)----------
-        T tmpc = this->a0 - _zeta;
-        for(int i = 0; i < this->m; i++){
-            tmpc -= _lambda[i]*this->a[i];
-        }
-        norm += pow(tmpc, 2.0);
-        
-        //----------Equation(5.9d)----------
-        for(int i = 0; i < this->m; i++){
-            T tmp = g[i] - this->a[i]*_z - _y[i] + _s[i] - _b[i];
-            norm += pow(tmp, 2.0);
-        }
-
-        //----------Equation(5.9e)----------
-        for(int j = 0; j < this->n; j++){
-            T tmp = _gsi[j]*(_x[j] - _alpha[j]) - _eps;
-            norm += pow(tmp, 2.0);
-        }
-
-        //----------Equation(5.9f)----------
-        for(int j = 0; j < this->n; j++){
-            T tmp = _ita[j]*(_beta[j] - _x[j]) - _eps;
-            norm += pow(tmp, 2.0);
-        }
-
-        //----------Equation(5.9g)----------
-        for(int i = 0; i < this->m; i++){
-            T tmp = _mu[i]*_y[i] - _eps;
-            norm += pow(tmp, 2.0);
-        }
-
-        //----------Equation(5.9h)----------
-        T tmph = _zeta*_z - _eps;
-        norm += pow(tmph, 2.0);
-
-        //----------Equation(5.9i)----------
-        for(int i = 0; i < this->m; i++){
-            T tmp = _lambda[i]*_s[i] - _eps;
-            norm += pow(tmp, 2.0);
-        }
+        //----------Equation(5.9c)(5.9h)----------
+        norm += pow(this->a0 - _zeta - std::inner_product(_lambda.begin(), _lambda.end(), this->a.begin(), T()), 2.0);      //  Equation(5.9c)
+        norm += pow(_zeta*_z - _eps, 2.0);                                                                                  //  Equation(5.9h)
 
         return sqrt(norm);
     }

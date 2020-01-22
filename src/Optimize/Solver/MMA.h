@@ -21,6 +21,7 @@ public:
         ~MMA();
 
 
+        void SetParameters(T _raa0, T _albefa, T _move, T _asyinit, T _asydecr, T _asyincr, T _epsvalue);
         bool IsConvergence(T _currentf0);
         void UpdateVariables(std::vector<T>& _xk, T _f, std::vector<T> _dfdx, std::vector<T> _g, std::vector<std::vector<T> > _dgdx);
         
@@ -31,6 +32,7 @@ private:
         const int n;            //  Number of design variables
         const int m;            //  Number of constraint  
         T previousvalue;        //  Previous function value
+        T epsvalue;             //  Convergence parameter of objective value
         std::vector<T> xmin;    //  Minimum value of design variable
         std::vector<T> xmax;    //  Maximum value of design variable
         std::vector<T> xkm2;    //  k-2 th value of design variable
@@ -63,6 +65,7 @@ private:
         //----------Initialize solver parameter----------
         this->k = 0;
         this->previousvalue = T();
+        this->epsvalue = 1.0e-5;
         this->xmin = _xmin;
         this->xmax = _xmax;
         this->xkm2 = std::vector<T>(this->n);
@@ -73,7 +76,7 @@ private:
         this->d = _d;
 
 
-        //----------Set MMA parameters----------
+        //----------Set default MMA parameters----------
         this->raa0 = 1.0e-5;
         this->albefa = 0.1;
         this->move = 0.5;
@@ -86,12 +89,24 @@ private:
 
 
     template<class T>
+    void MMA<T>::SetParameters(T _raa0, T _albefa, T _move, T _asyinit, T _asydecr, T _asyincr, T _epsvalue){
+        this->raa0 = _raa0;
+        this->albefa = _albefa;
+        this->move = _move;
+        this->asyinit = _asyinit;
+        this->asydecr = _asydecr;
+        this->asyincr = _asyincr;
+        this->epsvalue = _epsvalue;
+    }
+
+
+    template<class T>
     MMA<T>::~MMA<T>(){}
 
 
     template<class T>
     bool MMA<T>::IsConvergence(T _currentf0){
-        if(fabs(_currentf0 - this->previousvalue) / (_currentf0 + this->previousvalue) < 1.0e-5){
+        if(fabs(_currentf0 - this->previousvalue) / (_currentf0 + this->previousvalue) < this->epsvalue){
             return true;
         } 
         return false;
@@ -103,22 +118,26 @@ private:
 		//----------Get asymptotes parameter L and U----------
 		if(this->k < 2){
 			for(int j = 0; j < this->n; j++){
-				this->L[j] = std::min(std::max(_xk[j] - 10.0*(this->xmax[j] - this->xmin[j]), _xk[j] - this->asyinit*(this->xmax[j] - this->xmin[j])), _xk[j] - 0.01*(this->xmax[j] - this->xmin[j]));
-				this->U[j] = std::min(std::max(_xk[j] + 0.01*(this->xmax[j] - this->xmin[j]), _xk[j] + this->asyinit*(this->xmax[j] - this->xmin[j])), _xk[j] + 10.0*(this->xmax[j] - this->xmin[j]));
-			}
+				this->L[j] = _xk[j] - this->asyinit*(this->xmax[j] - this->xmin[j]);
+				this->U[j] = _xk[j] + this->asyinit*(this->xmax[j] - this->xmin[j]);
+                this->L[j] = std::min(std::max(_xk[j] - 10.0*(this->xmax[j] - this->xmin[j]), this->L[j]), _xk[j] - 0.01*(this->xmax[j] - this->xmin[j]));
+				this->U[j] = std::min(std::max(_xk[j] + 0.01*(this->xmax[j] - this->xmin[j]), this->U[j]), _xk[j] + 10.0*(this->xmax[j] - this->xmin[j]));
+            }
 		} else {
 			for(int j = 0; j < this->n; j++){
 				T tmp = (_xk[j] - this->xkm1[j])*(this->xkm1[j] - this->xkm2[j]);
 				if(tmp < T()){
-					this->L[j] = std::min(std::max(_xk[j] - 10.0*(this->xmax[j] - this->xmin[j]), _xk[j] - this->asydecr*(this->xkm1[j] - this->L[j])), _xk[j] - 0.01*(this->xmax[j] - this->xmin[j]));
-					this->U[j] = std::min(std::max(_xk[j] + 0.01*(this->xmax[j] - this->xmin[j]), _xk[j] + this->asydecr*(this->U[j] - this->xkm1[j])), _xk[j] + 10.0*(this->xmax[j] - this->xmin[j]));
+					this->L[j] = _xk[j] - this->asydecr*(this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + this->asydecr*(this->U[j] - this->xkm1[j]);
 				} else if(tmp > T()){
-					this->L[j] = std::min(std::max(_xk[j] - 10.0*(this->xmax[j] - this->xmin[j]), _xk[j] - this->asyincr*(this->xkm1[j] - this->L[j])), _xk[j] - 0.01*(this->xmax[j] - this->xmin[j]));
-					this->U[j] = std::min(std::max(_xk[j] + 0.01*(this->xmax[j] - this->xmin[j]), _xk[j] + this->asyincr*(this->U[j] - this->xkm1[j])), _xk[j] + 10.0*(this->xmax[j] - this->xmin[j]));
+					this->L[j] = _xk[j] - this->asyincr*(this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + this->asyincr*(this->U[j] - this->xkm1[j]);
 				} else{
-					this->L[j] = std::min(std::max(_xk[j] - 10.0*(this->xmax[j] - this->xmin[j]), _xk[j] - (this->xkm1[j] - this->L[j])), _xk[j] - 0.01*(this->xmax[j] - this->xmin[j]));
-					this->U[j] = std::min(std::max(_xk[j] + 0.01*(this->xmax[j] - this->xmin[j]), _xk[j] + (this->U[j] - this->xkm1[j])), _xk[j] + 10.0*(this->xmax[j] - this->xmin[j]));
+					this->L[j] = _xk[j] - (this->xkm1[j] - this->L[j]);
+					this->U[j] = _xk[j] + (this->U[j] - this->xkm1[j]);
 				}
+                this->L[j] = std::min(std::max(_xk[j] - 10.0*(this->xmax[j] - this->xmin[j]), this->L[j]), _xk[j] - 0.01*(this->xmax[j] - this->xmin[j]));
+				this->U[j] = std::min(std::max(_xk[j] + 0.01*(this->xmax[j] - this->xmin[j]), this->U[j]), _xk[j] + 10.0*(this->xmax[j] - this->xmin[j]));
 			}
 		}
 
@@ -176,11 +195,11 @@ private:
             gsi[j] = std::max(1.0, 1.0/(x[j] - alpha[j]));
             ita[j] = std::max(1.0, 1.0/(beta[j] - x[j]));
         }
-        
+     
         for(int l = 0; eps > 1.0e-7; l++){
             //.....Get coefficients.....
             std::vector<T> plambda = std::vector<T>(this->n);
-            std::vector<T> qlambda = std::vector<T>(this->n);
+            std::vector<T> qlambda = std::vector<T>(this->n);          
             for(int j = 0; j < this->n; j++){
                 plambda[j] = p0[j];
                 qlambda[j] = q0[j];
@@ -198,33 +217,33 @@ private:
             }
 
             std::vector<T> Dx = std::vector<T>(this->n);
-			std::vector<T> deltilx = std::vector<T>(this->n);
+            std::vector<T> deltilx = std::vector<T>(this->n);       
             for(int j = 0; j < this->n; j++){
                 Dx[j] = 2.0*plambda[j]/pow(this->U[j] - x[j], 3.0) + 2.0*qlambda[j]/pow(x[j] - this->L[j], 3.0) + gsi[j]/(x[j] - alpha[j]) + ita[j]/(beta[j] - x[j]);
-				deltilx[j] = plambda[j]/pow(this->U[j] - x[j], 2.0) - qlambda[j]/pow(x[j] - this->L[j], 2.0) - eps/(x[j] - alpha[j]) + eps/(beta[j] - x[j]);
-			}
+                deltilx[j] = plambda[j]/pow(this->U[j] - x[j], 2.0) - qlambda[j]/pow(x[j] - this->L[j], 2.0) - eps/(x[j] - alpha[j]) + eps/(beta[j] - x[j]);
+            }
 
             std::vector<T> Dy = std::vector<T>(this->m);
-			std::vector<T> Dlambda = std::vector<T>(this->m);
-			std::vector<T> deltily = std::vector<T>(this->m);
+            std::vector<T> Dlambda = std::vector<T>(this->m);
+            std::vector<T> deltily = std::vector<T>(this->m);
             for(int i = 0; i < this->m; i++){
                 Dy[i] = d[i] + mu[i]/y[i];
-				Dlambda[i] = s[i]/lambda[i];
-				deltily[i] = c[i] + this->d[i]*y[i] - lambda[i] - eps/y[i];
+                Dlambda[i] = s[i]/lambda[i];
+                deltily[i] = c[i] + this->d[i]*y[i] - lambda[i] - eps/y[i];
             }
 
             T deltilz = this->a0 - eps/z - std::inner_product(lambda.begin(), lambda.end(), this->a.begin(), T());
             
             std::vector<T> deltillambda = std::vector<T>(this->m);
-			std::vector<T> Dlambday = std::vector<T>(this->m);
-			std::vector<T> deltillambday = std::vector<T>(this->m);
+            std::vector<T> Dlambday = std::vector<T>(this->m);
+            std::vector<T> deltillambday = std::vector<T>(this->m);
             for(int i = 0; i < this->m; i++){
                 deltillambda[i] = -this->a[i]*z - y[i] - b[i] + eps/lambda[i];
                 for(int j = 0; j < this->n; j++){
                     deltillambda[i] += p[i][j]/(this->U[j] - x[j]) + q[i][j]/(x[j] - this->L[j]);
                 }
-				Dlambday[i] = Dlambda[i] + 1.0/Dy[i];
-				deltillambday[i] = deltillambda[i] + deltily[i]/Dy[i];
+                Dlambday[i] = Dlambda[i] + 1.0/Dy[i];
+                deltillambday[i] = deltillambda[i] + deltily[i]/Dy[i];
             }
 
             //.....Get Newton direction.....
@@ -246,7 +265,7 @@ private:
                             A[ii][jj] += G[ii][kk]*G[jj][kk]/Dx[kk];
                         }
                     }
-					A[ii][ii] += Dlambday[ii];
+                    A[ii][ii] += Dlambday[ii];
                     A[ii][this->m] = this->a[ii];
                     A[this->m][ii] = this->a[ii];
                 }
@@ -271,14 +290,14 @@ private:
                     }
                 }
             } else {
-                std::vector<std::vector<T> > A = std::vector<std::vector<T> >(this->n + 1, std::vector<T>(this->n + 1, T()));
+                std::vector<std::vector<T> > A = std::vector<std::vector<T> >(this->n + 1, std::vector<T>(this->n + 1, T()));             
                 for(int ii = 0; ii < this->n; ii++){
                     for(int jj = 0; jj < this->n; jj++){
                         for(int kk = 0; kk < this->m; kk++){
                             A[ii][jj] += G[kk][ii]*G[kk][jj]/Dlambday[kk];
                         }
                     }
-					A[ii][ii] += Dx[ii];
+                    A[ii][ii] += Dx[ii];
                     for(int jj = 0; jj < this->m; jj++){
                         A[ii][this->n] -= G[jj][ii]*this->a[jj]/Dlambday[jj];
                         A[this->n][ii] -= G[jj][ii]*this->a[jj]/Dlambday[jj];
@@ -312,19 +331,33 @@ private:
             
             for(int i = 0; i < this->m; i++){
                 dy[i] = dlambda[i]/Dy[i] - deltily[i]/Dy[i];
-				dmu[i] = -mu[i]*dy[i]/y[i] - mu[i] + eps/y[i];
-				ds[i] = -s[i]*dlambda[i]/lambda[i] - s[i] + eps/lambda[i];
+                dmu[i] = -mu[i]*dy[i]/y[i] - mu[i] + eps/y[i];
+                ds[i] = -s[i]*dlambda[i]/lambda[i] - s[i] + eps/lambda[i];
             }
 
             for(int j = 0; j < this->n; j++){
                 dgsi[j] = -gsi[j]*dx[j]/(x[j] - alpha[j]) - gsi[j] + eps/(x[j] - alpha[j]);
-				dita[j] = ita[j]*dx[j]/(beta[j] - x[j]) - ita[j] + eps/(beta[j] - x[j]);
-			}
+                dita[j] = ita[j]*dx[j]/(beta[j] - x[j]) - ita[j] + eps/(beta[j] - x[j]);
+            }
 
             dzeta = -zeta*dz/z - zeta + eps/z;
 
             //.....Get step size.....
-            T tau = 1.0;
+            T txmax = T();
+            for(int j = 0; j < this->n; j++){
+                T txmaxj = std::max({-1.01*dx[j]/(x[j] - alpha[j]), 1.01*dx[j]/(beta[j] - x[j]), -1.01*dgsi[j]/gsi[j], -1.01*dita[j]/ita[j]});
+                if(txmax < txmaxj){
+                    txmax = txmaxj;
+                }
+            }
+            T tymax = T();
+            for(int i = 0; i < this->m; i++){
+                T tymaxi = std::max({-1.01*dy[i]/y[i], -1.01*dlambda[i]/lambda[i], -1.01*dmu[i]/mu[i], -1.01*ds[i]/s[i]});
+                if(tymax < tymaxi){
+                    tymax = tymaxi;
+                }
+            }
+            T tau = 1.0/std::max({1.0, txmax, tymax, -1.01*dz/z, -1.01*dzeta/zeta});
             T deltawl = this->KKTNorm(x, y, z, lambda, gsi, ita, mu, zeta, s, eps, p, q, p0, q0, alpha, beta, b);
             std::vector<T> xpdx = std::vector<T>(this->n);
             std::vector<T> ypdy = std::vector<T>(this->m);
@@ -335,17 +368,17 @@ private:
             std::vector<T> mupdmu = std::vector<T>(this->m);
             T zetapdzeta;
             std::vector<T> spds = std::vector<T>(this->m);
-            while(1){
+            for(int ll = 0; ll < 50; ll++){
                 for(int j = 0; j < this->n; j++){
                     xpdx[j] = x[j] + tau*dx[j];
-					gsipdgsi[j] = gsi[j] + tau*dgsi[j];
-					itapdita[j] = ita[j] + tau*dita[j];
+                    gsipdgsi[j] = gsi[j] + tau*dgsi[j];
+                    itapdita[j] = ita[j] + tau*dita[j];
                 }
                 for(int i = 0; i < this->m; i++){
                     ypdy[i] = y[i] + tau*dy[i];
-					lambdapdlambda[i] = lambda[i] + tau*dlambda[i];
-					mupdmu[i] = mu[i] + tau*dmu[i];
-					spds[i] = s[i] + tau*ds[i];
+                    lambdapdlambda[i] = lambda[i] + tau*dlambda[i];
+                    mupdmu[i] = mu[i] + tau*dmu[i];
+                    spds[i] = s[i] + tau*ds[i];
                 }
                 zpdz = z + tau*dz;
                 zetapdzeta = zeta + tau*dzeta;
@@ -376,7 +409,7 @@ private:
                 eps *= 1.0;
             }
         }
-
+        
         //----------Update outer loop counter k----------
         this->previousvalue = _f;
         this->k++;
@@ -394,62 +427,35 @@ private:
         //----------Get parameters----------
         std::vector<T> plambda = std::vector<T>(this->n);
         std::vector<T> qlambda = std::vector<T>(this->n);
+        std::vector<T> g = std::vector<T>(this->m, T());
         for(int j = 0; j < this->n; j++){
             plambda[j] = _p0[j];
             qlambda[j] = _q0[j];
             for(int i = 0; i < this->m; i++){
                 plambda[j] += _lambda[i]*_p[i][j];
                 qlambda[j] += _lambda[i]*_q[i][j];
-            }
-        }
-
-        std::vector<T> g = std::vector<T>(this->m, T());
-        for(int i = 0; i < this->m; i++){
-            for(int j = 0; j < this->n; j++){
                 g[i] += _p[i][j]/(this->U[j] - _x[j]) + _q[i][j]/(_x[j] - this->L[j]);
             }
         }
 
-        //----------Equation(5.9a)----------
+        //----------Equation(5.9a)(5.9e)(5.9f)----------
         for(int j = 0; j < this->n; j++){
-            norm += pow(plambda[j]/pow(this->U[j] - _x[j], 2.0) - qlambda[j]/pow(_x[j] - this->L[j], 2.0) - _gsi[j] + _ita[j], 2.0);
+            norm += pow(plambda[j]/pow(this->U[j] - _x[j], 2.0) - qlambda[j]/pow(_x[j] - this->L[j], 2.0) - _gsi[j] + _ita[j], 2.0);    //  Equation(5.9a)
+            norm += pow(_gsi[j]*(_x[j] - _alpha[j]) - _eps, 2.0);   //  Equation(5.9e)
+            norm += pow(_ita[j]*(_beta[j] - _x[j]) - _eps, 2.0);    //  Equation(5.9f)
         }
 
-        //----------Equation(5.9b)----------
+        //----------Equation(5.9b)(5.9d)(5.9g)(5.9i)----------
         for(int i = 0; i < this->m; i++){
-            norm += pow(this->c[i] + this->d[i]*_y[i] - _lambda[i] - _mu[i], 2.0);
+            norm += pow(this->c[i] + this->d[i]*_y[i] - _lambda[i] - _mu[i], 2.0);      //  Equation(5.9b)
+            norm += pow(g[i] - this->a[i]*_z - _y[i] + _s[i] - _b[i], 2.0);             //  Equation(5.9d)
+            norm += pow(_mu[i]*_y[i] - _eps, 2.0);                                      //  Equation(5.9g)
+            norm += pow(_lambda[i]*_s[i] - _eps, 2.0);                                  //  Equation(5.9i)
         }
 
-        //----------Equation(5.9c)----------
-        norm += pow(this->a0 - _zeta - std::inner_product(_lambda.begin(), _lambda.end(), this->a.begin(), T()), 2.0);
-        
-        //----------Equation(5.9d)----------
-        for(int i = 0; i < this->m; i++){
-            norm += pow(g[i] - this->a[i]*_z - _y[i] + _s[i] - _b[i], 2.0);
-        }
-
-        //----------Equation(5.9e)----------
-        for(int j = 0; j < this->n; j++){
-            norm += pow(_gsi[j]*(_x[j] - _alpha[j]) - _eps, 2.0);
-        }
-
-        //----------Equation(5.9f)----------
-        for(int j = 0; j < this->n; j++){
-            norm += pow(_ita[j]*(_beta[j] - _x[j]) - _eps, 2.0);
-        }
-
-        //----------Equation(5.9g)----------
-        for(int i = 0; i < this->m; i++){
-            norm += pow(_mu[i]*_y[i] - _eps, 2.0);
-        }
-
-        //----------Equation(5.9h)----------
-        norm += pow(_zeta*_z - _eps, 2.0);
-
-        //----------Equation(5.9i)----------
-        for(int i = 0; i < this->m; i++){
-            norm += pow(_lambda[i]*_s[i] - _eps, 2.0);
-        }
+        //----------Equation(5.9c)(5.9h)----------
+        norm += pow(this->a0 - _zeta - std::inner_product(_lambda.begin(), _lambda.end(), this->a.begin(), T()), 2.0);      //  Equation(5.9c)
+        norm += pow(_zeta*_z - _eps, 2.0);                                                                                  //  Equation(5.9h)
 
         return sqrt(norm);
     }

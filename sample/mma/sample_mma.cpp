@@ -14,7 +14,7 @@
 #include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/IntegrationConstant.h"
-#include "../../src/Optimize/Solver/MMA2.h"
+#include "../../src/Optimize/Solver/MMA.h"
 
 
 using namespace PANSFEM2;
@@ -59,17 +59,16 @@ int main() {
 	double p = 3.0;
 
 	double weightlimit = 0.5;
-	double objectivebefore = 0.0;
-	double objectiveeps = 1.0e-5;
 
     MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
 		std::vector<double>(1, 0.0),
 		std::vector<double>(1, 1000.0),
-		std::vector<double>(1, 0.0), 
+		std::vector<double>(1, 1.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
+	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
 		
 	//----------Optimize loop----------
-	for(int k = 0; k < 100; k++){
+	for(int k = 0; k < 1000; k++){
 		std::cout << "\nk = " << k << "\t";
 
         
@@ -79,9 +78,10 @@ int main() {
         std::vector<double> constraints = std::vector<double>(1);																//Function values of weight
 		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size()));	//Sensitivities of weight
         for (int i = 0; i < elements.size(); i++) {						
-			constraints[0] += s[i] - weightlimit;
-			dconstraints[0][i] = 1.0;
+			constraints[0] += s[i]/(weightlimit*elements.size());
+			dconstraints[0][i] = 1.0/(weightlimit*elements.size());
 		}
+		constraints[0] -= 1.0;
         
         //*************************************************
         //  Get compliance value and sensitivities

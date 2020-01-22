@@ -3,7 +3,7 @@
 #include <cmath>
 
 
-#include "MMA2.h"
+#include "MMA.h"
 
 
 using namespace PANSFEM2;

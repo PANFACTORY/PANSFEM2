@@ -24,6 +24,7 @@ int main() {
 		std::vector<double>(5, 1.0), 
 		std::vector<double>(5, 10.0)
 	);
+	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
 	
 	//----------Optimize loop----------
 	for(int k = 0; k < 10; k++){

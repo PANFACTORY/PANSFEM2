@@ -16,7 +16,13 @@ int main() {
 
 	//----------Initialize optimization solver----------
 	std::vector<double> s = { 1.5, 0.5 };
-	MMA<double> optimizer = MMA<double>(2, 2, 1.0, {0.0, 0.0}, {1000.0, 1000.0}, {1.0, 1.0}, { 0.2, 0.1 }, { 4.0, 1.6 });
+	MMA<double> optimizer = MMA<double>(2, 2, 1.0, 
+		{0.0, 0.0}, 
+		{1000.0, 1000.0}, 
+		{1.0, 1.0}, 
+		{ 0.2, 0.1 }, 
+		{ 4.0, 1.6 });
+	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
 	
 	//----------Optimize loop----------
 	for(int k = 0; k < 100; k++){

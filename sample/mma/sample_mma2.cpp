@@ -14,7 +14,7 @@
 #include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/IntegrationConstant.h"
-#include "../../src/Optimize/Solver/MMA2.h"
+#include "../../src/Optimize/Solver/MMA.h"
 
 
 using namespace PANSFEM2;
@@ -64,16 +64,14 @@ int main() {
 	double p = 3.0;
     double q = 3.0;
 
-	double weightlimit = 0.3;
-	double weightlimit2 = 0.5;
-	double objectivebefore = 0.0;
-	double objectiveeps = 1.0e-5;
-
-    MMA<double> optimizer = MMA<double>(s.size(), 2, 1.0,
-		std::vector<double>(2, 0.0),
-		std::vector<double>(2, 1000.0),
-		std::vector<double>(2, 1.0), 
+	double weightlimit = 0.5;
+	
+    MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
+		std::vector<double>(1, 0.0),
+		std::vector<double>(1, 1000.0),
+		std::vector<double>(1, 1.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
+	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
 		
 	//----------Optimize loop----------
 	for(int k = 0; k < 100; k++){
@@ -83,17 +81,14 @@ int main() {
         //*************************************************
 		//  Get weight value and sensitivities
 		//*************************************************
-        std::vector<double> constraints = std::vector<double>(2);																//Function values of weight
-		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(2, std::vector<double>(s.size()));	//Sensitivities of weight
+        std::vector<double> constraints = std::vector<double>(1);																//Function values of weight
+		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size()));	//Sensitivities of weight
         for (int i = 0; i < elements.size(); i++) {						
-			constraints[0] += rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i] - weightlimit;
-            dconstraints[0][2*i] = - rho0 + rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1];
-			dconstraints[0][2*i + 1] = (- rho1 + rho2)*s[2*i];
-
-			constraints[1] += -s[2*i] + weightlimit2;
-            dconstraints[1][2*i] = -1.0;
-			dconstraints[1][2*i + 1] = 0.0;
+			constraints[0] += (rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i])/(weightlimit*elements.size());
+            dconstraints[0][2*i] = (- rho0 + rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])/(weightlimit*elements.size());
+			dconstraints[0][2*i + 1] = (- rho1 + rho2)*s[2*i]/(weightlimit*elements.size());
 		}
+		constraints[0] -= 1.0;
 
         
         //*************************************************

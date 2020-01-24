@@ -59,16 +59,18 @@ int main() {
 	double p = 3.0;
 
 	double weightlimit = 0.5;
+	double scale0 = 1.0e5;
+	double scale1 = 1.0;
 
     MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
 		std::vector<double>(1, 0.0),
-		std::vector<double>(1, 1000.0),
-		std::vector<double>(1, 1.0), 
+		std::vector<double>(1, 10000.0),
+		std::vector<double>(1, 0.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
 	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
 		
 	//----------Optimize loop----------
-	for(int k = 0; k < 1000; k++){
+	for(int k = 0; k < 400; k++){
 		std::cout << "\nk = " << k << "\t";
 
         
@@ -78,10 +80,10 @@ int main() {
         std::vector<double> constraints = std::vector<double>(1);																//Function values of weight
 		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size()));	//Sensitivities of weight
         for (int i = 0; i < elements.size(); i++) {						
-			constraints[0] += s[i]/(weightlimit*elements.size());
-			dconstraints[0][i] = 1.0/(weightlimit*elements.size());
+			constraints[0] += scale1*s[i]/(weightlimit*elements.size());
+			dconstraints[0][i] = scale1*1.0/(weightlimit*elements.size());
 		}
-		constraints[0] -= 1.0;
+		constraints[0] -= 1.0*scale1;
         
         //*************************************************
         //  Get compliance value and sensitivities
@@ -105,7 +107,7 @@ int main() {
         //----------Get function value and sensitivities----------
         std::vector<double> d = ScalingCG(Kmod, F, 100000, 1.0e-10);
         
-        objective = std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
+        objective = scale0*std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
         
         std::vector<Vector<double> > dv = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(d, dv, field);
@@ -119,7 +121,7 @@ int main() {
                 de = de.Vstack(dv[elements[i][j]]);
             }
 
-            dobjectives[i] = -p*(- E0 + E1)*pow(s[i], p - 1.0)*(de*(Ke*de));
+            dobjectives[i] = -scale0*p*(- E0 + E1)*pow(s[i], p - 1.0)*(de*(Ke*de));
         }
 
         
@@ -141,7 +143,7 @@ int main() {
         //*************************************************
 
 		//----------Check convergence----------
-        std::cout << "Objective:\t" << objective << "\tWeight:\t" << constraints[0] << "\t";
+        std::cout << "Objective:\t" << objective/scale0 << "\tWeight:\t" << constraints[0]/scale1 << "\t";
 		/*if(optimizer.IsConvergence(objective)){
 			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
 			break;

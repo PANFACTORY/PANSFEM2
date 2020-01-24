@@ -50,8 +50,12 @@ int main() {
 	SetNeumann(F, isqfixed, qfixed);
 
 	//----------Initialize design variables----------
-	std::vector<double> s = std::vector<double>(elements.size()*2, 0.5);
-
+	std::vector<double> s = std::vector<double>(elements.size()*2);
+	for(int i = 0; i < elements.size(); i++){
+		s[2*i] = 0.5;
+		s[2*i + 1] = 0.5;
+	}
+	
 	//----------Define design parameters----------
 	double E0 = 0.001;
 	double E1 = 823.0;
@@ -65,13 +69,15 @@ int main() {
     double q = 3.0;
 
 	double weightlimit = 0.5;
+	double scale0 = 1.0e2;
+	double scale1 = 1.0;
 	
     MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
 		std::vector<double>(1, 0.0),
-		std::vector<double>(1, 1000.0),
-		std::vector<double>(1, 1.0), 
+		std::vector<double>(1, 10000.0),
+		std::vector<double>(1, 0.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
+	optimizer.SetParameters(1.0e-5, 0.1, 0.05, 0.5, 0.7, 1.2, 1.0e-5);
 		
 	//----------Optimize loop----------
 	for(int k = 0; k < 100; k++){
@@ -84,11 +90,11 @@ int main() {
         std::vector<double> constraints = std::vector<double>(1);																//Function values of weight
 		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size()));	//Sensitivities of weight
         for (int i = 0; i < elements.size(); i++) {						
-			constraints[0] += (rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i])/(weightlimit*elements.size());
-            dconstraints[0][2*i] = (- rho0 + rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])/(weightlimit*elements.size());
-			dconstraints[0][2*i + 1] = (- rho1 + rho2)*s[2*i]/(weightlimit*elements.size());
+			constraints[0] += scale1*(rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i])/(weightlimit*elements.size());
+            dconstraints[0][2*i] = scale1*(- rho0 + rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])/(weightlimit*elements.size());
+			dconstraints[0][2*i + 1] = scale1*(- rho1 + rho2)*s[2*i]/(weightlimit*elements.size());
 		}
-		constraints[0] -= 1.0;
+		constraints[0] -= 1.0*scale1;
 
         
         //*************************************************
@@ -113,7 +119,7 @@ int main() {
         //----------Get function value and sensitivities----------
         std::vector<double> d = ScalingCG(Kmod, F, 100000, 1.0e-10);
         
-        objective = std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
+        objective = scale0*std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
         
         std::vector<Vector<double> > dv = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(d, dv, field);
@@ -127,8 +133,8 @@ int main() {
                 de = de.Vstack(dv[elements[i][j]]);
             }
 
-			dobjectives[2*i] = -p*(-E0 + (E1*(1.0 - pow(s[2*i + 1], q)) + E2*pow(s[2*i + 1], q)))*pow(s[2*i], p - 1.0)*(de*(Ke*de));
-            dobjectives[2*i + 1] = -q*(-E1 + E2)*pow(s[2*i + 1], q - 1.0)*pow(s[2*i], p)*(de*(Ke*de));
+			dobjectives[2*i] = -scale0*p*(-E0 + (E1*(1.0 - pow(s[2*i + 1], q)) + E2*pow(s[2*i + 1], q)))*pow(s[2*i], p - 1.0)*(de*(Ke*de));
+            dobjectives[2*i + 1] = -scale0*q*(-E1 + E2)*pow(s[2*i + 1], q - 1.0)*pow(s[2*i], p)*(de*(Ke*de));
         }
 
         
@@ -144,14 +150,30 @@ int main() {
 		std::vector<double> s0 = std::vector<double>(elements.size());
         std::vector<double> s1 = std::vector<double>(elements.size());
         std::vector<double> rho = std::vector<double>(elements.size());
+
+		std::vector<double> sensc0 = std::vector<double>(elements.size());
+		std::vector<double> sensc1 = std::vector<double>(elements.size());
+		std::vector<double> sensv0 = std::vector<double>(elements.size());
+		std::vector<double> sensv1 = std::vector<double>(elements.size());
+
         for(int i = 0; i < elements.size(); i++){
             s0[i] = s[2*i];
             s1[i] = s[2*i + 1];
             rho[i] = rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i];
+
+			sensc0[i] = dobjectives[2*i];
+			sensc1[i] = dobjectives[2*i + 1];
+			sensv0[i] = dconstraints[0][2*i];
+			sensv1[i] = dconstraints[0][2*i + 1];
         }
 		AddElementScalers(s0, "s0", fout, true);
         AddElementScalers(s1, "s1", fout, false);
         AddElementScalers(rho, "rho", fout, false);
+
+		AddElementScalers(sensc0, "sensc0", fout, false);
+		AddElementScalers(sensc1, "sensc1", fout, false);
+		AddElementScalers(sensv0, "sensv0", fout, false);
+		AddElementScalers(sensv1, "sensv1", fout, false);
 		fout.close();
        
 
@@ -160,10 +182,10 @@ int main() {
         //*************************************************
 
 		//----------Check convergence----------
-        std::cout << "Objective:\t" << objective << "\tWeight:\t" << constraints[0] << "\t";
+        std::cout << "Objective:\t" << objective/scale0 << "\tWeight:\t" << constraints[0]/scale1 << "\t";
 		if(optimizer.IsConvergence(objective)){
-			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
-			break;
+			//std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
+			//break;
 		}
 		
 		//----------Get updated design variables with OC method----------

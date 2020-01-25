@@ -21,7 +21,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/optimize2D/";
+	std::string model_path = "sample/mma/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;
@@ -69,7 +69,7 @@ int main() {
 	double lambdaeps = 1.0e-15;
 	double movelimit = 0.15;
 
-	double weightlimit = 0.05;
+	double weightlimit = 0.5;
 	double objectivebefore = 0.0;
 	double objectiveeps = 1.0e-5;
 	

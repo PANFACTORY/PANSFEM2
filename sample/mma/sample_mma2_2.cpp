@@ -54,43 +54,49 @@ int main() {
 
 	//----------Define design parameters----------
 	double E0 = 0.001;
-	double E1 = 374.0;//823.0;
+	double E1 = 374.0;
     double E2 = 210000.0;
 	double Poisson = 0.3;
     double rho0 = 0.0;
-    double rho1 = 0.119;//0.0323;
+    double rho1 = 0.119;
     double rho2 = 1.0;
 
 	double p = 3.0;
     double q = 3.0;
 
 	double weightlimit = 0.3;
+    double voidlimit = 0.2;
 	double scale0 = 1.0e5;
 	double scale1 = 1.0;
 
-	MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
-		std::vector<double>(1, 0.0),
-		std::vector<double>(1, 10000.0),
-		std::vector<double>(1, 0.0), 
+	MMA<double> optimizer = MMA<double>(s.size(), 2, 1.0,
+		std::vector<double>(2, 0.0),
+		std::vector<double>(2, 10000.0),
+		std::vector<double>(2, 0.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
 	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
 		
 	//----------Optimize loop----------
-	for(int k = 0; k < 200; k++){
+	for(int k = 0; k < 100; k++){
 		std::cout << "\nk = " << k << "\t";
 
         
         //*************************************************
 		//  Get weight value and sensitivities
 		//*************************************************
-        std::vector<double> constraints = std::vector<double>(1);	//Function values of weight
-		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size()));	//Sensitivities of weight
+        std::vector<double> constraints = std::vector<double>(2);	//Function values of weight
+		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(2, std::vector<double>(s.size()));	//Sensitivities of weight
         for (int i = 0; i < elements.size(); i++) {						
 			constraints[0] += (rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i])/(weightlimit*elements.size());
 			dconstraints[0][2*i] = (- rho0 + rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])/(weightlimit*elements.size());
             dconstraints[0][2*i + 1] = (- rho1 + rho2)*s[2*i]/(weightlimit*elements.size());
+
+            constraints[1] += (1.0 - s[2*i])/(voidlimit*elements.size());
+            dconstraints[1][2*i] = -1.0/(voidlimit*elements.size());
+            dconstraints[1][2*i + 1] = 0.0;
 		}
 		constraints[0] -= 1.0;
+        constraints[1] -= 1.0;
         
         //*************************************************
         //  Get compliance value and sensitivities
@@ -177,11 +183,11 @@ int main() {
         //*************************************************
 
         //----------Check convergence----------
-        std::cout << "Objective:\t" << objective/scale0 << "\tWeight:\t" << constraints[0]/scale1 << "\t";
-		/*if(optimizer.IsConvergence(objective)){
+        std::cout << "Objective:\t" << objective/scale0 << "\tWeight:\t" << constraints[0]/scale1 << "\t" << constraints[1]/scale1 << "\t";
+		if(optimizer.IsConvergence(objective)){
 			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
 			break;
-		}*/
+		}
 		
 		//----------Get updated design variables with OC method----------
 		optimizer.UpdateVariables(s, objective, dobjectives, constraints, dconstraints);	

@@ -58,7 +58,7 @@ int main() {
 	double Poisson = 0.3;
 	double p = 3.0;
 
-	double weightlimit = 0.5;
+	double weightlimit = 0.3;
 	double scale0 = 1.0e5;
 	double scale1 = 1.0;
 
@@ -70,7 +70,7 @@ int main() {
 	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
 		
 	//----------Optimize loop----------
-	for(int k = 0; k < 400; k++){
+	for(int k = 0; k < 50; k++){
 		std::cout << "\nk = " << k << "\t";
 
         

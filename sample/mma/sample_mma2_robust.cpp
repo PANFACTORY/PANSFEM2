@@ -66,11 +66,11 @@ int main() {
 
 	//----------Define design parameters----------
 	double E0 = 0.001;
-	double E1 = 374.0;//823.0;
+	double E1 = 23.3;
     double E2 = 210000.0;
 	double Poisson = 0.3;
     double rho0 = 0.0;
-    double rho1 = 0.119;//0.0323;
+    double rho1 = 0.0323;
     double rho2 = 1.0;
 
 	double p = 3.0;
@@ -90,7 +90,7 @@ int main() {
 		std::vector<double>(1, 10000.0),
 		std::vector<double>(1, 0.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
+	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-5);
 			
 	//----------Optimize loop----------
 	for(int k = 0; k < 200; k++){
@@ -222,10 +222,10 @@ int main() {
 
 		//----------Check convergence----------
         std::cout << "Objective:\t" << objective/scale0 << "\tWeight:\t" << constraints[0]/scale1 << "\t";
-		/*if(optimizer.IsConvergence(objective)){
+		if(optimizer.IsConvergence(objective)){
 			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
 			break;
-		}*/
+		}
 		
 		//----------Get updated design variables with OC method----------
 		optimizer.UpdateVariables(s, objective, dobjectives, constraints, dconstraints);	

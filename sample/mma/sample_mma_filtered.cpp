@@ -15,6 +15,7 @@
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/IntegrationConstant.h"
 #include "../../src/Optimize/Solver/MMA.h"
+#include "../../src/Optimize/Filter/Heaviside.h"
 
 
 using namespace PANSFEM2;
@@ -72,6 +73,9 @@ int main() {
         }
     }
 
+    //----------Initialize Heaviside filter class----------
+    HeavisideFilter<double> filter = HeavisideFilter<double>(elements.size(), neighbors, w);
+
 	//----------Initialize design variables----------
 	std::vector<double> s = std::vector<double>(elements.size(), 0.5);
 
@@ -104,28 +108,26 @@ int main() {
         //*************************************************
         //  Get filterd design variables
         //*************************************************
-        std::vector<double> stilde = std::vector<double>(s.size());
-        std::vector<double> rho = std::vector<double>(s.size());
+        std::vector<double> rho = filter.GetFilteredVariables(s, beta);
+
+
+        //*************************************************
+        //  Get weight value and sensitivities
+        //*************************************************
+        double g = 0.0;														//Function values of weight
+		std::vector<double> dgdrho = std::vector<double>(s.size(), 0.0);    //Sensitivities of weight
         for(int i = 0; i < elements.size(); i++){
-            double wssum = 0.0;
-            double wsum = 0.0;
-            for(int j = 0; j < neighbors[i].size(); j++){
-                wssum += w[i][j]*s[neighbors[i][j]];
-                wsum += w[i][j];
-            }
-            stilde[i] = wssum/wsum;
-            rho[i] = 0.5*(tanh(0.5*beta) + tanh(beta*(stilde[i] - 0.5)))/tanh(0.5*beta);
+            g += scale1*rho[i]/(weightlimit*elements.size());
+            dgdrho[i] = scale1/(weightlimit*elements.size()); 
         }
+        g -= 1.0*scale1;
 
-
+        
         //*************************************************
         //  Get compliance value and sensitivities
         //*************************************************
-        double objective = 0.0;													//Function value of compliance
-		std::vector<double> dobjectives = std::vector<double>(s.size(), 0.0);	//Sensitivities of compliance
-
-        std::vector<double> constraints = std::vector<double>(1);																//Function values of weight
-		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size(), 0.0));	//Sensitivities of weight
+        double f = 0.0;													    //Function value of compliance
+		std::vector<double> dfdrho = std::vector<double>(s.size(), 0.0);    //Sensitivities of compliance
 
         //----------Assembling----------
 		LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
@@ -143,13 +145,11 @@ int main() {
         //----------Get function value and sensitivities----------
         std::vector<double> d = ScalingCG(Kmod, F, 100000, 1.0e-10);
 
-        objective = scale0*std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
+        f = scale0*std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
         
         std::vector<Vector<double> > dv = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(d, dv, field);
         
-        std::vector<double> dfdrho = std::vector<double>(s.size());
-        std::vector<double> drhodstilde = std::vector<double>(s.size());
         for(int i = 0; i < elements.size(); i++){
             Matrix<double> Ke;
 		    PlaneStrain<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
@@ -158,22 +158,14 @@ int main() {
                 de = de.Vstack(dv[elements[i][j]]);
             }
             dfdrho[i] = -scale0*p*(- E0 + E1)*pow(rho[i], p - 1.0)*(de*(Ke*de));
-            drhodstilde[i] = 0.5*beta*(1.0 - pow(tanh(beta*(stilde[i] - 0.5)), 2.0))/tanh(0.5*beta);
-
-            constraints[0] += scale1*rho[i]/(weightlimit*elements.size());
         }
-        constraints[0] -= 1.0*scale1;
 
-        for(int i = 0; i < elements.size(); i++){
-            double wsum = 0.0;
-            for(int j = 0; j < neighbors[i].size(); j++){
-                dobjectives[i] += dfdrho[neighbors[i][j]]*drhodstilde[neighbors[i][j]]*w[i][j];
-                dconstraints[0][i] += scale1*drhodstilde[neighbors[i][j]]*w[i][j]/(weightlimit*elements.size());
-                wsum += w[i][j];
-            }
-            dobjectives[i] /= wsum;      
-            dconstraints[0][i] /= wsum; 
-        }
+
+        //*************************************************
+        //  Filtering sensitivities
+        //*************************************************
+        std::vector<double> dfds = filter.GetFilteredSensitivitis(s, dfdrho, beta);
+        std::vector<double> dgds = filter.GetFilteredSensitivitis(s, dgdrho, beta);
 		
         
         //*************************************************
@@ -190,18 +182,18 @@ int main() {
        
 
         //*************************************************
-        //  Update design variables with OC method
+        //  Update design variables with MMA
         //*************************************************
 
 		//----------Check convergence----------
-        std::cout << "Objective:\t" << objective/scale0 << "\tWeight:\t" << constraints[0]/scale1 << "\t";
-		if(optimizer.IsConvergence(objective)){
+        std::cout << "Objective:\t" << f/scale0 << "\tWeight:\t" << g/scale1 << "\t";
+		if(optimizer.IsConvergence(f)){
 			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
 			break;
 		}
 		
-		//----------Get updated design variables with OC method----------
-		optimizer.UpdateVariables(s, objective, dobjectives, constraints, dconstraints);	
+		//----------Get updated design variables with MMA----------
+		optimizer.UpdateVariables(s, f, dfds, { g }, { dgds });	
 	}
 	
 	return 0;

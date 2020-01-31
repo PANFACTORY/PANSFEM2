@@ -22,7 +22,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/mma/Cantileber/";
+	std::string model_path = "sample/mma/Cantileber3/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;
@@ -48,62 +48,91 @@ int main() {
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
     std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 	SetNeumann(F, isqfixed, qfixed);
-	
+
+    //----------Get cg of element----------
+    std::vector<Vector<double> > cg = std::vector<Vector<double> >(elements.size());
+    for(int i = 0; i < elements.size(); i++){
+        Vector<double> centeri = Vector<double>(2);
+        for(auto nodei : elements[i]){
+            centeri += nodes[nodei];
+        }
+        cg[i] = centeri/(double)elements[i].size();
+    }
+
+    //----------Get neighbor elements list and weight----------
+    std::vector<std::vector<int> > neighbors = std::vector<std::vector<int> >(elements.size(), std::vector<int>());
+    std::vector<std::vector<double> > w = std::vector<std::vector<double> >(elements.size(), std::vector<double>());
+    double R = 1.5;
+    for(int i = 0; i < elements.size(); i++){
+        for(int j = 0; j < elements.size(); j++){
+            if((cg[i] - cg[j]).Norm() <= R){
+                neighbors[i].push_back(j);
+                w[i].push_back((R - (cg[i] - cg[j]).Norm())/R);
+            }
+        }
+    }
+
 	//----------Initialize design variables----------
-	std::vector<double> s = std::vector<double>(2*elements.size(), 0.5);
+	std::vector<double> s = std::vector<double>(elements.size(), 0.5);
 
 	//----------Define design parameters----------
-	double E0 = 0.001;
-	double E1 = 374.0;//823.0;
-    double E2 = 210000.0;
+	double E0 = 0.0001;
+	double E1 = 210000.0;
 	double Poisson = 0.3;
-    double rho0 = 0.0;
-    double rho1 = 0.119;//0.0323;
-    double rho2 = 1.0;
-
 	double p = 3.0;
-    double q = 3.0;
 
-	double weightlimit = 0.3;
+	double weightlimit = 0.5;
 	double scale0 = 1.0e5;
 	double scale1 = 1.0;
 
-	MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
+    double beta = 1.0;
+
+    MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
 		std::vector<double>(1, 0.0),
 		std::vector<double>(1, 10000.0),
 		std::vector<double>(1, 0.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-5);
+	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-6);
 		
 	//----------Optimize loop----------
-	for(int k = 0; k < 200; k++){
+	for(int k = 0; k < 500; k++){
 		std::cout << "\nk = " << k << "\t";
+        if(k%40 == 1){
+            beta*=2.0;
+        }
 
-        
         //*************************************************
-		//  Get weight value and sensitivities
-		//*************************************************
-        std::vector<double> constraints = std::vector<double>(1);	//Function values of weight
-		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size()));	//Sensitivities of weight
-        for (int i = 0; i < elements.size(); i++) {						
-			constraints[0] += (rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i])/(weightlimit*elements.size());
-			dconstraints[0][2*i] = (- rho0 + rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])/(weightlimit*elements.size());
-            dconstraints[0][2*i + 1] = (- rho1 + rho2)*s[2*i]/(weightlimit*elements.size());
-		}
-		constraints[0] -= 1.0;
-        
+        //  Get filterd design variables
+        //*************************************************
+        std::vector<double> stilde = std::vector<double>(s.size());
+        std::vector<double> rho = std::vector<double>(s.size());
+        for(int i = 0; i < elements.size(); i++){
+            double wssum = 0.0;
+            double wsum = 0.0;
+            for(int j = 0; j < neighbors[i].size(); j++){
+                wssum += w[i][j]*s[neighbors[i][j]];
+                wsum += w[i][j];
+            }
+            stilde[i] = wssum/wsum;
+            rho[i] = 0.5*(tanh(0.5*beta) + tanh(beta*(stilde[i] - 0.5)))/tanh(0.5*beta);
+        }
+
+
         //*************************************************
         //  Get compliance value and sensitivities
         //*************************************************
         double objective = 0.0;													//Function value of compliance
 		std::vector<double> dobjectives = std::vector<double>(s.size(), 0.0);	//Sensitivities of compliance
 
+        std::vector<double> constraints = std::vector<double>(1);																//Function values of weight
+		std::vector<std::vector<double> > dconstraints = std::vector<std::vector<double> >(1, std::vector<double>(s.size(), 0.0));	//Sensitivities of weight
+
         //----------Assembling----------
 		LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
 		for (int i = 0; i < elements.size(); i++) {
-			double E = E0*(1.0 - pow(s[2*i], p)) + (E1*(1.0 - pow(s[2*i + 1], q)) + E2*pow(s[2*i + 1], q))*pow(s[2*i], p);
+			double E = E1 * pow(rho[i], p) + E0 * (1.0 - pow(rho[i], p));
 			Matrix<double> Ke;
-			PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
+			PlaneStrain<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
 			Assembling(K, Ke, elements[i], field);
 		}
 
@@ -113,25 +142,39 @@ int main() {
 
         //----------Get function value and sensitivities----------
         std::vector<double> d = ScalingCG(Kmod, F, 100000, 1.0e-10);
-        
+
         objective = scale0*std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
-       
+        
         std::vector<Vector<double> > dv = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 		FieldResultToNodeValue(d, dv, field);
-
+        
+        std::vector<double> dfdrho = std::vector<double>(s.size());
+        std::vector<double> drhodstilde = std::vector<double>(s.size());
         for(int i = 0; i < elements.size(); i++){
             Matrix<double> Ke;
-		    PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
-
+		    PlaneStrain<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
 			Vector<double> de = Vector<double>();
             for(int j = 0; j < elements[i].size(); j++){
                 de = de.Vstack(dv[elements[i][j]]);
             }
+            dfdrho[i] = -scale0*p*(- E0 + E1)*pow(rho[i], p - 1.0)*(de*(Ke*de));
+            drhodstilde[i] = 0.5*beta*(1.0 - pow(tanh(beta*(stilde[i] - 0.5)), 2.0))/tanh(0.5*beta);
 
-            dobjectives[2*i] = -scale0*p*(-E0 + (E1*(1.0 - pow(s[2*i + 1], q)) + E2*pow(s[2*i + 1], q)))*pow(s[2*i], p - 1.0)*(de*(Ke*de));
-            dobjectives[2*i + 1] = -scale0*q*(-E1 + E2)*pow(s[2*i + 1], q - 1.0)*pow(s[2*i], p)*(de*(Ke*de));
+            constraints[0] += scale1*rho[i]/(weightlimit*elements.size());
         }
+        constraints[0] -= 1.0*scale1;
 
+        for(int i = 0; i < elements.size(); i++){
+            double wsum = 0.0;
+            for(int j = 0; j < neighbors[i].size(); j++){
+                dobjectives[i] += dfdrho[neighbors[i][j]]*drhodstilde[neighbors[i][j]]*w[i][j];
+                dconstraints[0][i] += scale1*drhodstilde[neighbors[i][j]]*w[i][j]/(weightlimit*elements.size());
+                wsum += w[i][j];
+            }
+            dobjectives[i] /= wsum;      
+            dconstraints[0][i] /= wsum; 
+        }
+		
         
         //*************************************************
         //  Post Process
@@ -140,35 +183,9 @@ int main() {
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(nodes, fout);
 		AddElementToVTK(elements, fout);
-		AddElementTypes(std::vector<int>(elements.size(), 23), fout);
+		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 		AddPointVectors(dv, "d", fout, true);
-		std::vector<double> s0 = std::vector<double>(elements.size());
-        std::vector<double> s1 = std::vector<double>(elements.size());
-        std::vector<double> rho = std::vector<double>(elements.size());
-
-		std::vector<double> sensc0 = std::vector<double>(elements.size());
-		std::vector<double> sensc1 = std::vector<double>(elements.size());
-		std::vector<double> sensv0 = std::vector<double>(elements.size());
-		std::vector<double> sensv1 = std::vector<double>(elements.size());
-
-        for(int i = 0; i < elements.size(); i++){
-            s0[i] = s[2*i];
-            s1[i] = s[2*i + 1];
-            rho[i] = rho0*(1.0 - s[2*i]) + (rho1*(1.0 - s[2*i + 1]) + rho2*s[2*i + 1])*s[2*i];
-
-			sensc0[i] = dobjectives[2*i];
-			sensc1[i] = dobjectives[2*i + 1];
-			sensv0[i] = dconstraints[0][2*i];
-			sensv1[i] = dconstraints[0][2*i + 1];
-        }
-		AddElementScalers(s0, "s0", fout, true);
-        AddElementScalers(s1, "s1", fout, false);
-        AddElementScalers(rho, "rho", fout, false);
-
-		AddElementScalers(sensc0, "sensc0", fout, false);
-		AddElementScalers(sensc1, "sensc1", fout, false);
-		AddElementScalers(sensv0, "sensv0", fout, false);
-		AddElementScalers(sensv1, "sensv1", fout, false);
+		AddElementScalers(rho, "s", fout, true);
 		fout.close();
        
 
@@ -176,12 +193,12 @@ int main() {
         //  Update design variables with OC method
         //*************************************************
 
-        //----------Check convergence----------
+		//----------Check convergence----------
         std::cout << "Objective:\t" << objective/scale0 << "\tWeight:\t" << constraints[0]/scale1 << "\t";
-		/*if(optimizer.IsConvergence(objective)){
+		if(optimizer.IsConvergence(objective)){
 			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
 			break;
-		}*/
+		}
 		
 		//----------Get updated design variables with OC method----------
 		optimizer.UpdateVariables(s, objective, dobjectives, constraints, dconstraints);	

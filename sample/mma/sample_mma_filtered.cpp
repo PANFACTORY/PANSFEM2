@@ -22,7 +22,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/mma/Cantileber3/";
+	std::string model_path = "sample/mma/QBBBeam2/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;
@@ -81,7 +81,7 @@ int main() {
 	double Poisson = 0.3;
 	double p = 3.0;
 
-	double weightlimit = 0.5;
+	double weightlimit = 0.3;
 	double scale0 = 1.0e5;
 	double scale1 = 1.0;
 

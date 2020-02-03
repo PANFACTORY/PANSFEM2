@@ -15,6 +15,32 @@
 
 
 namespace PANSFEM2 {
+	//********************2NodesLine********************
+	template<class T>
+	class ShapeFunction2Line{
+public:
+		static Vector<T> N(const std::vector<T>& _r);
+		static Matrix<T> dNdr(const std::vector<T>& _r);
+	};
+
+
+	template<class T>
+	Vector<T> ShapeFunction2Line<T>::N(const std::vector<T>& _r){
+		Vector<T> N = Vector<T>(2);
+		N(0) = 0.5*(1 - _r[0]);
+		N(1) = 0.5*(1 + _r[0]);
+		return N;
+	}
+
+
+	template<class T>
+	Matrix<T> ShapeFunction2Line<T>::dNdr(const std::vector<T>& _r){
+		Matrix<T> dNdr = Matrix<T>(1, 2);
+		dNdr(0, 0) = -0.5;	dNdr(0, 1) = 0.5;
+		return dNdr;
+	}
+
+
 	//********************3NodesTriangle********************
 	template<class T>
 	class ShapeFunction3Triangle {

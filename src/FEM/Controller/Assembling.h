@@ -36,6 +36,19 @@ namespace PANSFEM2 {
 	}
 
 
+	//********************Assembling F vector from Fe Vector********************
+	template<class T>
+	void Assembling(std::vector<T>& _F, Vector<T>& _Fe, const std::vector<int>& _element, const std::vector<int>& _field){
+		int ei = 0;
+		for (auto ni : _element) {
+			for (int si = _field[ni]; si < _field[ni + 1]; si++) {
+				_F[si] += _Fe(ei);
+				ei++;
+			}
+		}
+	}
+
+
 	//********************Assembling K & F from Ke & Fe********************
 	template<class T>
 	void Assembling(LILCSR<T>& _K, std::vector<T>& _F, Matrix<T>& _Ke, Vector<T>& _Fe, const std::vector<int>& _element, const std::vector<int>& _field) {

@@ -41,6 +41,33 @@ public:
 	}
 
 
+	//********************3NodesLine********************
+	template<class T>
+	class ShapeFunction3Line{
+public:
+		static Vector<T> N(const std::vector<T>& _r);
+		static Matrix<T> dNdr(const std::vector<T>& _r);
+	};
+
+
+	template<class T>
+	Vector<T> ShapeFunction3Line<T>::N(const std::vector<T>& _r){
+		Vector<T> N = Vector<T>(3);
+		N(0) = -0.5*(1.0 - _r[0])*_r[0];
+		N(1) = (1.0 - _r[0])*(1.0 + _r[0]);
+		N(2) = 0.5*_r[0]*(1.0 + _r[0]);
+		return N;
+	}
+
+
+	template<class T>
+	Matrix<T> ShapeFunction3Line<T>::dNdr(const std::vector<T>& _r){
+		Matrix<T> dNdr = Matrix<T>(1, 3);
+		dNdr(0, 0) = -0.5*(1.0 - 2.0*_r[0]);	dNdr(0, 1) = -2.0*_r[0];	dNdr(0, 2) = 0.5*(1.0 + 2.0*_r[0]);
+		return dNdr;
+	}
+
+
 	//********************3NodesTriangle********************
 	template<class T>
 	class ShapeFunction3Triangle {

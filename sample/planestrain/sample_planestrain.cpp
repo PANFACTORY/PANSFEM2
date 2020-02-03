@@ -80,8 +80,8 @@ int main() {
 	fout.close();
 
 	Vector<double> Fe;
-	std::vector<int> Se = { 3, 4 };
-	PlaneSurfaceForce<double, ShapeFunction2Line, Gauss2Line>(Fe, nodes, Se, 1.0, 1.0, 1.0);
+	std::vector<int> Se = { 3, 4, 5 };
+	PlaneSurfaceForce<double, ShapeFunction3Line, Gauss2Line>(Fe, nodes, Se, 1.0, 1.0, 1.0);
 	std::cout << Fe << std::endl;
 
 

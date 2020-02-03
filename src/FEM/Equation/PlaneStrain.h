@@ -130,8 +130,46 @@ namespace PANSFEM2 {
 			//----------Get surface force vector----------
 			Vector<T> p = Vector<T>({ _px, _py });
 
-			//----------Make C matrix----------
+			//----------Make Fe Vector----------
 			_Fe += B.Transpose()*p*dl*_t*IC<T>::Weights[g][0];
+		}
+	}
+
+
+	//******************************Make body force vector******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void PlaneBodyForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _px, T _py, T _t){
+		//----------Initialize element mass matrix----------
+		_Fe = Vector<T>(2*_element.size());
+
+		//----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(0, 2);
+		for(int i = 0; i < _element.size(); i++){
+			X = X.Vstack(_x[_element[i]].Transpose());
+		}
+
+		//----------Loop of Gauss Integration----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get shape function and difference of shape function----------
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+
+			//----------Generate B matrix----------
+			Matrix<T> B = Matrix<T>(2, 2 * _element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2 * n) = N(n);	B(0, 2 * n + 1) = 0.0;			
+				B(1, 2 * n) = 0.0;	B(1, 2 * n + 1) = N(n);	
+			}
+
+			//----------Get body force vector----------
+			Vector<T> p = Vector<T>({ _px, _py });
+
+			//----------Make Fe matrix----------
+			_Fe += B.Transpose()*p*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 }

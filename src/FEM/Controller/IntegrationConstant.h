@@ -30,8 +30,32 @@ public:
 
 	template<class T>
 	const std::vector<std::vector<T> > Gauss1Line<T>::Weights = { 
-													{ 1.0 },
+													{ 2.0 },
 												};
+
+
+	//********************GaussIntegrationConstant1D2PointsForLine********************
+	template<class T>
+	class Gauss2Line{
+public:
+		static const int N = 2;								//Number of integration point
+		static const std::vector<std::vector<T> > Points;	//Cordinate values of integration point
+		static const std::vector<std::vector<T> > Weights;	//Weights of integration point
+	};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss2Line<T>::Points = { 
+													{ -1.0/sqrt(3.0) },
+													{ 1.0/sqrt(3.0), },
+												};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss2Line<T>::Weights = { 
+													{ 1.0 },
+													{ 1.0 },
+												};									
 
 
 	//********************GaussIntegrationConstant2D1PointsForTriangle********************

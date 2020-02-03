@@ -118,7 +118,7 @@ namespace PANSFEM2 {
 
 			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
-			T dl = sqrt((dXdr*dXdr.Transpose())(0));
+			T dl = sqrt((dXdr*dXdr.Transpose())(0, 0));
 
 			//----------Generate B matrix----------
 			Matrix<T> B = Matrix<T>(2, 2 * _element.size());
@@ -131,7 +131,7 @@ namespace PANSFEM2 {
 			Vector<T> p = Vector<T>({ _px, _py });
 
 			//----------Make C matrix----------
-			_Fe += B.Transpose()*p*dl*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Fe += B.Transpose()*p*dl*_t*IC<T>::Weights[g][0];
 		}
 	}
 }

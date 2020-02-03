@@ -3,17 +3,17 @@
 #include <cmath>
 
 
-#include "LinearAlgebra/Models/Vector.h"
-#include "LinearAlgebra/Models/Matrix.h"
-#include "LinearAlgebra/Models/LILCSR.h"
-#include "PrePost/Import/ImportFromCSV.h"
-#include "FEM/Controller/Assembling.h"
-#include "FEM/Equation/PlaneStrain.h"
-#include "FEM/Controller/BoundaryCondition.h"
-#include "LinearAlgebra/Solvers/CG.h"
-#include "PrePost/Export/ExportToVTK.h"
-#include "FEM/Controller/ShapeFunction.h"
-#include "FEM/Controller/IntegrationConstant.h"
+#include "../../src/LinearAlgebra/Models/Vector.h"
+#include "../../src/LinearAlgebra/Models/Matrix.h"
+#include "../../src/LinearAlgebra/Models/LILCSR.h"
+#include "../../src/PrePost/Import/ImportFromCSV.h"
+#include "../../src/FEM/Controller/Assembling.h"
+#include "../../src/FEM/Equation/PlaneStrain.h"
+#include "../../src/FEM/Controller/BoundaryCondition.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
+#include "../../src/FEM/Controller/ShapeFunction.h"
+#include "../../src/FEM/Controller/IntegrationConstant.h"
 
 
 using namespace PANSFEM2;
@@ -66,7 +66,7 @@ int main() {
 	std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
 
 	//----------Update displacement u----------
-	std::vector<Vector<double> > u;
+	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
 	FieldResultToNodeValue(result, u, field);
 			
 	//----------Save initial value----------
@@ -76,8 +76,14 @@ int main() {
 	AddElementToVTK(elements, fout);
 	std::vector<int> et = std::vector<int>(elements.size(), 5);
 	AddElementTypes(et, fout);
-	AddPointVectors(u, "u", fout);
+	AddPointVectors(u, "u", fout, true);
 	fout.close();
+
+	Vector<double> Fe;
+	std::vector<int> Se = { 3, 4 };
+	PlaneSurfaceForce<double, ShapeFunction2Line, Gauss2Line>(Fe, nodes, Se, 1.0, 1.0, 1.0);
+	std::cout << Fe << std::endl;
+
 
 	return 0;
 }

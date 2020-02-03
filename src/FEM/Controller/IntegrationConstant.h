@@ -12,6 +12,28 @@
 
 
 namespace PANSFEM2 {
+	//********************GaussIntegrationConstant1D1PointsForLine********************
+	template<class T>
+	class Gauss1Line{
+public:
+		static const int N = 1;								//Number of integration point
+		static const std::vector<std::vector<T> > Points;	//Cordinate values of integration point
+		static const std::vector<std::vector<T> > Weights;	//Weights of integration point
+	};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss1Triangle<T>::Points = { 
+													{ T() },
+												};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss1Triangle<T>::Weights = { 
+													{ 1.0 },
+												};
+
+
 	//********************GaussIntegrationConstant2D1PointsForTriangle********************
 	template<class T>
 	class Gauss1Triangle{

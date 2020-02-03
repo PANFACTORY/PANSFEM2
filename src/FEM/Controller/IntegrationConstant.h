@@ -23,13 +23,13 @@ public:
 
 
 	template<class T>
-	const std::vector<std::vector<T> > Gauss1Triangle<T>::Points = { 
+	const std::vector<std::vector<T> > Gauss1Line<T>::Points = { 
 													{ T() },
 												};
 
 
 	template<class T>
-	const std::vector<std::vector<T> > Gauss1Triangle<T>::Weights = { 
+	const std::vector<std::vector<T> > Gauss1Line<T>::Weights = { 
 													{ 1.0 },
 												};
 

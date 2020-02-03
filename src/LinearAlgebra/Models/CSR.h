@@ -27,41 +27,41 @@ class CSR
 public:
 	CSR();
 	~CSR();
-	CSR(int _rows, int _cols);	//_rows�F�s���C_cols�F��
-	CSR(LILCSR<T>& _matrix);		//LILCSR����CSR�𐶐�
+	CSR(int _rows, int _cols);	//	_rows:Row number, _cols:Column number
+	CSR(LILCSR<T>& _matrix);	//	Convert from LILCSR to CSR
 
 
-	const int ROWS;				//�s��
-	const int COLS;				//��
+	const int ROWS;				//	Row number
+	const int COLS;				//	Column number
 
 
-	const std::vector<T> operator*(const std::vector<T> &_vec);					//�x�N�g���Ƃ̐�
+	const std::vector<T> operator*(const std::vector<T> &_vec);					//	Multiple with vector
 
 
 	template<class T1, class T2>
-	friend const CSR<T1> operator+(const CSR<T1>& _m1, const CSR<T2>& _m2);		//�s��Ƃ̘a
+	friend const CSR<T1> operator+(const CSR<T1>& _m1, const CSR<T2>& _m2);		//	Add with CSR matrix
 	template<class T1, class T2>
-	friend const CSR<T1> operator-(const CSR<T1>& _m1, const CSR<T2>& _m2);		//�s��Ƃ̍�
+	friend const CSR<T1> operator-(const CSR<T1>& _m1, const CSR<T2>& _m2);		//	Subtract with matrix
 	template<class T1, class T2>
-	friend const CSR<T2> operator*(T1 _a, const CSR<T2>& _m);					//�����Ƃ̐�
+	friend const CSR<T2> operator*(T1 _a, const CSR<T2>& _m);					//	Multiple with scalar
 	template<class T1, class T2>
-	friend const CSR<T1> operator*(const CSR<T1>& _m, T2 _a);					//�����Ƃ̐�
+	friend const CSR<T1> operator*(const CSR<T1>& _m, T2 _a);					//	Multiple with scalar
 	template<class T1, class T2>
-	friend const CSR<T1> operator/(const CSR<T1>& _m, T2 _a);					//�����Ƃ̏�
+	friend const CSR<T1> operator/(const CSR<T1>& _m, T2 _a);					//	Divide from sscalar
 	template<class F>
-	friend std::ostream& operator << (std::ostream &_out, const CSR<F> &_mat);	//stream�ɏo��
+	friend std::ostream& operator << (std::ostream &_out, const CSR<F> &_mat);	//	Output to stream
 
 
-	bool set(int _row, int _col, T _data);		//�l�̃Z�b�g
-	T get(int _row, int _col) const;			//�l�̎擾
+	bool set(int _row, int _col, T _data);		//	Set _data at _row, _col
+	T get(int _row, int _col) const;			//	Get value at _row, _col
 
 
 	template<class F>
-	friend CSR<F> ILU0(CSR<F>& _A);				//�s���SLU(0)����
+	friend CSR<F> ILU0(CSR<F>& _A);				//	Incomplete LU(0) decomposition
 	template<class F>
-	friend std::vector<F> PreILU0(CSR<F> &_A, std::vector<F> &_b);		//�s���SLU(0)����O����
+	friend std::vector<F> PreILU0(CSR<F> &_A, std::vector<F> &_b);		//	Apply incomplete LU(0) decomposition 
 	template<class F>
-	friend std::vector<F> SOR(CSR<F> &_A, std::vector<F> &_b, F _w, int _itrmax, F _eps);	//SOR�@
+	friend std::vector<F> SOR(CSR<F> &_A, std::vector<F> &_b, F _w, int _itrmax, F _eps);	//	Solve with SOR
 
 
 	template<class F>
@@ -69,9 +69,9 @@ public:
 
 
 private:
-	std::vector<int> indptr;	//indptr[i]<=j<indptr[i+1]��data[j],indices[j]��i�s�ڂ̗v�f�ł���i�T�C�Y�͍s��+1�j
-	std::vector<int> indices;	//indices[j]��data[j]������ڂ̗v�f���������idata�̃T�C�Y�ɓ������j
-	std::vector<T> data;		//�i�[�f�[�^�i��[���v�f�̐��ɓ������j
+	std::vector<int> indptr;
+	std::vector<int> indices;
+	std::vector<T> data;
 };
 
 

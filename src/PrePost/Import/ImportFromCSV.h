@@ -221,4 +221,44 @@ namespace PANSFEM2 {
 
 		return true;
 	}
+
+
+	//********************ImportInitialConditionFromCSV********************
+	template<class T>
+	bool ImportInitialFromCSV(std::vector<Vector<T> >& _u, std::string _fname) {
+		std::ifstream ifs(_fname);
+
+		if (!ifs.is_open()) {
+			std::cout << "Initial Condition file " << _fname << " open error!" << std::endl;
+			return false;
+		}
+
+		//.....Pass a line.....
+		std::string str0;
+		std::getline(ifs, str0);
+
+		while (!ifs.eof()) {
+			//.....Read a line.....
+			std::string buf;
+			ifs >> buf;
+			std::istringstream sbuf(buf);
+			std::string str;
+
+			//.....Get id of a node.....
+			std::getline(sbuf, str, ',');
+			if (!str.empty()) {
+				int idn = stoi(str);
+				for (int i = 0; i < _u[idn].SIZE(); i++) {
+					std::getline(sbuf, str, ',');
+					if (str != "free") {
+						_u[idn](i) = stod(str);
+					}
+				}
+			}
+		}
+
+		ifs.close();
+
+		return true;
+	}
 }

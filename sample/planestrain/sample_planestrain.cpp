@@ -31,6 +31,10 @@ int main() {
 	std::vector<std::vector<int> > elements;
 	ImportElementsFromCSV(elements, model_path + "Element.csv");
 
+	//----------Add Edge----------
+	std::vector<std::vector<int> > edges;
+	ImportElementsFromCSV(edges, model_path + "Edge.csv");
+
 	//----------Add Field----------
 	std::vector<int> field;
 	int KDEGREE = 0;
@@ -46,13 +50,23 @@ int main() {
 	std::vector<double> qfixed;
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
 
-	//----------Culculate Ke Fe and Assembling----------
+	//----------Culculate Ke, body force and Assembling----------
 	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
 	for (auto element : elements) {
 		Matrix<double> Ke;
 		PlaneStrain<double, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodes, element, 210000.0, 0.3, 1.0);
 		Assembling(K, Ke, element, field);
+		Vector<double> Fe;
+		PlaneBodyForce<double, ShapeFunction3Triangle, Gauss1Triangle>(Fe, nodes, element, 0.0, -300.0, 1.0);
+		Assembling(F, Fe, element, field);
+	}
+
+	//----------Culculate Surface force and Assembling----------
+	for(auto edge : edges){
+		Vector<double> Fe;
+		PlaneSurfaceForce<double, ShapeFunction2Line, Gauss1Line>(Fe, nodes, edge, 0.0, -200.0, 1.0);
+		Assembling(F, Fe, edge, field);
 	}
 
 	//----------Set Neumann Boundary Condition----------
@@ -78,12 +92,6 @@ int main() {
 	AddElementTypes(et, fout);
 	AddPointVectors(u, "u", fout, true);
 	fout.close();
-
-	Vector<double> Fe;
-	std::vector<int> Se = { 3, 4, 5 };
-	PlaneSurfaceForce<double, ShapeFunction3Line, Gauss2Line>(Fe, nodes, Se, 1.0, 1.0, 1.0);
-	std::cout << Fe << std::endl;
-
 
 	return 0;
 }

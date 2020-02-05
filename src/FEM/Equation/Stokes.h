@@ -43,12 +43,12 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SFU<T>::dNdr(IC<T>::Points[g]);
 			Matrix<T> dXdr = dNdr*Xp;
 			T J = dXdr.Determinant();
-			Matrix<T> dNdX = dXdr.Inverse()*dMdr;
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
 			//----------Get shape function for velocity u----------
 			Vector<T> M = SFU<T>::N(IC<T>::Points[g]);
 			Matrix<T> dMdr = SFU<T>::dNdr(IC<T>::Points[g]);
-			Matrix<T> dMdX = dXdr.Inverse()*dNdr;
+			Matrix<T> dMdX = dXdr.Inverse()*dMdr;
 
             //----------Get K matrix----------
             Matrix<T> K = Matrix<T>(2*m + n, 2*m + n);

@@ -61,6 +61,8 @@ int main() {
         Matrix<double> Ke;
         Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodes, elementsu[i], elementsp[i], 1.0);
         Assembling(K, Ke, elementsu[i], field);
+
+        std::cout << Ke << std::endl;
     }
 
     /*//----------Set Boundary Condition----------

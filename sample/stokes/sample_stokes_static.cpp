@@ -45,46 +45,37 @@ int main() {
 	std::vector<double> ufixed;
 	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
 
-	//----------Add Neumann Condition----------
-	std::vector<int> isqfixed;
-	std::vector<double> qfixed;
-	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
-
 	//----------Initialize velocity and pressure----------
-	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));     //  Velocity
-    std::vector<double> p = std::vector<double>(nodes.size(), 0.0);                         			//  Pressure
-
+	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size());     //  Velocity
+    
 	//----------Culculate Ke Fe and Assembling----------
     LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);        //  System stiffness matrix
     std::vector<double> F = std::vector<double>(KDEGREE, 0.0);  //  External load vector
     for (int i = 0; i < elementsu.size(); i++) {
         Matrix<double> Ke;
-        Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodes, elementsu[i], elementsp[i], 1.0);
+        Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodes, elementsu[i], elementsp[i], 1.0);
         Assembling(K, Ke, elementsu[i], field);
-
-        std::cout << Ke << std::endl;
     }
 
-    /*//----------Set Boundary Condition----------
-    SetNeumann(F, isqfixed, qfixed);
-    SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
+    //----------Set Boundary Condition----------
+    SetDirichlet(K, F, isufixed, ufixed, 1.0e5);
 
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
-    std::vector<double> resultv = CG(Kmod, F, 100000, 1.0e-10);
-    FieldResultToNodeValue(resultv, v, fieldu);
-    */
+    std::vector<double> result = CG(Kmod, F, 100000, 1.0e-10);
+    FieldResultToNodeValue(result, u, field);
+        
     //*************************************************		
     //  Save values
     //*************************************************
-    /*std::ofstream fout(model_path + "result.vtk");
+    std::ofstream fout(model_path + "result.vtk");
     MakeHeadderToVTK(fout);
     AddPointsToVTK(nodes, fout);
-    AddElementToVTK(elements, fout);
-    AddElementTypes(std::vector<int>(elements.size(), 9), fout);
+    AddElementToVTK(elementsp, fout);
+    AddElementTypes(std::vector<int>(elementsp.size(), 5), fout);
     AddPointVectors(u, "u", fout, true);
-    AddPointScalers(p, "p", fout, false);
+    //AddPointScalers(p, "p", fout, false);
     fout.close();
-    */
+    
 	return 0;
 }

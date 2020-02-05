@@ -78,7 +78,32 @@ public:
 	const std::vector<std::vector<T> > Gauss1Triangle<T>::Weights = { 
 													{ 1.0 / sqrt(2.0), 1.0 / sqrt(2.0) },
 												};
-	
+
+
+	//********************GaussIntegrationConstant2D3PointsForTriangle********************
+	template<class T>
+	class Gauss3Triangle{
+public:
+		static const int N = 3;								//Number of integration point
+		static const std::vector<std::vector<T> > Points;	//Cordinate values of integration point
+		static const std::vector<std::vector<T> > Weights;	//Weights of integration point
+	};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss3Triangle<T>::Points = { 
+													{ 1.0 / 6.0, 1.0 / 6.0 },
+													{ 2.0 / 3.0, 1.0 / 6.0 },
+													{ 1.0 / 6.0, 2.0 / 3.0 },
+												};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss3Triangle<T>::Weights = {
+													{ 1.0 / (3.0*sqrt(2.0)), 1.0 / (3.0*sqrt(2.0)) },
+													{ 1.0 / (3.0*sqrt(2.0)), 1.0 / (3.0*sqrt(2.0)) },
+													{ 1.0 / (3.0*sqrt(2.0)), 1.0 / (3.0*sqrt(2.0)) },
+												};
 
 	//********************GaussIntegrationConstant2D4Points********************
 	template<class T>

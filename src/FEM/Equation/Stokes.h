@@ -40,7 +40,7 @@ namespace PANSFEM2 {
 		for (int g = 0; g < IC<T>::N; g++) {
             //----------Get shape function for pressure p----------
 			Vector<T> N = SFP<T>::N(IC<T>::Points[g]);
-			Matrix<T> dNdr = SFU<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dNdr = SFP<T>::dNdr(IC<T>::Points[g]);
 			Matrix<T> dXdr = dNdr*Xp;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;

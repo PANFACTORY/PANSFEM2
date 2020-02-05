@@ -96,6 +96,37 @@ public:
 	}
 
 
+	//********************6NodesTriangle********************
+	template<class T>
+	class ShapeFunction6Triangle {
+public:
+		static Vector<T> N(const std::vector<T>& _r);
+		static Matrix<T> dNdr(const std::vector<T>& _r);
+	};
+
+
+	template<class T>
+	Vector<T> ShapeFunction6Triangle<T>::N(const std::vector<T>& _r) {
+		Vector<T> N = Vector<T>(6);
+		N(0) = _r[0]*(2.0*_r[0] - 1.0);
+		N(1) = _r[1]*(2.0*_r[1] - 1.0);
+		N(2) = (1.0 - _r[0] - _r[1])*(1.0 - 2.0*_r[0] - 2.0*_r[1]);
+		N(3) = 4.0*_r[0]*_r[1];
+		N(4) = 4.0*_r[1]*(1.0 - _r[0] - _r[1]);
+		N(5) = 4.0*(1.0 - _r[0] - _r[1])*_r[0];
+		return N;
+	}
+
+
+	template<class T>
+	Matrix<T> ShapeFunction6Triangle<T>::dNdr(const std::vector<T>& _r) {
+		Matrix<T> dNdr = Matrix<T>(2, 6);
+		dNdr(0, 0) = 4.0*_r[0] - 1.0;	dNdr(0, 1) = 0.0;				dNdr(0, 2) = -3.0 + 4.0*_r[0] + 4.0*_r[1];	dNdr(0, 3) = 4.0*_r[1];	dNdr(0, 4) = -4.0*_r[1];					dNdr(0, 5) = 4.0*(1.0 - 2.0*_r[0] - _r[1]);
+		dNdr(1, 0) = 0.0;				dNdr(1, 1) = 4.0*_r[1] - 1.0;	dNdr(1, 2) = -3.0 + 4.0*_r[0] + 4.0*_r[1];	dNdr(1, 3) = 4.0*_r[0];	dNdr(1, 4) = 4.0*(1.0 - _r[0] - 2.0*_r[1]);	dNdr(1, 5) = -4.0*r[0];
+		return dNdr;
+	}
+
+
 	//********************4NodesSquare********************
 	template<class T>
 	class ShapeFunction4Square {

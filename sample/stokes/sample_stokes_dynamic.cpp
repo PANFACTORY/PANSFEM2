@@ -50,6 +50,7 @@ int main() {
     for(int i = 0; i < nodes.size(); i++){
         u[i] = Vector<double>(field[i + 1] - field[i]);
     }
+	ImportInitialFromCSV(u, model_path + "Dirichlet.csv");
     	
 	//----------Define time step and theta----------
 	double dt = 0.001;   		//	Time step
@@ -78,11 +79,11 @@ int main() {
         }
 
 		//----------Set Dirichlet Boundary Condition----------
-		SetDirichlet(K, F, isufixed, ufixed, 1.0e5);
+		SetDirichlet(K, F, isufixed, ufixed, 1.0e9);
 
 		//----------Solve System Equation----------
 		CSR<double> Kmod = CSR<double>(K);
-		std::vector<double> result = CG(Kmod, F, 100000, 1.0e-10);
+		std::vector<double> result = CG(Kmod, F, 100000, 1.0e-20);
         FieldResultToNodeValue(result, u, field);
             
         //*************************************************		

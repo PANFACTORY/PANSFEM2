@@ -62,7 +62,7 @@ int main() {
 
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
-    std::vector<double> result = CG(Kmod, F, 100000, 1.0e-10);
+    std::vector<double> result = CG(Kmod, F, 100000, 1.0e-20);
     FieldResultToNodeValue(result, u, field);
         
     //*************************************************		

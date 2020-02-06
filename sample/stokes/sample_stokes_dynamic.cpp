@@ -73,8 +73,8 @@ int main() {
             Matrix<double> Me;
             StokesMass<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Me, nodes, elementsu[i], elementsp[i], 1.0);
         
-            Matrix<double> Ae = Me/dt + theta*Ke;
-			Vector<double> be = (Me/dt - (1.0 - theta)*Ke)*ue;
+            Matrix<double> Ae = Me/2.0 + dt*Ke/3.0;
+			Vector<double> be = -(dt*Ke/6.0 - Me/2.0)*ue;
 			Assembling(K, F, Ae, be, elementsu[i], field);        
         }
 

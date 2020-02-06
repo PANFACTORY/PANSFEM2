@@ -19,14 +19,16 @@ namespace PANSFEM2 {
 	template<class T>
 	class ShapeFunction2Line{
 public:
-		static Vector<T> N(const std::vector<T>& _r);
-		static Matrix<T> dNdr(const std::vector<T>& _r);
+		static const int d = 1;								//	Dimension on natural cordinate
+		static const int n = 2;								//	Number of shape function
+		static Vector<T> N(const std::vector<T>& _r);		//	Vector of shape function value
+		static Matrix<T> dNdr(const std::vector<T>& _r);	//	Matrix of shape function derivative
 	};
 
 
 	template<class T>
 	Vector<T> ShapeFunction2Line<T>::N(const std::vector<T>& _r){
-		Vector<T> N = Vector<T>(2);
+		Vector<T> N = Vector<T>(n);
 		N(0) = 0.5*(1 - _r[0]);
 		N(1) = 0.5*(1 + _r[0]);
 		return N;
@@ -35,7 +37,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction2Line<T>::dNdr(const std::vector<T>& _r){
-		Matrix<T> dNdr = Matrix<T>(1, 2);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = -0.5;	dNdr(0, 1) = 0.5;
 		return dNdr;
 	}
@@ -45,6 +47,8 @@ public:
 	template<class T>
 	class ShapeFunction3Line{
 public:
+		static const int d = 1;
+		static const int n = 3;
 		static Vector<T> N(const std::vector<T>& _r);
 		static Matrix<T> dNdr(const std::vector<T>& _r);
 	};
@@ -52,7 +56,7 @@ public:
 
 	template<class T>
 	Vector<T> ShapeFunction3Line<T>::N(const std::vector<T>& _r){
-		Vector<T> N = Vector<T>(3);
+		Vector<T> N = Vector<T>(n);
 		N(0) = -0.5*(1.0 - _r[0])*_r[0];
 		N(1) = (1.0 - _r[0])*(1.0 + _r[0]);
 		N(2) = 0.5*_r[0]*(1.0 + _r[0]);
@@ -62,7 +66,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction3Line<T>::dNdr(const std::vector<T>& _r){
-		Matrix<T> dNdr = Matrix<T>(1, 3);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = -0.5*(1.0 - 2.0*_r[0]);	dNdr(0, 1) = -2.0*_r[0];	dNdr(0, 2) = 0.5*(1.0 + 2.0*_r[0]);
 		return dNdr;
 	}
@@ -72,6 +76,8 @@ public:
 	template<class T>
 	class ShapeFunction3Triangle {
 public:
+		static const int d = 2;
+		static const int n = 3;
 		static Vector<T> N(const std::vector<T>& _r);
 		static Matrix<T> dNdr(const std::vector<T>& _r);
 	};
@@ -79,7 +85,7 @@ public:
 
 	template<class T>
 	Vector<T> ShapeFunction3Triangle<T>::N(const std::vector<T>& _r) {
-		Vector<T> N = Vector<T>(3);
+		Vector<T> N = Vector<T>(n);
 		N(0) = _r[0];
 		N(1) = _r[1];
 		N(2) = 1.0 - _r[0] - _r[1];
@@ -89,7 +95,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction3Triangle<T>::dNdr(const std::vector<T>& _r) {
-		Matrix<T> dNdr = Matrix<T>(2, 3);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = 1.0;	dNdr(0, 1) = 0.0;	dNdr(0, 2) = -1.0;	
 		dNdr(1, 0) = 0.0;	dNdr(1, 1) = 1.0;	dNdr(1, 2) = -1.0;	
 		return dNdr;
@@ -100,6 +106,8 @@ public:
 	template<class T>
 	class ShapeFunction6Triangle {
 public:
+		static const int d = 2;
+		static const int n = 6;
 		static Vector<T> N(const std::vector<T>& _r);
 		static Matrix<T> dNdr(const std::vector<T>& _r);
 	};
@@ -107,7 +115,7 @@ public:
 
 	template<class T>
 	Vector<T> ShapeFunction6Triangle<T>::N(const std::vector<T>& _r) {
-		Vector<T> N = Vector<T>(6);
+		Vector<T> N = Vector<T>(n);
 		N(0) = _r[0]*(2.0*_r[0] - 1.0);
 		N(1) = _r[1]*(2.0*_r[1] - 1.0);
 		N(2) = (1.0 - _r[0] - _r[1])*(1.0 - 2.0*_r[0] - 2.0*_r[1]);
@@ -120,7 +128,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction6Triangle<T>::dNdr(const std::vector<T>& _r) {
-		Matrix<T> dNdr = Matrix<T>(2, 6);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = 4.0*_r[0] - 1.0;	dNdr(0, 1) = 0.0;				dNdr(0, 2) = -3.0 + 4.0*_r[0] + 4.0*_r[1];	dNdr(0, 3) = 4.0*_r[1];	dNdr(0, 4) = -4.0*_r[1];					dNdr(0, 5) = 4.0*(1.0 - 2.0*_r[0] - _r[1]);
 		dNdr(1, 0) = 0.0;				dNdr(1, 1) = 4.0*_r[1] - 1.0;	dNdr(1, 2) = -3.0 + 4.0*_r[0] + 4.0*_r[1];	dNdr(1, 3) = 4.0*_r[0];	dNdr(1, 4) = 4.0*(1.0 - _r[0] - 2.0*_r[1]);	dNdr(1, 5) = -4.0*_r[0];
 		return dNdr;
@@ -131,6 +139,8 @@ public:
 	template<class T>
 	class ShapeFunction4Square {
 public:
+		static const int d = 2;
+		static const int n = 4;
 		static Vector<T> N(const std::vector<T>& _r);
 		static Matrix<T> dNdr(const std::vector<T>& _r);
 	};
@@ -138,7 +148,7 @@ public:
 
 	template<class T>
 	Vector<T> ShapeFunction4Square<T>::N(const std::vector<T>& _r) {
-		Vector<T> N = Vector<T>(4);
+		Vector<T> N = Vector<T>(n);
 		N(0) = 0.25*(1.0 - _r[0])*(1.0 - _r[1]);
 		N(1) = 0.25*(1.0 + _r[0])*(1.0 - _r[1]);
 		N(2) = 0.25*(1.0 + _r[0])*(1.0 + _r[1]);
@@ -149,7 +159,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction4Square<T>::dNdr(const std::vector<T>& _r) {
-		Matrix<T> dNdr = Matrix<T>(2, 4);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = -0.25*(1.0 - _r[1]);	dNdr(0, 1) = 0.25*(1.0 - _r[1]);	dNdr(0, 2) = 0.25*(1.0 - _r[1]);	dNdr(0, 3) = -0.25*(1.0 - _r[1]);	
 		dNdr(1, 0) = -0.25*(1.0 - _r[0]);	dNdr(1, 1) = -0.25*(1.0 - _r[0]);	dNdr(1, 2) = 0.25*(1.0 - _r[0]);	dNdr(1, 3) = 0.25*(1.0 - _r[0]);
 		return dNdr;
@@ -160,6 +170,8 @@ public:
 	template<class T>
 	class ShapeFunction8Square {
 public:
+		static const int d = 2;
+		static const int n = 8;
 		static Vector<T> N(const std::vector<T>& _r);
 		static Matrix<T> dNdr(const std::vector<T>& _r);
 	};
@@ -167,7 +179,7 @@ public:
 
 	template<class T>
 	Vector<T> ShapeFunction8Square<T>::N(const std::vector<T>& _r) {
-		Vector<T> N = Vector<T>(8);
+		Vector<T> N = Vector<T>(n);
 		N(0) = 0.25*(1.0 - _r[0])*(1.0 - _r[1])*(-_r[0] - _r[1] - 1.0);
 		N(1) = 0.25*(1.0 + _r[0])*(1.0 - _r[1])*(_r[0] - _r[1] - 1.0);
 		N(2) = 0.25*(1.0 + _r[0])*(1.0 + _r[1])*(_r[0] + _r[1] - 1.0);
@@ -182,7 +194,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction8Square<T>::dNdr(const std::vector<T>& _r) {
-		Matrix<T> dNdr = Matrix<T>(2, 8);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = 0.25*(-(1.0 - _r[1])*(-_r[0] - _r[1] - 1.0) - (1.0 - _r[0])*(1.0 - _r[1]));
 		dNdr(0, 1) = 0.25*((1.0 - _r[1])*(_r[0] - _r[1] - 1.0) + (1.0 + _r[0])*(1.0 - _r[1]));
 		dNdr(0, 2) = 0.25*((1.0 + _r[1])*(_r[0] + _r[1] - 1.0) + (1.0 + _r[0])*(1.0 + _r[1]));
@@ -208,6 +220,8 @@ public:
 	template<class T>
 	class ShapeFunction4Tetrahedron {
 public:
+		static const int d = 3;
+		static const int n = 4;
 		static Vector<T> N(const std::vector<T>& _r);
 		static Matrix<T> dNdr(const std::vector<T>& _r);
 	};
@@ -215,7 +229,7 @@ public:
 
 	template<class T>
 	Vector<T> ShapeFunction4Tetrahedron<T>::N(const std::vector<T>& _r) {
-		Vector<T> N = Vector<T>(4);
+		Vector<T> N = Vector<T>(n);
 		N(0) = _r[0];
 		N(1) = _r[1];
 		N(2) = _r[2];
@@ -226,7 +240,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction4Tetrahedron<T>::dNdr(const std::vector<T>& _r) {
-		Matrix<T> dNdr = Matrix<T>(3, 4);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = 1.0;	dNdr(0, 1) = 0.0;	dNdr(0, 2) = 0.0;	dNdr(0, 3) = -1.0;
 		dNdr(1, 0) = 0.0;	dNdr(1, 1) = 1.0;	dNdr(1, 2) = 0.0;	dNdr(1, 3) = -1.0;
 		dNdr(2, 0) = 0.0;	dNdr(2, 1) = 0.0;	dNdr(2, 2) = 1.0;	dNdr(2, 3) = -1.0;
@@ -238,6 +252,8 @@ public:
 	template<class T>
 	class ShapeFunction8Cubic{
 public:
+		static const int d = 3;
+		static const int n = 8;
 		static Vector<T> N(const std::vector<T>& _r);
 		static Matrix<T> dNdr(const std::vector<T>& _r);
 	};
@@ -245,7 +261,7 @@ public:
 
 	template<class T>
 	Vector<T> ShapeFunction8Cubic<T>::N(const std::vector<T>& _r) {
-		Vector<T> N = Vector<T>(8);
+		Vector<T> N = Vector<T>(n);
 		N(0) = 0.125*(1.0 - _r[0])*(1.0 - _r[1])*(1.0 - _r[2]);
 		N(1) = 0.125*(1.0 + _r[0])*(1.0 - _r[1])*(1.0 - _r[2]);
 		N(2) = 0.125*(1.0 + _r[0])*(1.0 + _r[1])*(1.0 - _r[2]);
@@ -260,7 +276,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction8Cubic<T>::dNdr(const std::vector<T>& _r) {
-		Matrix<T> dNdr = Matrix<T>(3, 8);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = -0.125*(1.0 - _r[1])*(1.0 - _r[2]);	dNdr(0, 1) = 0.125*(1.0 - _r[1])*(1.0 - _r[2]);		dNdr(0, 2) = 0.125*(1.0 + _r[1])*(1.0 - _r[2]);		dNdr(0, 3) = -0.125*(1.0 + _r[1])*(1.0 - _r[2]);
 		dNdr(0, 4) = -0.125*(1.0 - _r[1])*(1.0 + _r[2]);	dNdr(0, 5) = 0.125*(1.0 - _r[1])*(1.0 + _r[2]);		dNdr(0, 6) = 0.125*(1.0 + _r[1])*(1.0 + _r[2]);		dNdr(0, 7) = -0.125*(1.0 + _r[1])*(1.0 + _r[2]);
 
@@ -277,6 +293,8 @@ public:
 	template<class T>
 	class ShapeFunction20Cubic{
 public:
+		static const int d = 3;
+		static const int n = 20;
 		static Vector<T> N(const std::vector<T>& _r);
 		static Matrix<T> dNdr(const std::vector<T>& _r);
 	};
@@ -284,7 +302,7 @@ public:
 
 	template<class T>
 	Vector<T> ShapeFunction20Cubic<T>::N(const std::vector<T>& _r) {
-		Vector<T> N = Vector<T>(20);
+		Vector<T> N = Vector<T>(n);
 		N(0) = -0.125*(1.0 - _r[0])*(1.0 - _r[1])*(1.0 - _r[2])*(2.0 + _r[0] + _r[1] + _r[2]);
 		N(1) = -0.125*(1.0 + _r[0])*(1.0 - _r[1])*(1.0 - _r[2])*(2.0 - _r[0] + _r[1] + _r[2]);
 		N(2) = -0.125*(1.0 + _r[0])*(1.0 + _r[1])*(1.0 - _r[2])*(2.0 - _r[0] - _r[1] + _r[2]);
@@ -311,7 +329,7 @@ public:
 
 	template<class T>
 	Matrix<T> ShapeFunction20Cubic<T>::dNdr(const std::vector<T>& _r) {
-		Matrix<T> dNdr = Matrix<T>(3, 20);
+		Matrix<T> dNdr = Matrix<T>(d, n);
 		dNdr(0, 0) = 0.125*(1.0 - _r[1])*(1.0 - _r[2])*(1.0 + 2.0*_r[0] + _r[1] + _r[2]);
 		dNdr(0, 1) = -0.125*(1.0 - _r[1])*(1.0 - _r[2])*(1.0 - 2.0*_r[0] + _r[1] + _r[2]);
 		dNdr(0, 2) = -0.125*(1.0 + _r[1])*(1.0 - _r[2])*(1.0 - 2.0*_r[0] - _r[1] + _r[2]);

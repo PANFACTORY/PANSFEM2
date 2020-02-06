@@ -58,7 +58,7 @@ int main() {
     }
 
     //----------Set Boundary Condition----------
-    SetDirichlet(K, F, isufixed, ufixed, 1.0e5);
+    SetDirichlet(K, F, isufixed, ufixed, 1.0e9);
 
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);

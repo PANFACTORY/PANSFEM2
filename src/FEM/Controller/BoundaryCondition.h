@@ -22,8 +22,13 @@ namespace PANSFEM2 {
 
 		for (int i = 0; i < _isufixed.size(); i++) {
 			T Kii = _K.get(_isufixed[i], _isufixed[i]);
-			_F[_isufixed[i]] = _alpha * Kii*_u[i];
-			_K.set(_isufixed[i], _isufixed[i], _alpha*Kii);
+			if(fabs(Kii) < 1.0e-10){
+				_F[_isufixed[i]] = _alpha*_u[i];
+				_K.set(_isufixed[i], _isufixed[i], _alpha);
+			} else{
+				_F[_isufixed[i]] = _alpha*Kii*_u[i];
+				_K.set(_isufixed[i], _isufixed[i], _alpha*Kii);
+			}
 		}
 	}
 

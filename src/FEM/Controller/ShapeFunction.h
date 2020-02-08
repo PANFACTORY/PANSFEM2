@@ -58,8 +58,8 @@ public:
 	Vector<T> ShapeFunction3Line<T>::N(const std::vector<T>& _r){
 		Vector<T> N = Vector<T>(n);
 		N(0) = -0.5*(1.0 - _r[0])*_r[0];
-		N(1) = (1.0 - _r[0])*(1.0 + _r[0]);
-		N(2) = 0.5*_r[0]*(1.0 + _r[0]);
+		N(1) = 0.5*_r[0]*(1.0 + _r[0]);
+		N(2) = (1.0 - _r[0])*(1.0 + _r[0]);
 		return N;
 	}
 
@@ -67,7 +67,7 @@ public:
 	template<class T>
 	Matrix<T> ShapeFunction3Line<T>::dNdr(const std::vector<T>& _r){
 		Matrix<T> dNdr = Matrix<T>(d, n);
-		dNdr(0, 0) = -0.5*(1.0 - 2.0*_r[0]);	dNdr(0, 1) = -2.0*_r[0];	dNdr(0, 2) = 0.5*(1.0 + 2.0*_r[0]);
+		dNdr(0, 0) = -0.5*(1.0 - 2.0*_r[0]);	dNdr(0, 1) = 0.5*(1.0 + 2.0*_r[0]);		dNdr(0, 2) = -2.0*_r[0];
 		return dNdr;
 	}
 

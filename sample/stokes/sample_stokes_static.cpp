@@ -35,6 +35,14 @@ int main() {
 	std::vector<std::vector<int> > elementsp;
 	ImportElementsFromCSV(elementsp, model_path + "ElementP.csv");
 
+    //----------Add Edge for velocity u----------
+	std::vector<std::vector<int> > edgesu;
+	ImportElementsFromCSV(edgesu, model_path + "EdgeU.csv");
+
+    //----------Add Edge for pressure p----------
+	std::vector<std::vector<int> > edgesp;
+	ImportElementsFromCSV(edgesp, model_path + "EdgeP.csv");
+
 	//----------Add Field for velocity----------
 	std::vector<int> field;
 	int KDEGREE = 0;
@@ -56,6 +64,13 @@ int main() {
         Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodes, elementsu[i], elementsp[i], 1.0);
         Assembling(K, Ke, elementsu[i], field);
     }
+
+    //----------Culculate traction term and Assembling----------
+	for(int i = 0; i < edgesu.size(); i++){
+		Vector<double> Fe;
+		StokesTraction<double, ShapeFunction3Line, ShapeFunction2Line, Gauss2Line>(Fe, nodes, edgesu[i], edgesp[i], 1.0/3.0, 0.0);
+		Assembling(F, Fe, edgesu[i], field);
+	}
 
     //----------Set Boundary Condition----------
     SetDirichlet(K, F, isufixed, ufixed, 1.0e9);

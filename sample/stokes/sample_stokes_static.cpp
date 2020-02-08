@@ -21,7 +21,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/stokes/";
+	std::string model_path = "sample/stokes/model1/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;

@@ -54,24 +54,24 @@ namespace PANSFEM2 {
             Matrix<T> K = Matrix<T>(2*m + n, 2*m + n);
             for(int i = 0; i < n; i++){
                 for(int j = 0; j < n; j++){
-                    K(3*i, 3*j) = _mu*(dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));  K(3*i, 3*j + 1) = T();                                                      K(3*i, 3*j + 2) = M(i)*dNdX(0, j);
-                    K(3*i + 1, 3*j) = T();                                              K(3*i + 1, 3*j + 1) = _mu*(dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));  K(3*i + 1, 3*j + 2) = M(i)*dNdX(1, j);
-                    K(3*i + 2, 3*j) = M(j)*dNdX(0, i);                                  K(3*i + 2, 3*j + 1) = M(j)*dNdX(1, i);                                      K(3*i + 2, 3*j + 2) = T();
+                    K(3*i, 3*j) = 2.0*_mu*dMdX(0, i)*dMdX(0, j) + _mu*dMdX(1, i)*dMdX(1, j);    K(3*i, 3*j + 1) = _mu*dMdX(0, i)*dMdX(1, j);                                        K(3*i, 3*j + 2) = -N(j)*dMdX(0, i);
+                    K(3*i + 1, 3*j) = _mu*dMdX(1, i)*dMdX(0, j);                                K(3*i + 1, 3*j + 1) = _mu*dMdX(0, i)*dMdX(0, j) + 2.0*_mu*dMdX(1, i)*dMdX(1, j);    K(3*i + 1, 3*j + 2) = -N(j)*dMdX(1, i);
+                    K(3*i + 2, 3*j) = -N(i)*dMdX(0, j);                                         K(3*i + 2, 3*j + 1) = -N(i)*dMdX(1, j);                                             K(3*i + 2, 3*j + 2) = T();
                 }
                 for(int j = n; j < m; j++){
-                    K(3*i, n + 2*j) = _mu*(dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));  K(3*i, n + 2*j + 1) = T();
-                    K(3*i + 1, n + 2*j) = T();                                              K(3*i + 1, n + 2*j + 1) = _mu*(dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));
-                    K(3*i + 2, n + 2*j) = M(j)*dNdX(0, i);                                  K(3*i + 2, n + 2*j + 1) = M(j)*dNdX(1, i);
+                    K(3*i, n + 2*j) = 2.0*_mu*dMdX(0, i)*dMdX(0, j) + _mu*dMdX(1, i)*dMdX(1, j);    K(3*i, n + 2*j + 1) = _mu*dMdX(0, i)*dMdX(1, j);
+                    K(3*i + 1, n + 2*j) = _mu*dMdX(1, i)*dMdX(0, j);                                K(3*i + 1, n + 2*j + 1) = _mu*dMdX(0, i)*dMdX(0, j) + 2.0*_mu*dMdX(1, i)*dMdX(1, j);
+                    K(3*i + 2, n + 2*j) = -N(i)*dMdX(0, j);                                         K(3*i + 2, n + 2*j + 1) = -N(i)*dMdX(1, j);
                 }
             }
             for(int i = n; i < m; i++){
                 for(int j = 0; j < n; j++){
-                    K(n + 2*i, 3*j) = _mu*(dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));   K(n + 2*i, 3*j + 1) = T();                                                     K(n + 2*i, 3*j + 2) = M(i)*dNdX(0, j);
-                    K(n + 2*i + 1, 3*j) = T();                                               K(n + 2*i + 1, 3*j + 1) = _mu*(dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j)); K(n + 2*i + 1, 3*j + 2) = M(i)*dNdX(1, j);
+                    K(n + 2*i, 3*j) = 2.0*_mu*dMdX(0, i)*dMdX(0, j) + _mu*dMdX(1, i)*dMdX(1, j);    K(n + 2*i, 3*j + 1) = _mu*dMdX(0, i)*dMdX(1, j);                                        K(n + 2*i, 3*j + 2) = -N(j)*dMdX(0, i);
+                    K(n + 2*i + 1, 3*j) = _mu*dMdX(1, i)*dMdX(0, j);                                K(n + 2*i + 1, 3*j + 1) = _mu*dMdX(0, i)*dMdX(0, j) + 2.0*_mu*dMdX(1, i)*dMdX(1, j);    K(n + 2*i + 1, 3*j + 2) = -N(j)*dMdX(1, i);
                 }
                 for(int j = n; j < m; j++){
-                    K(n + 2*i, n + 2*j) = _mu*(dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));   K(n + 2*i, n + 2*j + 1) = T();
-                    K(n + 2*i + 1, n + 2*j) = T();                                               K(n + 2*i + 1, n + 2*j + 1) = _mu*(dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));
+                    K(n + 2*i, n + 2*j) = 2.0*_mu*dMdX(0, i)*dMdX(0, j) + _mu*dMdX(1, i)*dMdX(1, j);    K(n + 2*i, n + 2*j + 1) = _mu*dMdX(0, i)*dMdX(1, j);
+                    K(n + 2*i + 1, n + 2*j) = _mu*dMdX(1, i)*dMdX(0, j);                                K(n + 2*i + 1, n + 2*j + 1) = _mu*dMdX(0, i)*dMdX(0, j) + 2.0*_mu*dMdX(1, i)*dMdX(1, j);
                 }
             }
 			

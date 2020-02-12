@@ -23,9 +23,9 @@ int main() {
 	//----------Model Path----------
 	std::string model_path = "sample/solid/";
 	
-	//----------Add Nodes----------
-	std::vector<Vector<double> > nodes;
-	ImportNodesFromCSV(nodes, model_path + "Node.csv");
+	//----------Add X----------
+	std::vector<Vector<double> > X;
+	ImportNodesFromCSV(X, model_path + "Node.csv");
 	
 	//----------Add Elements----------
 	std::vector<std::vector<int> > elements;
@@ -34,7 +34,7 @@ int main() {
 	//----------Add Field----------
 	std::vector<int> field;
 	int KDEGREE = 0;
-	ImportFieldFromCSV(field, KDEGREE, nodes.size(), model_path + "Field.csv");
+	ImportFieldFromCSV(field, KDEGREE, X.size(), model_path + "Field.csv");
 	
 	//----------Add Dirichlet Condition----------
 	std::vector<int> isufixed;
@@ -47,12 +47,12 @@ int main() {
 	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
 
 	//----------Set initial displacement u----------
-	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size(), Vector<double>(3)); 
+	std::vector<Vector<double> > u = std::vector<Vector<double> >(X.size(), Vector<double>(3)); 
 			
 	//----------Save initial value----------
 	std::ofstream fout(model_path + "result" + std::to_string(0) + ".vtk");
 	MakeHeadderToVTK(fout);
-	AddPointsToVTK(nodes, fout);
+	AddPointsToVTK(X, fout);
 	AddElementToVTK(elements, fout);
 	std::vector<int> et = std::vector<int>(elements.size(), 12);
 	AddElementTypes(et, fout);
@@ -72,7 +72,7 @@ int main() {
 			for (auto element : elements) {
 				Matrix<double> Ke;
 				Vector<double> Qe;
-				TotalLagrangeSolid<double, ShapeFunction8Cubic, Gauss8Cubic >(Ke, Qe, nodes, u, element, 1000.0, 0.3);
+				UpdatedLagrangeSolid<double, ShapeFunction8Cubic, Gauss8Cubic >(Ke, Qe, X, u, element, 1000.0, 0.3);
 				Assembling(K, Q, Ke, Qe, element, field);
 			}
 
@@ -106,9 +106,9 @@ int main() {
 			std::vector<double> result = ScalingCG(Kmod, R, 100000, 1.0e-10);
 
 			//----------Update displacement u----------
-			std::vector<Vector<double> > du = std::vector<Vector<double> >(nodes.size());
+			std::vector<Vector<double> > du = std::vector<Vector<double> >(X.size());
 			FieldResultToNodeValue(result, du, field);
-			for(int i = 0; i < nodes.size(); i++){
+			for(int i = 0; i < X.size(); i++){
 				u[i] += du[i];
 			}
 		}
@@ -116,7 +116,7 @@ int main() {
 		//----------Save file----------
 		std::ofstream fout(model_path + "result" + std::to_string(finc) + ".vtk");
 		MakeHeadderToVTK(fout);
-		AddPointsToVTK(nodes, fout);
+		AddPointsToVTK(X, fout);
 		AddElementToVTK(elements, fout);
 		AddElementTypes(et, fout);
 		AddPointVectors(u, "u", fout, true);

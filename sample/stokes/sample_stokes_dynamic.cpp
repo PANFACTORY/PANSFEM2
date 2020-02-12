@@ -61,11 +61,11 @@ int main() {
 	ImportInitialFromCSV(u, model_path + "Dirichlet.csv");
     	
 	//----------Define time step and theta----------
-	double dt = 0.001;   		//	Time step
+	double dt = 0.01;   		//	Time step
 	double theta = 0.5;			//	FDM parameter for time
 
 	//----------Time step loop----------
-	for(int t = 0; t < 2000; t++){
+	for(int t = 0; t < 200; t++){
 		std::cout << "t = " << t << std::endl;
 
         //----------Culculate Ke Fe and Assembling----------
@@ -81,8 +81,8 @@ int main() {
             Matrix<double> Me;
             StokesMass<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Me, nodes, elementsu[i], elementsp[i], 1.0);
         
-            Matrix<double> Ae = Me/2.0 + dt*Ke/3.0;
-			Vector<double> be = -(dt*Ke/6.0 - Me/2.0)*ue;
+            Matrix<double> Ae = Me/dt + theta*Ke;
+			Vector<double> be = (Me/dt - (1.0 - theta)*Ke)*ue;
 			Assembling(K, F, Ae, be, elementsu[i], field);        
         }
 

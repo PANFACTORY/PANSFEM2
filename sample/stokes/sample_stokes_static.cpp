@@ -54,7 +54,7 @@ int main() {
 	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
 
 	//----------Initialize velocity and pressure----------
-	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size());     //  Velocity
+	std::vector<Vector<double> > up = std::vector<Vector<double> >(nodes.size());     //  Velocity
     
 	//----------Culculate Ke Fe and Assembling----------
     LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);        //  System stiffness matrix
@@ -78,7 +78,15 @@ int main() {
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
     std::vector<double> result = CG(Kmod, F, 100000, 1.0e-20);
-    FieldResultToNodeValue(result, u, field);
+    FieldResultToNodeValue(result, up, field);
+	std::vector<Vector<double>> u = std::vector<Vector<double>>(nodes.size());
+	std::vector<double> p = std::vector<double>(nodes.size(), 0.0);
+	for(int i = 0; i < nodes.size(); i++){
+		u[i] = up[i].Segment(0, 2);
+		if(up[i].SIZE() == 3){
+			p[i] = up[i](2);
+		}
+	}
         
     //*************************************************		
     //  Save values
@@ -89,7 +97,7 @@ int main() {
     AddElementToVTK(elementsp, fout);
     AddElementTypes(std::vector<int>(elementsp.size(), 5), fout);
     AddPointVectors(u, "u", fout, true);
-    //AddPointScalers(p, "p", fout, false);
+    AddPointScalers(p, "p", fout, false);
     fout.close();
     
 	return 0;

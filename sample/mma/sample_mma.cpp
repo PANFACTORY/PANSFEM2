@@ -22,7 +22,7 @@ using namespace PANSFEM2;
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/mma/";
+	std::string model_path = "sample/mma/Cantileber/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;
@@ -58,7 +58,7 @@ int main() {
 	double Poisson = 0.3;
 	double p = 3.0;
 
-	double weightlimit = 0.3;
+	double weightlimit = 0.5;
 	double scale0 = 1.0e5;
 	double scale1 = 1.0;
 
@@ -67,10 +67,10 @@ int main() {
 		std::vector<double>(1, 10000.0),
 		std::vector<double>(1, 0.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.5, 0.5, 0.7, 1.2, 1.0e-5);
+	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-7);
 		
 	//----------Optimize loop----------
-	for(int k = 0; k < 50; k++){
+	for(int k = 0; k < 200; k++){
 		std::cout << "\nk = " << k << "\t";
 
         
@@ -144,10 +144,10 @@ int main() {
 
 		//----------Check convergence----------
         std::cout << "Objective:\t" << objective/scale0 << "\tWeight:\t" << constraints[0]/scale1 << "\t";
-		/*if(optimizer.IsConvergence(objective)){
-			std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
-			break;
-		}*/
+		if(optimizer.IsConvergence(objective)){
+			//std::cout << std::endl << "--------------------Optimized--------------------" << std::endl;
+			//break;
+		}
 		
 		//----------Get updated design variables with OC method----------
 		optimizer.UpdateVariables(s, objective, dobjectives, constraints, dconstraints);	

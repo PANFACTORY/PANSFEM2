@@ -103,10 +103,15 @@ int main() {
         //----------Set Dirichlet Boundary Condition----------
         SetDirichlet(K, R, isufixed, dufixed, 1.0e9);
 
+        std::cout << K << std::endl;
+        for(auto ri : R){
+            std::cout << ri << std::endl;
+        }
+
         //----------Check convergence----------
         double normR = std::inner_product(R.begin(), R.end(), R.begin(), 0.0);
         //double normF = std::inner_product(F.begin(), F.end(), F.begin(), 0.0);
-        std::cout << "k = " << k << "\tNorm = " << normR << std::endl;
+        //std::cout << "k = " << k << "\tNorm = " << normR << std::endl;
         if (normR < 1.0e-6) {
             //std::cout << "k = " << k << "\tNorm = " << normR << std::endl;
             //break;
@@ -114,7 +119,7 @@ int main() {
         
         //----------Solve System Equation----------
         CSR<double> Kmod = CSR<double>(K);
-        std::vector<double> result = BiCGSTAB(Kmod, R, 100000, 1.0e-20);
+        std::vector<double> result = BiCGSTAB(Kmod, R, 1, 1.0e-20);
 
         //----------Update displacement u----------
         std::vector<Vector<double> > dup = std::vector<Vector<double> >(nodes.size());

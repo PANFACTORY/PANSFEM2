@@ -28,7 +28,9 @@ public:
         virtual ~Vector();
         Vector(int _size);
         Vector(const Vector<T>& _vec);
+        Vector(const std::initializer_list<T>& _vec);
         Vector(const std::vector<T>& _vec);
+        Vector(const Matrix<T>& _mat);
 
 
         int SIZE() const;
@@ -54,8 +56,6 @@ public:
         template<class U>
 	    friend std::ostream& operator << (std::ostream& _out, const Vector<U>& _vec);
         template<class U>
-        friend Vector<U> operator*(const Matrix<U>& _mat, const Vector<U>& _vec);
-        template<class U>
         friend Vector<U> operator*(U _a, const Vector<U>& _vec);
         template<class U>
         friend Matrix<U> Diagonal(const Vector<U>& _vec);
@@ -65,6 +65,10 @@ public:
         Matrix<T> Transpose();
         Vector<T> Vstack(const Vector<T>& _vec);
         Vector<T> Segment(int _head, int _tail);
+
+
+        template<class F>
+	    friend class Matrix;
 
 
 protected:
@@ -103,11 +107,32 @@ protected:
 
 
     template<class T>
+    Vector<T>::Vector(const std::initializer_list<T>& _vec){
+        this->size = _vec.size();
+        this->values = new T[this->size];
+        for(int i = 0; i < this->size; i++){
+            this->values[i] = *(_vec.begin() + i);
+        }
+    }
+
+
+    template<class T>
     Vector<T>::Vector(const std::vector<T>& _vec){
         this->size = _vec.size();
         this->values = new T[this->size];
         for(int i = 0; i < this->size; i++){
             this->values[i] = _vec[i];
+        }
+    }
+
+
+    template<class T>
+    Vector<T>::Vector(const Matrix<T>& _mat){
+        assert(_mat.col == 1);
+        this->size = _mat.row;
+        this->values = new T[this->size];
+        for(int i = 0; i < this->size; i++){
+            this->values[i] = _mat.values[i];
         }
     }
 

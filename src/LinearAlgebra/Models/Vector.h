@@ -59,6 +59,8 @@ public:
         friend Vector<U> operator*(U _a, const Vector<U>& _vec);
         template<class U>
         friend Matrix<U> Diagonal(const Vector<U>& _vec);
+        template<class U>
+        friend Vector<U> VectorProduct(Vector<U> _vec0, Vector<U> _vec1);
 
 
         T Norm();
@@ -341,5 +343,17 @@ protected:
             vec.values[i] *= _a;
         }
         return vec;
+    }
+
+
+    template<class U>
+    Vector<U> VectorProduct(Vector<U> _vec0, Vector<U> _vec1){
+        assert(_vec0.size == 3 && _vec1.size == 3);
+
+        Vector<U> v = Vector<U>(3);
+        v(0) = _vec0(1)*_vec1(2) - _vec0(2)*_vec1(1);
+        v(1) = _vec0(2)*_vec1(0) - _vec0(0)*_vec1(2);
+        v(2) = _vec0(0)*_vec1(1) - _vec0(1)*_vec1(0);
+        return v; 
     }
 }

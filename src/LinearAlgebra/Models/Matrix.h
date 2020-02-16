@@ -60,6 +60,7 @@ public:
         Matrix<T> Cofactor(int _i, int _j);
         Matrix<T> Vstack(const Matrix<T>& _mat);
         Matrix<T> Hstack(const Matrix<T>& _mat);
+        Matrix<T> Block(int _row, int _col, int _h, int _w);
 
 
         template<class U>
@@ -403,6 +404,20 @@ protected:
             }
         }
         return mat;
+    }
+
+
+    template<class T>
+    Matrix<T> Matrix<T>::Block(int _row, int _col, int _h, int _w){
+        assert(_row >= 0 && _col >= 0 && _h > 0 && _w > 0 && _row + _h <= this->row && _col + _w <= this->col);
+
+        Matrix<T> m = Matrix<T>(_h, _w);
+        for(int i = 0; i < _h; i++){
+            for(int j = 0; j < _w; j++){
+                m.values[i*m.col + j] = this->values[(_row + i)*this->col + (_col + j)];
+            }
+        }
+        return m;
     }
 
 

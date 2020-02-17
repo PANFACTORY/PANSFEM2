@@ -21,7 +21,7 @@ int main(){
     
     double aAc = a*(A*c);
 
-    std::cout << A*A << std::endl;
+    std::cout << a*c.Transpose() << std::endl;
 
     return 0;
 }

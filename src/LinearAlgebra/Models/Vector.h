@@ -67,6 +67,7 @@ public:
         Matrix<T> Transpose();
         Vector<T> Vstack(const Vector<T>& _vec);
         Vector<T> Segment(int _head, int _tail);
+        Vector<T> Normal();
 
 
         template<class F>
@@ -333,6 +334,13 @@ protected:
             vec.values[i] = this->values[_head + i];
         }
         return vec;
+    }
+
+
+    template<class T>
+    Vector<T> Vector<T>::Normal(){
+        Vector<T> v = *this;
+        return v/v.Norm();
     }
 
 

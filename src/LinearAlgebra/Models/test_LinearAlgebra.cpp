@@ -23,5 +23,7 @@ int main(){
 
     std::cout << a*c.Transpose() << std::endl;
 
+    std::cout << a.Normal() << std::endl;
+
     return 0;
 }

@@ -18,14 +18,14 @@
 namespace PANSFEM2 {
     //********************Linear Isotropic Elastic Shell********************
 	template<class T, template<class>class SF, template<class>class IC>
-	void LinearIsotropicElasticShell(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _E, T _V, T _t) {
+	void LinearIsotropicElasticShell(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _v, std::vector<int>& _element, T _E, T _V, T _t) {
 		//----------Initialize element stiffness matrix----------
 		_Ke = Matrix<T>(5*_element.size(), 5*_element.size());
 		
 		//----------Generate cordinate matrix X----------
 		Matrix<T> X = Matrix<T>(0, 3);
-		for(int i = 0; i < _element.size(); i++){
-			X = X.Vstack(_x[_element[i]].Transpose());
+		for(auto i : _element){
+			X = X.Vstack(_x[i].Transpose());
 		}
         Vector<T> l = _x[_element[1]] - _x[_element[0]];
 
@@ -33,8 +33,8 @@ namespace PANSFEM2 {
         Matrix<T> v3 = Matrix<T>(0, 3);
         Matrix<T> v1 = Matrix<T>(0, 3);
         Matrix<T> v2 = Matrix<T>(0, 3);
-        for(int i = 0; i < _element.size(); i++){
-            Vector<T> v3i;
+        for(auto i : _element){
+            Vector<T> v3i = _v[i].Normal();
             v3 = v3.VStack(v3i.Transpose());
             Vector<T> v1i = VectorProduct(l, v3i).Normal();
             v1 = v1.VStack(v1i.Transpose());
@@ -49,13 +49,21 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g].Segment(0, 2));
 
 			//----------Generate Jacobi matrix and derivative----------
-			Matrix<T> J = (dNdr*(X + 0.5*_t*IC<T>::Points[g].Segment(2, 1)*v3)).VStack(0.5*_t*N.Transpose()*v3);
+            T zeta = IC<T>::Points[g].Segment(2, 1)(0);
+			Matrix<T> J = (dNdr*(X + 0.5*_t*zeta*v3)).VStack(0.5*_t*N.Transpose()*v3);
             T detJ = J.Determinant();
+            Matrix<T> invJ = J.Inverse();
+            Matrix<T> dNdx = invJ.Block(0, 0, 3, 2)*dNdr;
+            Matrix<T> dNzdx = dNdx*zeta + invJ.Block(0, 2, 3, 1)*N.Transpose();
 
             //----------Generate B matrix----------
             Matrix<T> B = Matrix<T>(5, 5*_element.size());
             for(int i = 0; i < _element.size(); i++){
-
+                B(0, 5*i) = dNdx(0, i); B(0, 5*i + 1) = T();        B(0, 5*i + 2) = T();        B(0, 5*i + 3) = 0.5*_t*dNzdx(0, i)*v1(i, 0);                            B(0, 5*i + 4) = 0.5*_t*dNzdx(0, i)*v2(i, 0);
+                B(1, 5*i) = T();        B(1, 5*i + 1) = dNdx(1, i); B(1, 5*i + 2) = T();        B(1, 5*i + 3) = 0.5*_t*dNzdx(1, i)*v1(i, 1);                            B(1, 5*i + 4) = 0.5*_t*dNzdx(1, i)*v2(i, 1);
+                B(2, 5*i) = dNdx(1, i); B(2, 5*i + 1) = dNdx(0, i); B(2, 5*i + 2) = T();        B(2, 5*i + 3) = 0.5*_t*(dNzdx(1, i)*v1(i, 0) + dNzdx(0, i)*v1(i, 1));   B(2, 5*i + 4) = 0.5*_t*(dNzdx(1, i)*v2(i, 0) + dNzdx(0, i)*v2(i, 1));
+                B(3, 5*i) = dNdx(2, i); B(3, 5*i + 1) = T();        B(3, 5*i + 2) = dNdx(0, i); B(3, 5*i + 3) = 0.5*_t*(dNzdx(0, i)*v1(i, 2) + dNzdx(2, i)*v1(i, 0));   B(3, 5*i + 4) = 0.5*_t*(dNzdx(0, i)*v2(i, 2) + dNzdx(2, i)*v2(i, 0));
+                B(4, 5*i) = T();        B(4, 5*i + 1) = dNdx(2, i); B(4, 5*i + 2) = dNdx(1, i); B(4, 5*i + 3) = 0.5*_t*(dNzdx(2, i)*v1(i, 1) + dNzdx(1, i)*v1(i, 2));   B(4, 5*i + 4) = 0.5*_t*(dNzdx(2, i)*v2(i, 1) + dNzdx(1, i)*v2(i, 2));
             }
 
             //----------Genarate D matrix----------

@@ -18,8 +18,10 @@ int main(){
 
     Vector<double> a = { 1.0, 2.0, 0.0 };
     Vector<double> c = { 0.0, 1.0, -1.0 };
+    
+    double aAc = a*(A*c);
 
-    std::cout << VectorProduct(a, c) << std::endl;
+    std::cout << A*A << std::endl;
 
     return 0;
 }

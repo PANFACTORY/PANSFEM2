@@ -46,6 +46,7 @@ public:
         Matrix<T> operator-(const Matrix<T>& _mat);
         Matrix<T> operator-();
         Matrix<T> operator*(const Matrix<T>& _mat);
+        Vector<T> operator*(const Vector<T>& _vec);
         Matrix<T> operator*(T _a);
         Matrix<T> operator/(T _a);
 
@@ -251,6 +252,19 @@ protected:
             }
         }
         return mat;
+    }
+
+
+    template<class T>
+    Vector<T> Matrix<T>::operator*(const Vector<T>& _vec){
+        assert(this->col == _vec.size);
+        Vector<T> v = Vector<T>(this->row);
+        for(int i = 0; i < this->row; i++){
+            for(int j = 0; j < this->col; j++){
+                v(i) += this->values[i*this->col + j]*_vec.values[j];
+            }
+        }
+        return v;
     }
 
 

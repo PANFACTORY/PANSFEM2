@@ -54,7 +54,7 @@ int main() {
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
 	for (auto element : elements) {
 		Matrix<double> Ke;
-		LinearIsotropicElasticShell<double, ShapeFunction4Square, Gauss8Cubic>(Ke, nodes, element, v3, 210000.0, 0.3, 1.0);
+		LinearIsotropicElasticShell<double, ShapeFunction4Square, Gauss1Square, Gauss2Line>(Ke, nodes, element, v3, 210000.0, 0.3, 1.0);
 		Assembling(K, Ke, element, field);
 	}
 
@@ -81,7 +81,7 @@ int main() {
 	MakeHeadderToVTK(fout);
 	AddPointsToVTK(nodes, fout);
 	AddElementToVTK(elements, fout);
-	std::vector<int> et = std::vector<int>(elements.size(), 5);
+	std::vector<int> et = std::vector<int>(elements.size(), 9);
 	AddElementTypes(et, fout);
 	AddPointVectors(u, "u", fout, true);
 	fout.close();

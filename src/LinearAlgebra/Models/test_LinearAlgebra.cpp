@@ -23,8 +23,8 @@ int main(){
 
     std::cout << a*c.Transpose() << std::endl;
 
-    Vector<double> A0 = A.Block(0, 0, 3, 1);
-    Vector<double> A1 = A.Block(0, 1, 3, 1);
+    Vector<double> A0 = { 1.0, -2.0, -1.0 };
+    Vector<double> A1 = { 2.0, -1.0, -3.0 };
 
     std::cout << VectorProduct(A0, A1) << std::endl;
 

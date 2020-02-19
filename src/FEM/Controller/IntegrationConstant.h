@@ -106,6 +106,29 @@ public:
 													{ 1.0 / (3.0*sqrt(2.0)), 1.0 / (3.0*sqrt(2.0)) },
 												};
 
+
+	//********************GaussIntegrationConstant2D1Points********************
+	template<class T>
+	class Gauss1Square{
+public:
+		static const int N = 1;								//Number of integration point
+		static const std::vector<Vector<T> > Points;		//Cordinate values of integration point
+		static const std::vector<std::vector<T> > Weights;	//Weights of integration point
+	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > Gauss1Square<T>::Points = { 
+													{ T(), T() },
+												};
+
+
+	template<class T>
+	const std::vector<std::vector<T> > Gauss1Square<T>::Weights = { 
+													{ 2.0, 2.0 },
+												};
+
+
 	//********************GaussIntegrationConstant2D4Points********************
 	template<class T>
 	class Gauss4Square{

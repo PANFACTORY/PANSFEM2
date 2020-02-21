@@ -71,6 +71,9 @@ namespace PANSFEM2 {
                 }
 
                 //----------Generate global D matrix----------
+                Vector<T> P1 = (v1.Transpose()*N).Normal();
+                Vector<T> P2 = (v2.Transpose()*N).Normal();
+                Vector<T> P0 = VectorProduct(v1, v2).Normal();
                 Matrix<T> P = Matrix<T>(3, 6);
                 P(0, 0) = P0(0)*P0(0);      P(0, 1) = P0(1)*P0(1);      P(0, 2) = P0(2)*P0(2);      P(0, 3) = P0(0)*P0(1);                  P(0, 4) = P0(0)*P0(2);                  P(0, 5) = P0(1)*P0(2);
                 P(1, 0) = 2.0*P0(0)*P1(0);  P(1, 1) = 2.0*P0(1)*P1(1);  P(1, 2) = 2.0*P0(2)*P1(2);  P(1, 3) = P0(0)*P1(1) + P0(1)*P1(0);    P(1, 4) = P0(0)*P1(2) + P0(2)*P1(0);    P(1, 5) = P0(1)*P1(2) + P0(2)*P1(1);

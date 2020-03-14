@@ -31,7 +31,7 @@ public:
 
 	template<class T>
 	const std::vector<std::vector<T> > NewtonCotes1Line<T>::Weights = { 
-													{ 1.0 },
+													{ 2.0 },
 												};
 
 
@@ -55,9 +55,9 @@ public:
 
 	template<class T>
 	const std::vector<std::vector<T> > NewtonCotes3Line<T>::Weights = { 
-													{ 1.0/6.0 },
-                                                    { 4.0/6.0 },
-                                                    { 1.0/6.0 },
+													{ 2.0/6.0 },
+                                                    { 8.0/6.0 },
+                                                    { 2.0/6.0 },
 												};
 
 
@@ -83,11 +83,11 @@ public:
 
 	template<class T>
 	const std::vector<std::vector<T> > NewtonCotes5Line<T>::Weights = { 
-													{ 7.0/90.0 },
-                                                    { 32.0/90.0 },
-                                                    { 12.0/90.0 },
-                                                    { 32.0/90.0 },
-                                                    { 7.0/90.0 },
+													{ 14.0/90.0 },
+                                                    { 64.0/90.0 },
+                                                    { 24.0/90.0 },
+                                                    { 64.0/90.0 },
+                                                    { 14.0/90.0 },
 												};
 
 
@@ -115,12 +115,12 @@ public:
 
 	template<class T>
 	const std::vector<std::vector<T> > NewtonCotes7Line<T>::Weights = { 
-													{ 41.0/840.0 },
-                                                    { 216.0/840.0 },
-                                                    { 27.0/840.0 },
-                                                    { 272.0/840.0 },
-                                                    { 27.0/840.0 },
-                                                    { 216.0/840.0 },
-                                                    { 41.0/840.0 },
+													{ 82.0/840.0 },
+                                                    { 432.0/840.0 },
+                                                    { 54.0/840.0 },
+                                                    { 544.0/840.0 },
+                                                    { 54.0/840.0 },
+                                                    { 432.0/840.0 },
+                                                    { 82.0/840.0 },
 												};
 }

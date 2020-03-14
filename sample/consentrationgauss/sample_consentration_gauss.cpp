@@ -20,6 +20,11 @@
 using namespace PANSFEM2;
 
 
+double f(double _x){
+    return 4.0/(1.0 + pow(_x, 2.0));
+}
+
+
 int main() {
     int n = 50;
 
@@ -36,7 +41,7 @@ int main() {
     }
 
     //----------Culculate element value----------
-    double f = 0.0;
+    double value = 0.0;
     for(auto element : elements){
         Matrix<double> xe = Matrix<double>(0, 1);
 		for(auto i : element){
@@ -51,11 +56,10 @@ int main() {
 			Vector<double> X = xe.Transpose()*N;
             Matrix<double> dXdr = dNdr*xe;
 			double dl = sqrt((dXdr*dXdr.Transpose())(0, 0));
-            double df = 4.0/(1.0 + pow(X(0), 2.0));
-            f += NewtonCotes3Line<double>::Weights[g][0]*df*dl;
+            value += NewtonCotes3Line<double>::Weights[g][0]*f(X(0))*dl;
         }
     }
 
-    std::cout << f << std::endl;
+    std::cout << value << std::endl;
 	return 0;
 }

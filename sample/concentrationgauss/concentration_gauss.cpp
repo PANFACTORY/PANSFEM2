@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -14,18 +15,16 @@
 #include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/NewtonCotesIntegration.h"
 
 
 using namespace PANSFEM2;
 
 
 Vector<double> f(Vector<double> _x){
-    return { 0.0, -200.0 };
-}
-
-
-Vector<double> g(Vector<double> _x){
-    return { 0.0, -300.0 };
+	double sigma = 0.1;
+	double mu = 5.0; 
+    return { 0.0, exp(-0.5*pow((_x(0) - mu)/sigma, 2.0))/(sqrt(2.0*M_PI)*sigma) };
 }
 
 
@@ -65,25 +64,22 @@ int main() {
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
 	for (auto element : elements) {
 		Matrix<double> Ke;
-		PlaneStrain<double, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodes, element, 210000.0, 0.3, 1.0);
+		PlaneStrain<double, ShapeFunction4Square, Gauss4Square>(Ke, nodes, element, 210000.0, 0.3, 1.0);
 		Assembling(K, Ke, element, field);
-		Vector<double> Fe;
-		PlaneBodyForce<double, ShapeFunction3Triangle, Gauss1Triangle>(Fe, nodes, element, g, 1.0);
-		Assembling(F, Fe, element, field);
 	}
 
 	//----------Culculate Surface force and Assembling----------
-	for(auto edge : edges){
+	/*for(auto edge : edges){
 		Vector<double> Fe;
-		PlaneSurfaceForce<double, ShapeFunction2Line, Gauss1Line>(Fe, nodes, edge, f, 1.0);
+		PlaneSurfaceForce<double, ShapeFunction2Line, NewtonCotes3Line>(Fe, nodes, edge, f, 1.0);
 		Assembling(F, Fe, edge, field);
-	}
+	}*/
 
 	//----------Set Neumann Boundary Condition----------
 	SetNeumann(F, isqfixed, qfixed);
 
 	//----------Set Dirichlet Boundary Condition----------
-	SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
+	SetDirichlet(K, F, isufixed, ufixed, 1.0e9);
 
 	//----------Solve System Equation----------
 	CSR<double> Kmod = CSR<double>(K);
@@ -98,8 +94,7 @@ int main() {
 	MakeHeadderToVTK(fout);
 	AddPointsToVTK(nodes, fout);
 	AddElementToVTK(elements, fout);
-	std::vector<int> et = std::vector<int>(elements.size(), 5);
-	AddElementTypes(et, fout);
+	AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 	AddPointVectors(u, "u", fout, true);
 	fout.close();
 

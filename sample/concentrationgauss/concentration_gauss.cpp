@@ -31,7 +31,7 @@ Vector<double> g(Vector<double> _x){
 
 int main() {
 	//----------Model Path----------
-	std::string model_path = "sample/planestrain/";
+	std::string model_path = "sample/concentrationgauss/";
 	
 	//----------Add Nodes----------
 	std::vector<Vector<double> > nodes;

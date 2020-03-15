@@ -99,8 +99,8 @@ namespace PANSFEM2 {
 
 
 	//******************************Make surface force vector******************************
-	template<class T, template<class>class SF, template<class>class IC>
-	void PlaneSurfaceForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _px, T _py, T _t){
+	template<class T, template<class>class SF, template<class>class IC, class F>
+	void PlaneSurfaceForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, F _f, T _t){
 		//----------Initialize equivalent nodal force vector----------
 		_Fe = Vector<T>(2*_element.size());
 
@@ -117,6 +117,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
+			Vector<T> x = X.Transpose()*N;
 			Matrix<T> dXdr = dNdr*X;
 			T dl = sqrt((dXdr*dXdr.Transpose())(0, 0));
 
@@ -128,7 +129,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Get surface force vector----------
-			Vector<T> p = Vector<T>({ _px, _py });
+			Vector<T> p = _f(x);
 
 			//----------Make Fe Vector----------
 			_Fe += B.Transpose()*p*dl*_t*IC<T>::Weights[g][0];
@@ -137,8 +138,8 @@ namespace PANSFEM2 {
 
 
 	//******************************Make body force vector******************************
-	template<class T, template<class>class SF, template<class>class IC>
-	void PlaneBodyForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _px, T _py, T _t){
+	template<class T, template<class>class SF, template<class>class IC, class F>
+	void PlaneBodyForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, F _f, T _t){
 		//----------Initialize element mass matrix----------
 		_Fe = Vector<T>(2*_element.size());
 
@@ -155,6 +156,7 @@ namespace PANSFEM2 {
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 
 			//----------Get difference of shape function----------
+			Vector<T> x = X.Transpose()*N;
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 
@@ -166,7 +168,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Get body force vector----------
-			Vector<T> p = Vector<T>({ _px, _py });
+			Vector<T> p = _f(x);
 
 			//----------Make Fe matrix----------
 			_Fe += B.Transpose()*p*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];

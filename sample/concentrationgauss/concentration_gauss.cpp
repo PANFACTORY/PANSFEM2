@@ -22,9 +22,12 @@ using namespace PANSFEM2;
 
 
 Vector<double> f(Vector<double> _x){
-	double sigma = 0.01;
-	double mu = 50.0; 
-    return { 0.0, -exp(-0.5*pow((_x(0) - mu)/sigma, 2.0))/(sqrt(2.0*M_PI)*sigma) };
+	double sigma = 10.0;
+	double mu = 30.0;
+	double xmax = 100.0;
+	double xmin = 0.0;
+	double delta = 0.5*(erf((xmax - mu)/(sqrt(2.0)*sigma))- erf((xmin - mu)/(sqrt(2.0)*sigma)));
+    return { 0.0, -exp(-0.5*pow((_x(0) - mu)/sigma, 2.0))/(sqrt(2.0*M_PI)*sigma)/delta };
 }
 
 
@@ -89,6 +92,10 @@ int main() {
 	AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 	AddPointVectors(u, "u", fout, true);
 	fout.close();
+
+	for(int i = 10; i < nodes.size(); i+=11){
+		std::cout << F[2*i] << "\t" << F[2*i + 1] << std::endl;
+	}
 
 	return 0;
 }

@@ -22,9 +22,9 @@ using namespace PANSFEM2;
 
 
 Vector<double> f(Vector<double> _x){
-	double sigma = 0.1;
-	double mu = 5.0; 
-    return { 0.0, exp(-0.5*pow((_x(0) - mu)/sigma, 2.0))/(sqrt(2.0*M_PI)*sigma) };
+	double sigma = 0.01;
+	double mu = 50.0; 
+    return { 0.0, -exp(-0.5*pow((_x(0) - mu)/sigma, 2.0))/(sqrt(2.0*M_PI)*sigma) };
 }
 
 
@@ -54,11 +54,6 @@ int main() {
 	std::vector<double> ufixed;
 	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
 
-	//----------Add Neumann Condition----------
-	std::vector<int> isqfixed;
-	std::vector<double> qfixed;
-	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
-
 	//----------Culculate Ke, body force and Assembling----------
 	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
@@ -69,14 +64,11 @@ int main() {
 	}
 
 	//----------Culculate Surface force and Assembling----------
-	/*for(auto edge : edges){
+	for(auto edge : edges){
 		Vector<double> Fe;
 		PlaneSurfaceForce<double, ShapeFunction2Line, NewtonCotes3Line>(Fe, nodes, edge, f, 1.0);
 		Assembling(F, Fe, edge, field);
-	}*/
-
-	//----------Set Neumann Boundary Condition----------
-	SetNeumann(F, isqfixed, qfixed);
+	}
 
 	//----------Set Dirichlet Boundary Condition----------
 	SetDirichlet(K, F, isufixed, ufixed, 1.0e9);

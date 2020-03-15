@@ -14,7 +14,7 @@
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
-#include "../../src/FEM/Controller/IntegrationConstant.h"
+#include "../../src/FEM/Controller/GaussIntegration.h"
 
 
 using namespace PANSFEM2;

@@ -1,5 +1,5 @@
 //*****************************************************************************
-//Title		:PANSFEM2/FEM/Controller/IntegrationConstant.h
+//Title		:PANSFEM2/FEM/Controller/GaussIntegration.h
 //Author	:Tanabe Yuta
 //Date		:2019/10/12
 //Copyright	:(C)2019 TanabeYuta

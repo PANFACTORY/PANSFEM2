@@ -13,7 +13,7 @@
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
-#include "../../src/FEM/Controller/IntegrationConstant.h"
+#include "../../src/FEM/Controller/GaussIntegration.h"
 #include "../../src/Optimize/Solver/MMA.h"
 #include "../../src/Optimize/Filter/Heaviside.h"
 

@@ -8,7 +8,7 @@
 #include "../../src/LinearAlgebra/Models/Matrix.h"
 #include "../../src/FEM/Equation/Numeric.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
-#include "../../src/FEM/Controller/IntegrationConstant.h"
+#include "../../src/FEM/Controller/GaussIntegration.h"
 #include "../../src/FEM/Controller/NewtonCotesIntegration.h"
 
 

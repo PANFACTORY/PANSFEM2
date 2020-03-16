@@ -375,7 +375,7 @@ std::vector<T> ScalingCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
-			std::cout << "\tConvergence:" << k << std::endl;
+			//std::cout << "\tConvergence:" << k << std::endl;
 			return xk;
 		}
 	}

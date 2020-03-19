@@ -83,7 +83,7 @@ int main() {
     //----------Get neighbor elements list and weight----------
     std::vector<std::vector<int> > neighbors = std::vector<std::vector<int> >(elements.size(), std::vector<int>());
     std::vector<std::vector<double> > w = std::vector<std::vector<double> >(elements.size(), std::vector<double>());
-    double R = 1.5;
+    double R = 6.0;
     for(int i = 0; i < elements.size(); i++){
         for(int j = 0; j < elements.size(); j++){
             if((cg[i] - cg[j]).Norm() <= R){
@@ -105,7 +105,7 @@ int main() {
 	double Poisson = 0.3;
 	double p = 3.0;
 
-	double sigmamu = 100.0;
+	double sigmamu = 50.0;
     double Edmu2 = pow(sigmamu, 2.0);
     double Edmu4 = 3.0*pow(sigmamu, 4.0);
     double alpha = 1.0;
@@ -121,7 +121,7 @@ int main() {
 		std::vector<double>(1, 10000.0),
 		std::vector<double>(1, 0.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-6);
+	optimizer.SetParameters(1.0e-5, 0.1, 0.01, 0.5, 0.7, 1.2, 1.0e-6);
 		
 	//----------Optimize loop----------
 	for(int k = 0; k < 200; k++){

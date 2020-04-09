@@ -10,9 +10,19 @@ using namespace PANSFEM2;
 
 
 int main(){
-    Annulus<double> mesh = Annulus<double>(100.0, 200.0, 100, 720);
+    Annulus<double> mesh = Annulus<double>(1.0, 2.0, 2, 4);
     std::vector<Vector<double> > nodes = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
+    std::vector<int> isufixed = mesh.GenerateFixedlist(2, { 0, 1 }, [](Vector<double> _x){
+        if(_x.Norm() < 1.0 + 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+
+    for(auto i : isufixed) {
+        std::cout << i << std::endl;
+    }
 
     std::ofstream fout("result.vtk");
     MakeHeadderToVTK(fout);

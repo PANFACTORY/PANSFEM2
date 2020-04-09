@@ -9,6 +9,8 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <vector>
+#include <algorithm>
+#include <cassert>
 
 
 #include "../../LinearAlgebra/Models/Vector.h"
@@ -26,6 +28,8 @@ public:
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
         std::vector<int> GenerateFields(int _nu);
+        template<class F>
+        std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
 private:
         T r0, r1;
         int nr, nt;  
@@ -78,5 +82,25 @@ private:
             fields[i] = fields[i - 1] + _nu;
         }
         return fields;
+    }
+
+
+    template<class T>
+    template<class F>
+    std::vector<int> Annulus<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
+        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
+        std::vector<int> isfixed;
+        for(int i = 0; i < this->nr + 1; i++){
+            T r = (this->r1 - this->r0)*i/(T)this->nr + this->r0;
+            for(int j = 0; j < this->nt; j++){
+                T theta = 2.0*M_PI*j/(T)this->nt;
+                if(_iscorrespond(Vector<T>({ r*cos(theta), r*sin(theta) }))) {
+                    for(auto ui : _ulist) {
+                        isfixed.push_back(_nu*(this->nt*i + j) + ui);
+                    }
+                }
+            }
+        }
+        return isfixed;
     }
 }

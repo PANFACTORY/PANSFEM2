@@ -7,6 +7,8 @@
 
 
 #include <vector>
+#include <algorithm>
+#include <cassert>
 
 
 #include "../../LinearAlgebra/Models/Vector.h"
@@ -24,6 +26,8 @@ public:
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
         std::vector<int> GenerateFields(int _nu);
+        template<class F>
+        std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
 private:
         T x, y;
         int nx, ny;  
@@ -74,5 +78,23 @@ private:
             fields[i] = fields[i - 1] + _nu;
         }
         return fields;
+    }
+
+
+    template<class T>
+    template<class F>
+    std::vector<int> StructuredGrid<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
+        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
+        std::vector<int> isfixed;
+        for(int i = 0; i < this->nx + 1; i++){
+            for(int j = 0; j < this->ny + 1; j++){
+                if(_iscorrespond(Vector<T>({ this->x*(i/(T)this->nx), this->y*(j/(T)this->ny) }))) {
+                    for(auto ui : _ulist) {
+                        isfixed.push_back(_nu*((this->ny + 1)*i + j) + ui);
+                    }
+                }
+            }
+        }
+        return isfixed;
     }
 }

@@ -47,9 +47,9 @@ int main() {
     std::vector<double> qfixed0 = std::vector<double>(isqfixed0.size());
     for(int i = 0; i < isqfixed0.size(); i++){
         if(i%2 == 0) {
-            qfixed0[i] = -1.0;
+            qfixed0[i] = -1.0/sqrt(2.0);
         } else {
-            qfixed0[i] = 1.0;
+            qfixed0[i] = 1.0/sqrt(2.0);
         }
     }
     SetNeumann(F, isqfixed0, qfixed0);
@@ -62,9 +62,9 @@ int main() {
     std::vector<double> qfixed1 = std::vector<double>(isqfixed1.size());
     for(int i = 0; i < isqfixed1.size(); i++){
         if(i%2 == 0) {
-            qfixed1[i] = -1.0;
+            qfixed1[i] = -1.0/sqrt(2.0);
         } else {
-            qfixed1[i] = -1.0;
+            qfixed1[i] = -1.0/sqrt(2.0);
         }
     }
     SetNeumann(F, isqfixed1, qfixed1);
@@ -77,9 +77,9 @@ int main() {
     std::vector<double> qfixed2 = std::vector<double>(isqfixed2.size());
     for(int i = 0; i < isqfixed2.size(); i++){
         if(i%2 == 0) {
-            qfixed2[i] = 1.0;
+            qfixed2[i] = 1.0/sqrt(2.0);
         } else {
-            qfixed2[i] = -1.0;
+            qfixed2[i] = -1.0/sqrt(2.0);
         }
     }
     SetNeumann(F, isqfixed2, qfixed2);
@@ -92,12 +92,76 @@ int main() {
     std::vector<double> qfixed3 = std::vector<double>(isqfixed3.size());
     for(int i = 0; i < isqfixed3.size(); i++){
         if(i%2 == 0) {
-            qfixed3[i] = 1.0;
+            qfixed3[i] = 1.0/sqrt(2.0);
         } else {
-            qfixed3[i] = 1.0;
+            qfixed3[i] = 1.0/sqrt(2.0);
         }
     }
     SetNeumann(F, isqfixed3, qfixed3);
+
+
+
+
+    std::vector<int> isqfixed4 = mesh.GenerateFixedlist(2, { 0, 1 }, [&](Vector<double> _x){
+        if(fabs(_x(0) - 75.0) < 1.0e-5 && fabs(_x(1) - 0.0) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+    std::vector<double> qfixed4 = std::vector<double>(isqfixed4.size());
+    for(int i = 0; i < isqfixed4.size(); i++){
+        if(i%2 == 0) {
+            qfixed4[i] = 0.0;
+        } else {
+            qfixed4[i] = sqrt(2.0);
+        }
+    }
+    SetNeumann(F, isqfixed4, qfixed4);
+    std::vector<int> isqfixed5 = mesh.GenerateFixedlist(2, { 0, 1 }, [&](Vector<double> _x){
+        if(fabs(_x(0) - 0.0) < 1.0e-5 && fabs(_x(1) - 75.0) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+    std::vector<double> qfixed5 = std::vector<double>(isqfixed5.size());
+    for(int i = 0; i < isqfixed5.size(); i++){
+        if(i%2 == 0) {
+            qfixed5[i] = -sqrt(2.0);
+        } else {
+            qfixed5[i] = 0.0;
+        }
+    }
+    SetNeumann(F, isqfixed5, qfixed5);
+    std::vector<int> isqfixed6 = mesh.GenerateFixedlist(2, { 0, 1 }, [&](Vector<double> _x){
+        if(fabs(_x(0) + 75.0) < 1.0e-5 && fabs(_x(1) - 0.0) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+    std::vector<double> qfixed6 = std::vector<double>(isqfixed6.size());
+    for(int i = 0; i < isqfixed6.size(); i++){
+        if(i%2 == 0) {
+            qfixed6[i] = 0.0;
+        } else {
+            qfixed6[i] = -sqrt(2.0);
+        }
+    }
+    SetNeumann(F, isqfixed6, qfixed6);
+    std::vector<int> isqfixed7 = mesh.GenerateFixedlist(2, { 0, 1 }, [&](Vector<double> _x){
+        if(fabs(_x(0) - 0.0) < 1.0e-5 && fabs(_x(1) + 75.0) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+    std::vector<double> qfixed7 = std::vector<double>(isqfixed7.size());
+    for(int i = 0; i < isqfixed7.size(); i++){
+        if(i%2 == 0) {
+            qfixed7[i] = sqrt(2.0);
+        } else {
+            qfixed7[i] = 0.0;
+        }
+    }
+    SetNeumann(F, isqfixed7, qfixed7);
 
 	//----------Get cg of element----------
     std::vector<Vector<double> > cg = std::vector<Vector<double> >(elements.size());

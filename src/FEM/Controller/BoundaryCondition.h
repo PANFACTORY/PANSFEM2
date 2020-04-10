@@ -53,4 +53,18 @@ namespace PANSFEM2 {
 			_F[_isqfixed[i]] += _q[i];
 		}
 	}
+
+
+	//******************************Set Periodic boundary conditions******************************
+	template<class T>
+	void SetPeriodic(LILCSR<T>& _K, std::vector<int>& _ismasterfixed, std::vector<int>& _isslavefixed, T _alpha) {
+		assert(_ismasterfixed.size() == _isslavefixed.size());
+
+		for(int i = 0; i < _ismasterfixed.size(); i++) {
+			_K.set(_ismasterfixed[i], _ismasterfixed[i], _K.get(_ismasterfixed[i], _ismasterfixed[i]) + _alpha);
+			_K.set(_ismasterfixed[i], _isslavefixed[i], -_alpha);
+			_K.set(_isslavefixed[i], _ismasterfixed[i], -_alpha);
+			_K.set(_isslavefixed[i], _isslavefixed[i], _K.get(_isslavefixed[i], _isslavefixed[i]) + _alpha);
+		}
+	}
 }

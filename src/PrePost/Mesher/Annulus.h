@@ -77,7 +77,7 @@ private:
 
     template<class T>
     std::vector<int> Annulus<T>::GenerateFields(int _nu){
-        std::vector<int> fields = std::vector<int>((this->nr + 1)*(this->nt + 1) + 1, 0);
+        std::vector<int> fields = std::vector<int>((this->nr + 1)*this->nt + 1, 0);
         for(int i = 1; i < (this->nr + 1)*this->nt + 1; i++){
             fields[i] = fields[i - 1] + _nu;
         }

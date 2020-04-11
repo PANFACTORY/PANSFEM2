@@ -21,7 +21,7 @@ namespace PANSFEM2{
     template<class T>
     class SquareCircleAnnulus{
 public:
-        SquareCircleAnnulus(T _a, T _b, T _r, int _nx, int _ny, int _nr);
+        SquareCircleAnnulus(T _a, T _b, T _r, T _p, int _nx, int _ny, int _nr);
         ~SquareCircleAnnulus();
 
 
@@ -31,16 +31,17 @@ public:
         template<class F>
         std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
 private:
-        T a, b, r;
+        T a, b, r, p;
         int nx, ny, nr, nxy;  
     };
 
 
     template<class T>
-    SquareCircleAnnulus<T>::SquareCircleAnnulus(T _a, T _b, T _r, int _nx, int _ny, int _nr){
+    SquareCircleAnnulus<T>::SquareCircleAnnulus(T _a, T _b, T _r, T _p, int _nx, int _ny, int _nr){
         this->a = _a;
         this->b = _b;
         this->r = _r;
+        this->p = _p;
         this->nx = _nx;
         this->ny = _ny;
         this->nr = _nr;
@@ -56,7 +57,7 @@ private:
     std::vector<Vector<T> > SquareCircleAnnulus<T>::GenerateNodes(){
         std::vector<Vector<T> > nodes = std::vector<Vector<T> >(this->nxy*(this->nr + 1));
         for(int i = 0; i < this->nr + 1; i++){
-            T t = i/(T)this->nr;
+            T t = pow(i/(T)this->nr, this->p);
             for(int j = 0; j < this->ny; j++){
                 T theta = 2*M_PI*(j - 0.5*this->ny)/(T)this->nxy;
                 nodes[this->nxy*i + j] = { (1 - t)*this->r*cos(theta) + t*0.5*this->a, (1 - t)*this->r*sin(theta) + t*this->b*(j/(T)this->ny - 0.5) };
@@ -106,7 +107,7 @@ private:
         assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
         std::vector<int> isfixed;
         for(int i = 0; i < this->nr + 1; i++){
-            T t = i/(T)this->nr;
+            T t = pow(i/(T)this->nr, this->p);
             for(int j = 0; j < this->ny; j++){
                 T theta = 2*M_PI*(j - 0.5*this->ny)/(T)this->nxy;
                 if(_iscorrespond(Vector<T>({ (1 - t)*this->r*cos(theta) + t*0.5*this->a, (1 - t)*this->r*sin(theta) + t*this->b*(j/(T)this->ny - 0.5) }))) {

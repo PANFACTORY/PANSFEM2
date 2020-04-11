@@ -10,7 +10,7 @@ using namespace PANSFEM2;
 
 
 int main(){
-    SquareCircleAnnulus<double> mesh = SquareCircleAnnulus<double>(1.0, 1.0, 0.3, 8, 8, 4);
+    SquareCircleAnnulus<double> mesh = SquareCircleAnnulus<double>(1.0, 1.0, 0.3, 1.2, 8, 8, 4);
     std::vector<Vector<double> > nodes = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<int> field = mesh.GenerateFields(2);

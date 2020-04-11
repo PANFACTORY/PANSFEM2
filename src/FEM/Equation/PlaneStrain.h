@@ -178,11 +178,9 @@ namespace PANSFEM2 {
 
 	//******************************Make equevalent nodal force for Homogenize******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void PlaneHomogenizeForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _E, T _V, T _t, int _i) {
-		assert(0 <= _i && _i < 3);
-
+	void PlaneHomogenizeForce(Matrix<T>& _Fes, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _E, T _V, T _t) {
 		//----------Initialize element mass matrix----------
-		_Fe = Vector<T>(2*_element.size());
+		_Fes = Matrix<T>(2*_element.size(), 3);
 
 		//----------Generate cordinate matrix X----------
 		Matrix<T> X = Matrix<T>(0, 2);
@@ -198,15 +196,15 @@ namespace PANSFEM2 {
 		D *= (_E / ((1.0 - 2.0*_V)*(1.0 + _V)));
 
 		//----------Generate "i"th unit vector----------
-		Vector<T> I = Vector<T>(3);
-		I(_i) = 1.0;
-
+		Matrix<T> I = Identity<T>(3);
+		
 		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC<T>::N; g++) {
 			//----------Get difference of shape function----------
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
 			//----------Generate B matrix----------
 			Matrix<T> B = Matrix<T>(3, 2*_element.size());
@@ -217,7 +215,7 @@ namespace PANSFEM2 {
 			}
 
 			//----------Make Fe matrix----------
-			_Fe += B.Transpose()*D*I*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Fes += B.Transpose()*D*I*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 }

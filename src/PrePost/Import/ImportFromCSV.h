@@ -261,4 +261,48 @@ namespace PANSFEM2 {
 
 		return true;
 	}
+
+
+	//********************ImportPeriodicBoundaryConditionFromCSV*******************
+	bool ImportPeriodicFromCSV(std::vector<int>& _ismasterfixed, std::vector<int>& _isslavefixed, std::vector<int> _field, std::string _fname) {
+		std::ifstream ifs(_fname);
+
+		if (!ifs.is_open()) {
+			std::cout << "Periodic Boundary Condition file " << _fname << " open error!" << std::endl;
+			return false;
+		}
+
+		//.....Pass a line.....
+		std::string str0;
+		std::getline(ifs, str0);
+
+		while (!ifs.eof()) {
+			//.....Read a line.....
+			std::string buf;
+			ifs >> buf;
+			std::istringstream sbuf(buf);
+			std::string str;
+
+			//.....Get id of a node.....
+			std::getline(sbuf, str, ',');
+			if (!str.empty()) {
+				int masterid = stoi(str);
+				std::getline(sbuf, str, ',');
+				int slaveid = stoi(str);
+
+				//.....Convert id to fix date.....
+				if((_field[masterid + 1] - _field[masterid]) != (_field[slaveid + 1] - _field[slaveid])) {
+					return false;
+				}
+				for(int i = 0; _field[masterid] + i < _field[masterid + 1]; i++) {
+					_ismasterfixed.push_back(_field[masterid] + i);
+					_isslavefixed.push_back(_field[slaveid] + i);
+				}
+			}
+		}
+
+		ifs.close();
+
+		return true;
+	}
 }

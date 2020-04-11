@@ -49,15 +49,11 @@ int main() {
 	std::vector<double> F1 = std::vector<double>(KDEGREE, 0.0);		//External load vector
 	std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);		//External load vector
 	for (int i = 0; i < elements.size(); i++) {
-		double E = 210000.0;
-		if(i == 1 || i == 3) {
-			E /= 1.0;
-		}
 		Matrix<double> Ke;
-		PlaneStrain<double, ShapeFunction4Square, Gauss4Square>(Ke, nodes, elements[i], E, 0.3, 1.0);
+		PlaneStrain<double, ShapeFunction4Square, Gauss4Square>(Ke, nodes, elements[i], 68.894, 0.33, 1.0);
 		Assembling(K, Ke, elements[i], field);
 		Matrix<double> Fes;
-		HomogenizePlaneBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodes, elements[i], E, 0.3, 1.0);
+		HomogenizePlaneBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodes, elements[i], 68.894, 0.33, 1.0);
 		Vector<double> Fe0 = Fes.Block(0, 0, Ke.ROW(), 1);
 		Assembling(F0, Fe0, elements[i], field);
 		Vector<double> Fe1 = Fes.Block(0, 1, Ke.ROW(), 1);
@@ -67,7 +63,7 @@ int main() {
 	}
 
 	//----------Set Periodic Boundary Condition----------
-	SetPeriodic(K, ismasterfixed, isslavefixed, 1.0e11);
+	SetPeriodic(K, ismasterfixed, isslavefixed, 1.0e8);
 
 	//----------Solve System Equation----------
 	CSR<double> Kmod = CSR<double>(K);
@@ -88,13 +84,13 @@ int main() {
 	double volume = 0.0;
 	for(auto element : elements) {
 		Matrix<double> CHi = Matrix<double>(3, 3);
-		HomogenizePlaneConstitutive<double, ShapeFunction4Square, Gauss4Square>(CHi, nodes, element, chi0, chi1, chi2, 210000.0, 0.3, 1.0);
+		HomogenizePlaneConstitutive<double, ShapeFunction4Square, Gauss4Square>(CHi, nodes, element, chi0, chi1, chi2, 68.894, 0.33, 1.0);
 		CH += CHi;
 		volume += Area<double, ShapeFunction4Square, Gauss4Square>(nodes, element);
 	}
-	CH /= volume;
+	//CH /= volume;
 
-	std::cout << CH << std::endl;
+	std::cout << CH << volume << std::endl;
 			
 	//----------Save initial value----------
 	std::ofstream fout(model_path + "result.vtk");
@@ -109,9 +105,3 @@ int main() {
 
 	return 0;
 }
-
-/*
-282692  121154  0
-121154  282692  0
-0       0       80769.2
-*/

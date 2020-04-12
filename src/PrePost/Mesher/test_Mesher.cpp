@@ -2,7 +2,7 @@
 #include <vector>
 
 
-#include "StructuredGrid.h"
+#include "Annulus.h"
 #include "../Export/ExportToVTK.h"
 
 
@@ -10,7 +10,7 @@ using namespace PANSFEM2;
 
 
 int main(){
-    StructuredGrid<double> mesh = StructuredGrid<double>(2.0, 2.0, 2, 2);
+    Annulus<double> mesh = Annulus<double>(1.0, 2.0, 2, 5);
     std::vector<Vector<double> > nodes = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::vector<int> > edges = mesh.GenerateEdges();

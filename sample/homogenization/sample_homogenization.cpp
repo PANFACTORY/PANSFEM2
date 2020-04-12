@@ -50,10 +50,10 @@ int main() {
 	std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);		//External load vector
 	for (int i = 0; i < elements.size(); i++) {
 		Matrix<double> Ke;
-		PlaneStrain<double, ShapeFunction4Square, Gauss4Square>(Ke, nodes, elements[i], 68.894, 0.33, 1.0);
+		PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodes, elements[i], 68.894, 0.33, 1.0);
 		Assembling(K, Ke, elements[i], field);
 		Matrix<double> Fes;
-		HomogenizePlaneBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodes, elements[i], 68.894, 0.33, 1.0);
+		HomogenizePlaneStrainBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodes, elements[i], 68.894, 0.33, 1.0);
 		Vector<double> Fe0 = Fes.Block(0, 0, Ke.ROW(), 1);
 		Assembling(F0, Fe0, elements[i], field);
 		Vector<double> Fe1 = Fes.Block(0, 1, Ke.ROW(), 1);
@@ -84,7 +84,7 @@ int main() {
 	double volume = 0.0;
 	for(auto element : elements) {
 		Matrix<double> CHi = Matrix<double>(3, 3);
-		HomogenizePlaneConstitutive<double, ShapeFunction4Square, Gauss4Square>(CHi, nodes, element, chi0, chi1, chi2, 68.894, 0.33, 1.0);
+		HomogenizePlaneStrainConstitutive<double, ShapeFunction4Square, Gauss4Square>(CHi, nodes, element, chi0, chi1, chi2, 68.894, 0.33, 1.0);
 		CH += CHi;
 		volume += Area<double, ShapeFunction4Square, Gauss4Square>(nodes, element);
 	}

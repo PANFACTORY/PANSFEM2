@@ -18,7 +18,7 @@
 namespace PANSFEM2 {
 	//********************Make equevalent nodal force for Homogenize********************
 	template<class T, template<class>class SF, template<class>class IC>
-	void HomogenizePlaneBodyForce(Matrix<T>& _Fes, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _E, T _V, T _t) {
+	void HomogenizePlaneStrainBodyForce(Matrix<T>& _Fes, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _E, T _V, T _t) {
 		//----------Initialize element mass matrix----------
 		_Fes = Matrix<T>(2*_element.size(), 3);
 
@@ -62,7 +62,7 @@ namespace PANSFEM2 {
 
     //********************Make homogenized elemental Constitutive********************
     template<class T, template<class>class SF, template<class>class IC>
-	void HomogenizePlaneConstitutive(Matrix<T>& _C, std::vector<Vector<T> >& _x, std::vector<int>& _element, std::vector<Vector<T> >& _chi0, std::vector<Vector<T> >& _chi1, std::vector<Vector<T> >& _chi2, T _E, T _V, T _t) {
+	void HomogenizePlaneStrainConstitutive(Matrix<T>& _C, std::vector<Vector<T> >& _x, std::vector<int>& _element, std::vector<Vector<T> >& _chi0, std::vector<Vector<T> >& _chi1, std::vector<Vector<T> >& _chi2, T _E, T _V, T _t) {
 		//----------Initialize element mass matrix----------
 		_C = Matrix<T>(3, 3);
 

@@ -7,7 +7,7 @@
 #include "../../src/LinearAlgebra/Models/Vector.h"
 #include "../../src/LinearAlgebra/Models/Matrix.h"
 #include "../../src/LinearAlgebra/Models/LILCSR.h"
-#include "../../src/PrePost/Mesher/Annulus.h"
+#include "../../src/PrePost/Mesher/AnnulusMesh.h"
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/FEM/Equation/PlaneStrain.h"
 #include "../../src/FEM/Equation/Geometric.h"
@@ -25,7 +25,7 @@ using namespace PANSFEM2;
 
 int main() {
     //----------Generate design region----------
-	Annulus<double> mesh = Annulus<double>(50.0, 150.0, 100, 360);
+	AnnulusMesh<double> mesh = AnnulusMesh<double>(50.0, 150.0, 100, 360);
     std::vector<Vector<double> > nodes = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<int> field = mesh.GenerateFields(2);
@@ -143,7 +143,7 @@ int main() {
 		for (int i = 0; i < elements.size(); i++) {
 			double E = E1 * pow(rho[i], p) + E0 * (1.0 - pow(rho[i], p));
 			Matrix<double> Ke;
-			PlaneStrain<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
+			PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
 			Assembling(K, Ke, elements[i], field);
 		}
 
@@ -159,7 +159,7 @@ int main() {
         
         for(int i = 0; i < elements.size(); i++){
             Matrix<double> Ke;
-		    PlaneStrain<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
+		    PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
 			Vector<double> de = Vector<double>();
             for(int j = 0; j < elements[i].size(); j++){
                 de = de.Vstack(dv[elements[i][j]]);

@@ -6,7 +6,7 @@
 #include "../../src/LinearAlgebra/Models/Vector.h"
 #include "../../src/LinearAlgebra/Models/Matrix.h"
 #include "../../src/LinearAlgebra/Models/LILCSR.h"
-#include "../../src/PrePost/Import/ImportFromCSV.h"
+#include "../../src/PrePost/Mesher/SquareMesh.h"
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/FEM/Equation/PlaneStrain.h"
 #include "../../src/FEM/Controller/BoundaryCondition.h"
@@ -22,31 +22,26 @@ using namespace PANSFEM2;
 
 
 int main() {
-	//----------Model Path----------
-	std::string model_path = "sample/optimize/";
-	
-	//----------Add Nodes----------
-	std::vector<Vector<double> > nodes;
-	ImportNodesFromCSV(nodes, model_path + "Node.csv");
-	
-	//----------Add Elements----------
-	std::vector<std::vector<int> > elements;
-	ImportElementsFromCSV(elements, model_path + "Element.csv");
-	
-	//----------Add Field----------
-	std::vector<int> field;
-	int KDEGREE = 0;
-	ImportFieldFromCSV(field, KDEGREE, nodes.size(), model_path + "Field.csv");
-
-	//----------Add Dirichlet Condition----------
-	std::vector<int> isufixed;
-	std::vector<double> ufixed;
-	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
-
-	//----------Add Neumann Condition----------
-	std::vector<int> isqfixed;
-	std::vector<double> qfixed;
-	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
+	//----------Generate design region----------
+	SquareMesh<double> mesh = SquareMesh<double>(60.0, 40.0, 60, 40);
+    std::vector<Vector<double> > nodes = mesh.GenerateNodes();
+    std::vector<std::vector<int> > elements = mesh.GenerateElements();
+    std::vector<int> field = mesh.GenerateFields(2);
+    int KDEGREE = *(field.end() - 1);
+    std::vector<int> isufixed = mesh.GenerateFixedlist(2, { 0, 1 }, [](Vector<double> _x){
+        if(fabs(_x(0)) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+    std::vector<double> ufixed = std::vector<double>(isufixed.size(), 0.0);
+    std::vector<int> isqfixed = mesh.GenerateFixedlist(2, { 1 }, [](Vector<double> _x){
+        if(fabs(_x(0) - 60.0) < 1.0e-5 && fabs(_x(1) - 20.0) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+    std::vector<double> qfixed = std::vector<double>(isqfixed.size(), -1.0);
     std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 	SetNeumann(F, isqfixed, qfixed);
 
@@ -135,7 +130,7 @@ int main() {
 		for (int i = 0; i < elements.size(); i++) {
 			double E = E1 * pow(rho[i], p) + E0 * (1.0 - pow(rho[i], p));
 			Matrix<double> Ke;
-			PlaneStrain<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
+			PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
 			Assembling(K, Ke, elements[i], field);
 		}
 
@@ -153,7 +148,7 @@ int main() {
         
         for(int i = 0; i < elements.size(); i++){
             Matrix<double> Ke;
-		    PlaneStrain<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
+		    PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
 			Vector<double> de = Vector<double>();
             for(int j = 0; j < elements[i].size(); j++){
                 de = de.Vstack(dv[elements[i][j]]);
@@ -172,7 +167,7 @@ int main() {
         //*************************************************
         //  Post Process
         //*************************************************
-		std::ofstream fout(model_path + "result" + std::to_string(k) + ".vtk");
+		std::ofstream fout("sample/optimize/result" + std::to_string(k) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(nodes, fout);
 		AddElementToVTK(elements, fout);

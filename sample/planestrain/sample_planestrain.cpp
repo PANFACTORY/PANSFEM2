@@ -65,17 +65,17 @@ int main() {
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
 	for (auto element : elements) {
 		Matrix<double> Ke;
-		PlaneStrain<double, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodes, element, 210000.0, 0.3, 1.0);
+		PlaneStrainStiffness<double, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodes, element, 210000.0, 0.3, 1.0);
 		Assembling(K, Ke, element, field);
 		Vector<double> Fe;
-		PlaneBodyForce<double, ShapeFunction3Triangle, Gauss1Triangle>(Fe, nodes, element, g, 1.0);
+		PlaneStrainBodyForce<double, ShapeFunction3Triangle, Gauss1Triangle>(Fe, nodes, element, g, 1.0);
 		Assembling(F, Fe, element, field);
 	}
 
 	//----------Culculate Surface force and Assembling----------
 	for(auto edge : edges){
 		Vector<double> Fe;
-		PlaneSurfaceForce<double, ShapeFunction2Line, Gauss1Line>(Fe, nodes, edge, f, 1.0);
+		PlaneStrainSurfaceForce<double, ShapeFunction2Line, Gauss1Line>(Fe, nodes, edge, f, 1.0);
 		Assembling(F, Fe, edge, field);
 	}
 

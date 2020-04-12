@@ -18,16 +18,14 @@
 namespace PANSFEM2 {
 	//******************************Make element stiffness matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void PlaneStrain(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _E, T _V, T _t) {
+	void PlaneStrainStiffness(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _E, T _V, T _t) {
 		//----------Initialize element stiffness matrix----------
-		_Ke = Matrix<T>(2 * _element.size(), 2 * _element.size());
+		_Ke = Matrix<T>(2*_element.size(), 2*_element.size());
 
 		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		Matrix<T> X = Matrix<T>(0, 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Generate D matrix----------
@@ -41,8 +39,6 @@ namespace PANSFEM2 {
 		for (int g = 0; g < IC<T>::N; g++) {
 			//----------Get difference of shape function----------
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr * X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse() * dNdr;
@@ -63,16 +59,14 @@ namespace PANSFEM2 {
 
 	//******************************Make element mass matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void PlaneMass(Matrix<T>& _Me, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _rho, T _t) {
+	void PlaneStrainMass(Matrix<T>& _Me, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _rho, T _t) {
 		//----------Initialize element mass matrix----------
-		_Me = Matrix<T>(2 * _element.size(), 2 * _element.size());
+		_Me = Matrix<T>(2*_element.size(), 2*_element.size());
 
 		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		Matrix<T> X = Matrix<T>(0, 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X = X.Vstack(_x[_element[i]].Transpose());
 		}
 
 		//----------Loop of Gauss Integration----------
@@ -80,8 +74,6 @@ namespace PANSFEM2 {
 			//----------Get shape function and difference of shape function----------
 			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr * X;
 			T J = dXdr.Determinant();
 
@@ -100,7 +92,7 @@ namespace PANSFEM2 {
 
 	//******************************Make surface force vector******************************
 	template<class T, template<class>class SF, template<class>class IC, class F>
-	void PlaneSurfaceForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, F _f, T _t){
+	void PlaneStrainSurfaceForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, F _f, T _t){
 		//----------Initialize equivalent nodal force vector----------
 		_Fe = Vector<T>(2*_element.size());
 
@@ -115,8 +107,6 @@ namespace PANSFEM2 {
 			//----------Get shape function and difference of shape function----------
 			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Vector<T> x = X.Transpose()*N;
 			Matrix<T> dXdr = dNdr*X;
 			T dl = sqrt((dXdr*dXdr.Transpose())(0, 0));
@@ -139,7 +129,7 @@ namespace PANSFEM2 {
 
 	//******************************Make body force vector******************************
 	template<class T, template<class>class SF, template<class>class IC, class F>
-	void PlaneBodyForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, F _f, T _t){
+	void PlaneStrainBodyForce(Vector<T>& _Fe, std::vector<Vector<T> >& _x, std::vector<int>& _element, F _f, T _t){
 		//----------Initialize element mass matrix----------
 		_Fe = Vector<T>(2*_element.size());
 
@@ -154,8 +144,6 @@ namespace PANSFEM2 {
 			//----------Get shape function and difference of shape function----------
 			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Vector<T> x = X.Transpose()*N;
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();

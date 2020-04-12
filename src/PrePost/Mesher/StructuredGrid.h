@@ -25,6 +25,7 @@ public:
 
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
+        std::vector<std::vector<int> > GenerateEdges();
         std::vector<int> GenerateFields(int _nu);
         template<class F>
         std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
@@ -68,6 +69,25 @@ private:
             }
         }
         return elements;
+    }
+
+
+    template<class T>
+    std::vector<std::vector<int> > StructuredGrid<T>::GenerateEdges() {
+        std::vector<std::vector<int> > edges = std::vector<std::vector<int> >(2*(this->nx + this->ny));
+        for(int i = 0; i < this->nx; i++) {
+            edges[i] = { (this->ny + 1)*i, (this->ny + 1)*(i + 1) };
+        }
+        for(int j = 0; j < this->ny; j++) {
+            edges[j + this->nx] = { (this->ny + 1)*this->nx + j, (this->ny + 1)*this->nx + j + 1 };
+        }
+        for(int i = 0; i < this->nx; i++) {
+            edges[2*this->nx + this->ny - i - 1] = { (this->ny + 1)*(i + 1) + this->ny, (this->ny + 1)*i  + this->ny };
+        }
+        for(int j = 0; j < this->ny; j++) {
+            edges[2*(this->nx + this->ny) - j - 1] = { j + 1, j };
+        }
+        return edges;
     }
 
 

@@ -16,6 +16,8 @@
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
 
+#include "../../src/FEM/Equation/Geometric.h"
+
 
 using namespace PANSFEM2;
 
@@ -40,14 +42,6 @@ int main() {
 	std::vector<std::vector<int> > elementsp;
 	ImportElementsFromCSV(elementsp, model_path + "ElementP.csv");
 
-    //----------Add Edge for velocity u----------
-	std::vector<std::vector<int> > edgesu;
-	ImportElementsFromCSV(edgesu, model_path + "EdgeU.csv");
-
-    //----------Add Edge for pressure p----------
-	std::vector<std::vector<int> > edgesp;
-	ImportElementsFromCSV(edgesp, model_path + "EdgeP.csv");
-
 	//----------Add Field for velocity----------
 	std::vector<int> field;
 	int KDEGREE = 0;
@@ -58,24 +52,44 @@ int main() {
 	std::vector<double> ufixed;
 	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
 
-    //----------Get incremental Dirichlet condition----------
-    int incmax = 10;
-    std::vector<double> dufixed = std::vector<double>(ufixed.size());
-    for(int i = 0; i < ufixed.size(); i++){
-        dufixed[i] = ufixed[i]/(double)incmax;
+
+    //*****************************************************
+    //  Initialize result with Stokes
+    //*****************************************************
+
+	//----------Culculate Ke Fe and Assembling----------
+    LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);        //  System stiffness matrix
+    std::vector<double> F = std::vector<double>(KDEGREE, 0.0);  //  External load vector
+    for (int i = 0; i < elementsu.size(); i++) {
+        Matrix<double> Ke;
+        Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodes, elementsu[i], elementsp[i], 1.0);
+        Assembling(K, Ke, elementsu[i], field);
     }
-    
-    //----------Initialise with result----------
-    std::vector<Vector<double>> u = std::vector<Vector<double>>(nodes.size(), Vector<double>(2));
+
+    //----------Set Boundary Condition----------
+    SetDirichlet(K, F, isufixed, ufixed, 1.0e9);
+
+    //----------Solve System Equation----------
+    CSR<double> Kmod = CSR<double>(K);
+    std::vector<double> result = CG(Kmod, F, 100000, 1.0e-10);
+    std::vector<Vector<double> > up = std::vector<Vector<double> >(nodes.size());     //  Velocity
+    FieldResultToNodeValue(result, up, field);
+	std::vector<Vector<double>> u = std::vector<Vector<double>>(nodes.size());
 	std::vector<double> p = std::vector<double>(nodes.size(), 0.0);
-    
+	for(int i = 0; i < nodes.size(); i++){
+		u[i] = up[i].Segment(0, 2);
+		if(up[i].SIZE() == 3){
+			p[i] = up[i](2);
+		}
+	}
+
 
     //*****************************************************
     //  Update result with NavierStokes equation
     //*****************************************************
     
     //----------Incremental Step----------
-    for (int k = 0; k < 1; k++) {
+    for (int k = 0; k < 10; k++) {
         //----------Culculate Ke Fe and Assembling----------
         LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
         std::vector<double> Q = std::vector<double>(KDEGREE, 0.0);		//Interna load vector
@@ -88,12 +102,7 @@ int main() {
 
         //----------Culculate traction term and Assembling----------
         std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
-        /*for(int i = 0; i < edgesu.size(); i++){
-            Vector<double> Fe;
-            StokesTraction<double, ShapeFunction3Line, ShapeFunction2Line, Gauss2Line>(Fe, nodes, edgesu[i], edgesp[i], 1.0/3.0, 0.0);
-            Assembling(F, Fe, edgesu[i], field);
-        }*/
-
+        
         //----------Get residual load vector----------
         std::vector<double> R = std::vector<double>(KDEGREE, 0.0);		//Residual load vector
         for(int i = 0; i < KDEGREE; i++){
@@ -101,25 +110,21 @@ int main() {
         }
                     
         //----------Set Dirichlet Boundary Condition----------
-        SetDirichlet(K, R, isufixed, dufixed, 1.0e9);
-
-        std::cout << K << std::endl;
-        for(auto ri : R){
-            std::cout << ri << std::endl;
-        }
+        std::vector<double> tmpufixed = std::vector<double>(isufixed.size(), 0.0);
+        SetDirichlet(K, R, isufixed, tmpufixed, 1.0e9);
 
         //----------Check convergence----------
         double normR = std::inner_product(R.begin(), R.end(), R.begin(), 0.0);
-        //double normF = std::inner_product(F.begin(), F.end(), F.begin(), 0.0);
-        //std::cout << "k = " << k << "\tNorm = " << normR << std::endl;
-        if (normR < 1.0e-6) {
+        double normQ = std::inner_product(Q.begin(), Q.end(), Q.begin(), 0.0);
+        std::cout << "k = " << k << "\tR Norm = " << normR << "\tQ Norm = " << normQ << std::endl;
+        if (normR < 1.0e-3) {
             //std::cout << "k = " << k << "\tNorm = " << normR << std::endl;
-            //break;
+            break;
         }
         
         //----------Solve System Equation----------
         CSR<double> Kmod = CSR<double>(K);
-        std::vector<double> result = BiCGSTAB(Kmod, R, 1, 1.0e-20);
+        std::vector<double> result = BiCGSTAB(Kmod, R, 10000, 1.0e-10);
 
         //----------Update displacement u----------
         std::vector<Vector<double> > dup = std::vector<Vector<double> >(nodes.size());

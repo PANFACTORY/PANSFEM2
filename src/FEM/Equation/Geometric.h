@@ -34,7 +34,7 @@ namespace PANSFEM2 {
 
 			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
-			area += dXdr.Determinant();
+			area += dXdr.Determinant()*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
         }
 
         return area;

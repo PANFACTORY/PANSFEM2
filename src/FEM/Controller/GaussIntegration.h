@@ -101,9 +101,9 @@ public:
 
 	template<class T>
 	const std::vector<std::vector<T> > Gauss3Triangle<T>::Weights = {
-													{ 1.0 / (3.0*sqrt(2.0)), 1.0 / (3.0*sqrt(2.0)) },
-													{ 1.0 / (3.0*sqrt(2.0)), 1.0 / (3.0*sqrt(2.0)) },
-													{ 1.0 / (3.0*sqrt(2.0)), 1.0 / (3.0*sqrt(2.0)) },
+													{ 1.0 / sqrt(6.0), 1.0 / sqrt(6.0) },
+													{ 1.0 / sqrt(6.0), 1.0 / sqrt(6.0) },
+													{ 1.0 / sqrt(6.0), 1.0 / sqrt(6.0) },
 												};
 
 

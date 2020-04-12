@@ -27,6 +27,7 @@ public:
 
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
+        std::vector<std::vector<int> > GenerateEdges();
         std::vector<int> GenerateFields(int _nu);
         template<class F>
         std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
@@ -84,6 +85,17 @@ private:
             }
         }
         return elements;
+    }
+
+
+    template<class T>
+    std::vector<std::vector<int> > SquareAnnulus<T>::GenerateEdges(){
+        std::vector<std::vector<int> > edges = std::vector<std::vector<int> >(2*this->nxy);
+        for(int i = 0; i < this->nxy; i++){
+            edges[this->nxy - i - 1] = { (i + 1)%this->nxy, i };
+            edges[i + this->nxy] = { this->nxy*this->nt + i, this->nxy*this->nt + (i + 1)%this->nxy };
+        }
+        return edges;
     }
 
 

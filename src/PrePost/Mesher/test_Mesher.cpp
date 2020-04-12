@@ -2,7 +2,7 @@
 #include <vector>
 
 
-#include "Annulus.h"
+#include "SquareAnnulus.h"
 #include "../Export/ExportToVTK.h"
 
 
@@ -10,7 +10,7 @@ using namespace PANSFEM2;
 
 
 int main(){
-    Annulus<double> mesh = Annulus<double>(1.0, 2.0, 2, 5);
+    SquareAnnulus<double> mesh = SquareAnnulus<double>(1.0, 2.0, 2.0, 3.0, 2, 5, 3);
     std::vector<Vector<double> > nodes = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::vector<int> > edges = mesh.GenerateEdges();

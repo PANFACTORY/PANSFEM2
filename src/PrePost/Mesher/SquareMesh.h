@@ -1,5 +1,5 @@
 //*****************************************************************************
-//  Title       :   src/PrePost/Mesher/StructuredGrid.h
+//  Title       :   src/PrePost/Mesher/SquareMesh.h
 //  Author      :   Tanabe Yuta
 //  Date        :   2020/03/31
 //  Copyright   :   (C)2020 TanabeYuta
@@ -15,12 +15,12 @@
 
 
 namespace PANSFEM2{
-    //********************Structured Grid*******************
+    //********************SquareMesh*******************
     template<class T>
-    class StructuredGrid{
+    class SquareMesh{
 public:
-        StructuredGrid(T _x, T _y, int _nx, int _ny);
-        ~StructuredGrid();
+        SquareMesh(T _x, T _y, int _nx, int _ny);
+        ~SquareMesh();
 
 
         std::vector<Vector<T> > GenerateNodes();
@@ -36,7 +36,7 @@ private:
 
 
     template<class T>
-    StructuredGrid<T>::StructuredGrid(T _x, T _y, int _nx, int _ny){
+    SquareMesh<T>::SquareMesh(T _x, T _y, int _nx, int _ny){
         this->x = _x;
         this->y = _y;
         this->nx = _nx;
@@ -45,11 +45,11 @@ private:
 
 
     template<class T>
-    StructuredGrid<T>::~StructuredGrid(){}
+    SquareMesh<T>::~SquareMesh(){}
 
 
     template<class T>
-    std::vector<Vector<T> > StructuredGrid<T>::GenerateNodes(){
+    std::vector<Vector<T> > SquareMesh<T>::GenerateNodes(){
         std::vector<Vector<T> > nodes = std::vector<Vector<T> >((this->nx + 1)*(this->ny + 1));
         for(int i = 0; i < this->nx + 1; i++){
             for(int j = 0; j < this->ny + 1; j++){
@@ -61,7 +61,7 @@ private:
 
 
     template<class T>
-    std::vector<std::vector<int> > StructuredGrid<T>::GenerateElements(){
+    std::vector<std::vector<int> > SquareMesh<T>::GenerateElements(){
         std::vector<std::vector<int> > elements = std::vector<std::vector<int> >(this->nx*this->ny);
         for(int i = 0; i < this->nx; i++){
             for(int j = 0; j < this->ny; j++){
@@ -73,18 +73,14 @@ private:
 
 
     template<class T>
-    std::vector<std::vector<int> > StructuredGrid<T>::GenerateEdges() {
+    std::vector<std::vector<int> > SquareMesh<T>::GenerateEdges() {
         std::vector<std::vector<int> > edges = std::vector<std::vector<int> >(2*(this->nx + this->ny));
         for(int i = 0; i < this->nx; i++) {
             edges[i] = { (this->ny + 1)*i, (this->ny + 1)*(i + 1) };
-        }
-        for(int j = 0; j < this->ny; j++) {
-            edges[j + this->nx] = { (this->ny + 1)*this->nx + j, (this->ny + 1)*this->nx + j + 1 };
-        }
-        for(int i = 0; i < this->nx; i++) {
             edges[2*this->nx + this->ny - i - 1] = { (this->ny + 1)*(i + 1) + this->ny, (this->ny + 1)*i  + this->ny };
         }
         for(int j = 0; j < this->ny; j++) {
+            edges[j + this->nx] = { (this->ny + 1)*this->nx + j, (this->ny + 1)*this->nx + j + 1 };
             edges[2*(this->nx + this->ny) - j - 1] = { j + 1, j };
         }
         return edges;
@@ -92,7 +88,7 @@ private:
 
 
     template<class T>
-    std::vector<int> StructuredGrid<T>::GenerateFields(int _nu){
+    std::vector<int> SquareMesh<T>::GenerateFields(int _nu){
         std::vector<int> fields = std::vector<int>((this->nx + 1)*(this->ny + 1) + 1, 0);
         for(int i = 1; i < (this->nx + 1)*(this->ny + 1) + 1; i++){
             fields[i] = fields[i - 1] + _nu;
@@ -103,7 +99,7 @@ private:
 
     template<class T>
     template<class F>
-    std::vector<int> StructuredGrid<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
+    std::vector<int> SquareMesh<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
         assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
         std::vector<int> isfixed;
         for(int i = 0; i < this->nx + 1; i++){

@@ -1,5 +1,5 @@
 //*****************************************************************************
-//  Title       :   src/PrePost/Mesher/SquareCircleAnnulus.h
+//  Title       :   src/PrePost/Mesher/SquareCircleAnnulusMesh.h
 //  Author      :   Tanabe Yuta
 //  Date        :   2020/04/11
 //  Copyright   :   (C)2020 TanabeYuta
@@ -17,12 +17,12 @@
 
 
 namespace PANSFEM2{
-    //********************SquareCircleAnnulus mesh*******************
+    //********************SquareCircleAnnulusMesh*******************
     template<class T>
-    class SquareCircleAnnulus{
+    class SquareCircleAnnulusMesh{
 public:
-        SquareCircleAnnulus(T _a, T _b, T _r, T _p, int _nx, int _ny, int _nr);
-        ~SquareCircleAnnulus();
+        SquareCircleAnnulusMesh(T _a, T _b, T _r, T _p, int _nx, int _ny, int _nr);
+        ~SquareCircleAnnulusMesh();
 
 
         std::vector<Vector<T> > GenerateNodes();
@@ -38,7 +38,7 @@ private:
 
 
     template<class T>
-    SquareCircleAnnulus<T>::SquareCircleAnnulus(T _a, T _b, T _r, T _p, int _nx, int _ny, int _nr){
+    SquareCircleAnnulusMesh<T>::SquareCircleAnnulusMesh(T _a, T _b, T _r, T _p, int _nx, int _ny, int _nr){
         this->a = _a;
         this->b = _b;
         this->r = _r;
@@ -51,11 +51,11 @@ private:
 
 
     template<class T>
-    SquareCircleAnnulus<T>::~SquareCircleAnnulus(){}
+    SquareCircleAnnulusMesh<T>::~SquareCircleAnnulusMesh(){}
 
 
     template<class T>
-    std::vector<Vector<T> > SquareCircleAnnulus<T>::GenerateNodes(){
+    std::vector<Vector<T> > SquareCircleAnnulusMesh<T>::GenerateNodes(){
         std::vector<Vector<T> > nodes = std::vector<Vector<T> >(this->nxy*(this->nr + 1));
         for(int i = 0; i < this->nr + 1; i++){
             T t = pow(i/(T)this->nr, this->p);
@@ -81,7 +81,7 @@ private:
 
 
     template<class T>
-    std::vector<std::vector<int> > SquareCircleAnnulus<T>::GenerateElements(){
+    std::vector<std::vector<int> > SquareCircleAnnulusMesh<T>::GenerateElements(){
         std::vector<std::vector<int> > elements = std::vector<std::vector<int> >(this->nxy*this->nr);
         for(int i = 0; i < this->nr; i++){
             for(int j = 0; j < this->nxy; j++){
@@ -93,7 +93,7 @@ private:
 
 
     template<class T>
-    std::vector<std::vector<int> > SquareCircleAnnulus<T>::GenerateEdges(){
+    std::vector<std::vector<int> > SquareCircleAnnulusMesh<T>::GenerateEdges(){
         std::vector<std::vector<int> > edges = std::vector<std::vector<int> >(2*this->nxy);
         for(int i = 0; i < this->nxy; i++){
             edges[this->nxy - i - 1] = { (i + 1)%this->nxy, i };
@@ -104,7 +104,7 @@ private:
 
 
     template<class T>
-    std::vector<int> SquareCircleAnnulus<T>::GenerateFields(int _nu){
+    std::vector<int> SquareCircleAnnulusMesh<T>::GenerateFields(int _nu){
         std::vector<int> fields = std::vector<int>(this->nxy*(this->nr + 1) + 1, 0);
         for(int i = 1; i < this->nxy*(this->nr + 1) + 1; i++){
             fields[i] = fields[i - 1] + _nu;
@@ -115,7 +115,7 @@ private:
 
     template<class T>
     template<class F>
-    std::vector<int> SquareCircleAnnulus<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
+    std::vector<int> SquareCircleAnnulusMesh<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
         assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
         std::vector<int> isfixed;
         for(int i = 0; i < this->nr + 1; i++){
@@ -153,7 +153,6 @@ private:
                 }
             }
         }
-
         return isfixed;
     }
 }

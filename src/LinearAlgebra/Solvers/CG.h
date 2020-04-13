@@ -7,6 +7,7 @@
 
 
 #pragma once
+#include <cmath>
 #include <numeric>
 #include <chrono>
 #include "../Models/CSR.h"
@@ -84,36 +85,112 @@ inline std::vector<T> subtract(std::vector<T>& _a, T _beta, std::vector<T>& _b) 
 }
 
 
+//********************{x}={x}+a{y}********************
+template<class T>
+inline void xexpay(std::vector<T>& _x, T _a, const std::vector<T>& _y) {
+	auto yi = _y.begin();
+	for(auto& xi : _x) {
+		xi = xi + _a*(*yi);
+		++yi;
+	}
+}
+
+
+//********************{x}=a{x}+{y}********************
+template<class T>
+inline void xeaxpy(T _a, std::vector<T>& _x, const std::vector<T>& _y) {
+	auto yi = _y.begin();
+	for(auto& xi : _x) {
+		xi = _a*xi + (*yi);
+		++yi;
+	}
+}
+
+
+//********************{z}=a{w}+b({x}-{y}+c{z})********************
+template<class T>
+inline void zeawpbxmypcz(T _a, const std::vector<T>& _w, T _b, const std::vector<T>& _x, const std::vector<T>& _y, T _c, std::vector<T>& _z) {
+	auto wi = _w.begin(), xi = _x.begin(), yi = _y.begin();
+	for(auto& zi : _z) {
+		zi = _a*(*wi) + _b*((*xi) - (*yi) + _c*zi);
+		++wi;
+		++xi;
+		++yi;
+	}
+}
+
+
+//********************{x}=a{x}+b{y}+c{z}********************
+template<class T>
+inline void xeaxpbypcz(T _a, std::vector<T>& _x, T _b, const std::vector<T>& _y, T _c, const std::vector<T>& _z) {
+	auto yi = _y.begin(), zi = _z.begin();
+	for(auto& xi : _x) {
+		xi = _a*xi + _b*(*yi) + _c*(*zi);
+		++yi;
+		++zi;
+	}
+}
+
+
+//********************{z}=a{w}+b{x}+c{y}********************
+template<class T>
+inline std::vector<T> zeawpbxpcy(T _a, const std::vector<T>& _w, T _b, const std::vector<T>& _x, T _c, const std::vector<T>& _y) {
+	std::vector<T> z = std::vector<T>(_x.size());
+	auto wi = _w.begin(), xi = _x.begin(), yi = _y.begin();
+	for(auto& zi : z) {
+		zi = _a*(*wi) + _b*(*xi) + _c*(*yi);
+		++wi;
+		++xi;
+		++yi;
+	} 
+	return z;
+}
+
+
+//********************{z}=a{v}+b{w}+c{x}+d{y}********************
+template<class T>
+inline std::vector<T> zeavpbwpcxpdy(T _a, const std::vector<T>& _v, T _b, const std::vector<T>& _w, T _c, const std::vector<T>& _x, T _d, const std::vector<T>& _y) {
+	std::vector<T> z = std::vector<T>(_x.size());
+	auto vi = _v.begin(), wi = _w.begin(), xi = _x.begin(), yi = _y.begin();
+	for(auto& zi : z) {
+		zi = _a*(*vi) + _b*(*wi) + _c*(*xi) + _d*(*yi);
+		++vi;
+		++wi;
+		++xi;
+		++yi;
+	} 
+	return z;
+}
+
+
 //********************CG method********************
 template<class T>
-std::vector<T> CG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
+std::vector<T> CG(CSR<T>& _A, const std::vector<T>& _b, int _itrmax, T _eps) {
 	//----------Initialize----------
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> pk = rk;
 	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
+	T rkrk = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
-		std::vector<T> Apk = _A * pk;
-		T alpha = std::inner_product(rk.begin(), rk.end(), rk.begin(), T()) / std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
-		std::vector<T> xkp1 = add(xk, alpha, pk);
-		std::vector<T> rkp1 = subtract(rk, alpha, Apk);
-		T beta = std::inner_product(rkp1.begin(), rkp1.end(), rkp1.begin(), T()) / std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
-		std::vector<T> pkp1 = add(rkp1, beta, pk);
-
-		//----------Update values----------
-		xk = xkp1;
-		rk = rkp1;
-		pk = pkp1;
+		std::vector<T> Apk = _A*pk;
+		T alpha = rkrk/std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
+		xexpay(xk, alpha, pk);
+		xexpay(rk, -alpha, Apk);
+		T rkp1rkp1 = std::inner_product(rk.begin(), rk.end(), rk.begin(), T());
+		T beta = rkp1rkp1/rkrk;
+		xeaxpy(beta, pk, rk);
+		rkrk = rkp1rkp1;
 
 		//----------Check convergence----------
-		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
+		T rnorm = sqrt(rkrk);
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;
-		}
+		}		
 	}
 
 	std::cout << "\nConvergence:faild" << std::endl;
@@ -151,7 +228,65 @@ std::vector<T> BiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		if (rnorm < _eps*bnorm) {
+			std::cout << "\tConvergence:" << k << std::endl;
+			return xk;
+		}
+	}
+
+	std::cout << "\nConvergence:faild" << std::endl;
+	return xk;
+}
+
+
+//********************BiCGSTAB2 method********************
+template<class T>
+std::vector<T> BiCGSTAB2(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
+	//----------Initialize----------
+	std::vector<T> xk(_b.size(), T());
+	std::vector<T> rk = subtract(_b, _A*xk);
+	std::vector<T> rdash = rk;
+	std::vector<T> pk(_b.size(), T());
+	std::vector<T> uk(_b.size(), T());
+	std::vector<T> tkm1(_b.size(), T()); 
+	std::vector<T> wk(_b.size(), T());
+	std::vector<T> zk(_b.size(), T());
+	T beta = T();
+	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
+
+	//----------Iteration----------
+	for(int k = 0; k < _itrmax; k++) {
+		xeaxpbypcz(beta, pk, 1.0, rk, -beta, uk);
+		std::vector<T> Apk = _A*pk;
+		T alpha = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T())/std::inner_product(rdash.begin(), rdash.end(), Apk.begin(), T());
+		std::vector<T> yk = zeavpbwpcxpdy(1.0, tkm1, -1.0, rk, -alpha, wk, alpha, Apk);
+		std::vector<T> tk = subtract(rk, alpha, Apk);
+		T zeta = T(), ita = T();
+		std::vector<T> Atk = _A*tk;
+		if(k%2 == 0) {
+			zeta = std::inner_product(Atk.begin(), Atk.end(), tk.begin(), T())/std::inner_product(Atk.begin(), Atk.end(), Atk.begin(), T());
+		} else {
+			T yy = std::inner_product(yk.begin(), yk.end(), yk.begin(), T());
+			T Att = std::inner_product(Atk.begin(), Atk.end(), tk.begin(), T());
+			T yt = std::inner_product(yk.begin(), yk.end(), tk.begin(), T());
+			T Aty = std::inner_product(Atk.begin(), Atk.end(), yk.begin(), T());
+			T AtAt = std::inner_product(Atk.begin(), Atk.end(), Atk.begin(), T());
+
+			zeta = (yy*Att - yt*Aty)/(AtAt*yy - Aty*Aty);
+			ita = (AtAt*yt - Aty*Att)/(AtAt*yy - Aty*Aty);
+		}
+		zeawpbxmypcz(zeta, Apk, ita, tkm1, rk, beta, uk);
+		xeaxpbypcz(ita, zk, zeta, rk, -alpha, uk);
+		xeaxpbypcz(1.0, xk, alpha, pk, 1.0, zk);
+		std::vector<T> rkp1 = zeawpbxpcy(1.0, tk, -ita, yk, -zeta, Atk);
+		beta = alpha*std::inner_product(rdash.begin(), rdash.end(), rkp1.begin(), T())/(zeta*std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T()));
+		wk = add(Atk, beta, Apk);
+
+		rk = rkp1;
+		tkm1 = tk;
+		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
+		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;

@@ -72,28 +72,56 @@ namespace PANSFEM2 {
 			T P = p*N;						//	p
 			Vector<T> dpdX = dNdX*p;		//	dpdXi
 
+			//----------Get diffusion term----------
+			Matrix<T> Sxx = Matrix<T>(m, m);
+			Matrix<T> Sxy = Matrix<T>(m, m);
+			Matrix<T> Syx = Matrix<T>(m, m);
+			Matrix<T> Syy = Matrix<T>(m, m);
+			for(int i = 0; i < m; i++) {
+				for(int j = 0; j < m; j++) {
+					Sxx(i, j) = 2.0*_nu*dMdX(0, i)*dMdX(0, j) + _nu*dMdX(1, i)*dMdX(1, j);
+					Sxy(i, j) = _nu*dMdX(1, i)*dMdX(0, j);
+					Syx(i, j) = _nu*dMdX(0, i)*dMdX(1, j);
+					Syy(i, j) = _nu*dMdX(0, i)*dMdX(0, j) + 2.0*_nu*dMdX(1, i)*dMdX(1, j);
+				}
+			}
+
+			//----------Get convective term----------
+			Matrix<T> Kx0 = Matrix<T>(m, m);
+			Matrix<T> Kx1 = Matrix<T>(m, m);
+			Matrix<T> Ky0 = Matrix<T>(m, m);
+			Matrix<T> Ky1 = Matrix<T>(m, m);
+			for(int i = 0; i < m; i++) {
+				for(int j = 0; j < m; j++) {
+					Kx0(i, j) = M(i)*M(j);
+					Kx1(i, j) = M(i)*dMdX(0, j);
+					Ky0(i, j) = M(i)*M(j);
+					Ky1(i, j) = M(i)*dMdX(1, j);
+				}
+			}
+
             //----------Get Ke matrix----------
             Matrix<T> K = Matrix<T>(2*m + n, 2*m + n);
             for(int i = 0; i < n; i++){
                 for(int j = 0; j < n; j++){
-                    K(3*i, 3*j) = M(i)*M(j)*dUdX(0, 0) + M(i)*dMdX(0, j)*U(0) + M(i)*dMdX(1, j)*U(1) + 2.0*_nu*dMdX(0, i)*dMdX(0, j) + _nu*dMdX(1, i)*dMdX(1, j);	K(3*i, 3*j + 1) = M(i)*M(j)*dUdX(1, 0) + _nu*dMdX(0, i)*dMdX(1, j);																						K(3*i, 3*j + 2) = -N(j)*dMdX(0, i);
-                    K(3*i + 1, 3*j) = M(i)*M(j)*dUdX(0, 1) + _nu*dMdX(1, i)*dMdX(0, j);																				K(3*i + 1, 3*j + 1) = M(i)*M(j)*dUdX(1, 1) + M(i)*dMdX(1, j)*U(1) + M(i)*dMdX(0, j)*U(0) + _nu*dMdX(0, i)*dMdX(0, j) + 2.0*_nu*dMdX(1, i)*dMdX(1, j);	K(3*i + 1, 3*j + 2) = -N(j)*dMdX(1, i);
-                    K(3*i + 2, 3*j) = N(i)*dMdX(0, j);																												K(3*i + 2, 3*j + 1) = N(i)*dMdX(1, j);																													K(3*i + 2, 3*j + 2) = T();
+                    K(3*i, 3*j) = Kx0(i, j)*dUdX(0, 0) + Kx1(i, j)*U(0) + Ky1(i, j)*U(1) + Sxx(i, j) + Sxy(i, j);	K(3*i, 3*j + 1) = Ky0(i, j)*dUdX(1, 0);																	K(3*i, 3*j + 2) = -N(j)*dMdX(0, i);
+                    K(3*i + 1, 3*j) = Kx0(i, j)*dUdX(0, 1);															K(3*i + 1, 3*j + 1) = Ky0(i, j)*dUdX(1, 1) + Ky1(i, j)*U(1) + Kx1(i, j)*U(0) + Syx(i, j) + Syy(i, j);	K(3*i + 1, 3*j + 2) = -N(j)*dMdX(1, i);
+                    K(3*i + 2, 3*j) = N(i)*dMdX(0, j);																K(3*i + 2, 3*j + 1) = N(i)*dMdX(1, j);																	K(3*i + 2, 3*j + 2) = T();
                 }
                 for(int j = n; j < m; j++){
-                    K(3*i, n + 2*j) = M(i)*M(j)*dUdX(0, 0) + M(i)*dMdX(0, j)*U(0) + M(i)*dMdX(1, j)*U(1) + 2.0*_nu*dMdX(0, i)*dMdX(0, j) + _nu*dMdX(1, i)*dMdX(1, j);	K(3*i, n + 2*j + 1) = M(i)*M(j)*dUdX(1, 0) + _nu*dMdX(0, i)*dMdX(1, j);
-                    K(3*i + 1, n + 2*j) = M(i)*M(j)*dUdX(0, 1) + _nu*dMdX(1, i)*dMdX(0, j);																				K(3*i + 1, n + 2*j + 1) = M(i)*M(j)*dUdX(1, 1) + M(i)*dMdX(1, j)*U(1) + M(i)*dMdX(0, j)*U(0) + _nu*dMdX(0, i)*dMdX(0, j) + 2.0*_nu*dMdX(1, i)*dMdX(1, j);
-                    K(3*i + 2, n + 2*j) = N(i)*dMdX(0, j);                                         																		K(3*i + 2, n + 2*j + 1) = N(i)*dMdX(1, j);
+                    K(3*i, n + 2*j) = Kx0(i, j)*dUdX(0, 0) + Kx1(i, j)*U(0) + Ky1(i, j)*U(1) + Sxx(i, j) + Sxy(i, j);	K(3*i, n + 2*j + 1) = Ky0(i, j)*dUdX(1, 0);
+                    K(3*i + 1, n + 2*j) = Kx0(i, j)*dUdX(0, 1);															K(3*i + 1, n + 2*j + 1) = Ky0(i, j)*dUdX(1, 1) + Ky1(i, j)*U(1) + Kx1(i, j)*U(0) + Syx(i, j) + Syy(i, j);
+                    K(3*i + 2, n + 2*j) = N(i)*dMdX(0, j);                                         						K(3*i + 2, n + 2*j + 1) = N(i)*dMdX(1, j);
                 }
             }
             for(int i = n; i < m; i++){
                 for(int j = 0; j < n; j++){
-                    K(n + 2*i, 3*j) = M(i)*M(j)*dUdX(0, 0) + M(i)*dMdX(0, j)*U(0) + M(i)*dMdX(1, j)*U(1) + 2.0*_nu*dMdX(0, i)*dMdX(0, j) + _nu*dMdX(1, i)*dMdX(1, j);	K(n + 2*i, 3*j + 1) = M(i)*M(j)*dUdX(1, 0) + _nu*dMdX(0, i)*dMdX(1, j);                                     												K(n + 2*i, 3*j + 2) = -N(j)*dMdX(0, i);
-                    K(n + 2*i + 1, 3*j) = M(i)*M(j)*dUdX(0, 1) + _nu*dMdX(1, i)*dMdX(0, j);																				K(n + 2*i + 1, 3*j + 1) = M(i)*M(j)*dUdX(1, 1) + M(i)*dMdX(1, j)*U(1) + M(i)*dMdX(0, j)*U(0) + _nu*dMdX(0, i)*dMdX(0, j) + 2.0*_nu*dMdX(1, i)*dMdX(1, j);	K(n + 2*i + 1, 3*j + 2) = -N(j)*dMdX(1, i);
+                    K(n + 2*i, 3*j) = Kx0(i, j)*dUdX(0, 0) + Kx1(i, j)*U(0) + Ky1(i, j)*U(1) + Sxx(i, j) + Sxy(i, j);	K(n + 2*i, 3*j + 1) = Ky0(i, j)*dUdX(1, 0);                                     							K(n + 2*i, 3*j + 2) = -N(j)*dMdX(0, i);
+                    K(n + 2*i + 1, 3*j) = Kx0(i, j)*dUdX(0, 1);															K(n + 2*i + 1, 3*j + 1) = Ky0(i, j)*dUdX(1, 1) + Ky1(i, j)*U(1) + Kx1(i, j)*U(0) + Syx(i, j) + Syy(i, j);	K(n + 2*i + 1, 3*j + 2) = -N(j)*dMdX(1, i);
                 }
                 for(int j = n; j < m; j++){
-                    K(n + 2*i, n + 2*j) = M(i)*M(j)*dUdX(0, 0) + M(i)*dMdX(0, j)*U(0) + M(i)*dMdX(1, j)*U(1) + 2.0*_nu*dMdX(0, i)*dMdX(0, j) + _nu*dMdX(1, i)*dMdX(1, j);	K(n + 2*i, n + 2*j + 1) = M(i)*M(j)*dUdX(1, 0) + _nu*dMdX(0, i)*dMdX(1, j);
-                    K(n + 2*i + 1, n + 2*j) = M(i)*M(j)*dUdX(0, 1) + _nu*dMdX(1, i)*dMdX(0, j);																				K(n + 2*i + 1, n + 2*j + 1) = M(i)*M(j)*dUdX(1, 1) + M(i)*dMdX(1, j)*U(1) + M(i)*dMdX(0, j)*U(0) + _nu*dMdX(0, i)*dMdX(0, j) + 2.0*_nu*dMdX(1, i)*dMdX(1, j);
+                    K(n + 2*i, n + 2*j) = Kx0(i, j)*dUdX(0, 0) + Kx1(i, j)*U(0) + Ky1(i, j)*U(1) + Sxx(i, j) + Sxy(i, j);	K(n + 2*i, n + 2*j + 1) = Ky0(i, j)*dUdX(1, 0);
+                    K(n + 2*i + 1, n + 2*j) = Kx0(i, j)*dUdX(0, 1);															K(n + 2*i + 1, n + 2*j + 1) = Ky0(i, j)*dUdX(1, 1) + Ky1(i, j)*U(1) + Kx1(i, j)*U(0) + Syx(i, j) + Syy(i, j);
                 }
             }
 			_Ke += K*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];

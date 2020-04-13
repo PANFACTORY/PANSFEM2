@@ -88,11 +88,11 @@ int main() {
     //  Update result with NavierStokes equation
     //*****************************************************
     
-    //----------Incremental Step----------
-    for (int k = 0; k < 10; k++) {
+    //----------Newton-Raphson method----------
+    for (int k = 0; k < 0; k++) {
         //----------Culculate Ke Fe and Assembling----------
         LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
-        std::vector<double> Q = std::vector<double>(KDEGREE, 0.0);		//Interna load vector
+        std::vector<double> Q = std::vector<double>(KDEGREE, 0.0);		//Internal load vector
         for (int i = 0; i < elementsu.size(); i++) {
             Matrix<double> Ke;
             Vector<double> Qe;
@@ -115,18 +115,14 @@ int main() {
 
         //----------Check convergence----------
         double normR = std::inner_product(R.begin(), R.end(), R.begin(), 0.0);
-        double normQ = std::inner_product(Q.begin(), Q.end(), Q.begin(), 0.0);
-        std::cout << "k = " << k << "\tR Norm = " << normR << "\tQ Norm = " << normQ << std::endl;
-        if (normR < 1.0e-3) {
-            //std::cout << "k = " << k << "\tNorm = " << normR << std::endl;
+        std::cout << "k = " << k << "\tR Norm = " << normR << std::endl;
+        if (normR < 1.0e-1) {
             break;
         }
         
         //----------Solve System Equation----------
         CSR<double> Kmod = CSR<double>(K);
-        std::vector<double> result = BiCGSTAB(Kmod, R, 10000, 1.0e-10);
-
-        //----------Update displacement u----------
+        std::vector<double> result = BiCGSTAB2(Kmod, R, 1000, 1.0e-10);
         std::vector<Vector<double> > dup = std::vector<Vector<double> >(nodes.size());
         FieldResultToNodeValue(result, dup, field);
         for(int i = 0; i < nodes.size(); i++){

@@ -220,20 +220,22 @@ std::vector<T> BiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> rdash = rk;
 	std::vector<T> pk = rk;
+	T rdashrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
 	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
 		std::vector<T> Apk = _A*pk;
-		T rdashrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
 		T alpha = rdashrk/std::inner_product(rdash.begin(), rdash.end(), Apk.begin(), T());
 		std::vector<T> sk = zeaxpby(1.0, rk, -alpha, Apk);
 		std::vector<T> Ask = _A*sk;
 		T omega = std::inner_product(Ask.begin(), Ask.end(), sk.begin(), T())/std::inner_product(Ask.begin(), Ask.end(), Ask.begin(), T());
 		xeaxpbypcz(1.0, xk, alpha, pk, omega, sk);
 		rk = zeaxpby(1.0, sk, -omega, Ask);
-		T beta = alpha/omega*std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T())/rdashrk;
+		T rdashrkp1 = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
+		T beta = alpha/omega*rdashrkp1/rdashrk;
 		xeaxpbypcz(beta, pk, 1.0, rk, -beta*omega, Apk);
+		rdashrk = rdashrkp1;
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));

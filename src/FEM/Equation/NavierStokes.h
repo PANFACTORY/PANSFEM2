@@ -137,7 +137,7 @@ namespace PANSFEM2 {
                 F(n + 2*i)     = M(i)*U(0)*dUdX(0, 0) + M(i)*U(1)*dUdX(1, 0) + 2.0*_nu*dMdX(0, i)*dUdX(0, 0) + _nu*dMdX(1, i)*dUdX(1, 0) + _nu*dMdX(1, i)*dUdX(0, 1) - dMdX(0, i)*P;
 				F(n + 2*i + 1) = M(i)*U(0)*dUdX(0, 1) + M(i)*U(1)*dUdX(1, 1) + _nu*dMdX(0, i)*dUdX(1, 0) + _nu*dMdX(0, i)*dUdX(0, 1) + 2.0*_nu*dMdX(1, i)*dUdX(1, 1) - dMdX(1, i)*P;
             }
-			_Fe += F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Fe -= F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 }

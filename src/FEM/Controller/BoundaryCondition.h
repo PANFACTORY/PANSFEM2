@@ -67,4 +67,26 @@ namespace PANSFEM2 {
 			_K.set(_isslavefixed[i], _isslavefixed[i], _K.get(_isslavefixed[i], _isslavefixed[i]) + _alpha);
 		}
 	}
+
+
+	//******************************Set Initial boundary conditions*******************************
+	template<class T>
+	void SetInitial(std::vector<Vector<T> >& _values, const std::vector<int>& _field, const std::vector<int>& _isufixed, const std::vector<T>& _ufixed) {
+		assert(_isufixed.size() == _ufixed.size() && _values.size() == _field.size() - 1);
+
+		std::vector<T> result = std::vector<T>(_field[_field.size() - 1], T());
+		for(int i = 0; i < _isufixed.size(); i++) {
+			result[_isufixed[i]] += _ufixed[i];
+		}
+
+		int resultindex = 0;
+		for (int i = 0; i < _field.size() - 1; i++) {
+			std::vector<T> value;
+			for (int k = _field[i]; k < _field[i + 1]; k++) {
+				value.push_back(result[resultindex]);
+				resultindex++;
+			}
+			_values[i] = Vector<T>(value);
+		}
+	}
 }

@@ -16,8 +16,6 @@
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
 
-#include "../../src/FEM/Equation/Geometric.h"
-
 
 using namespace PANSFEM2;
 
@@ -52,12 +50,23 @@ int main() {
 	std::vector<double> ufixed;
 	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
 
+    //----------Define velocity and pressure----------
+    std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
+    std::vector<double> p = std::vector<double>(nodes.size(), 0.0);
+
+    //----------Get incremental Dirichlet boundary conditions----------
+    int kmax = 10;
+    std::vector<double> dufixed = std::vector<double>(isufixed.size());
+    for(int i = 0; i < isufixed.size(); i++) {
+        dufixed[i] = ufixed[i]/(double)kmax;
+    }
+
 
     //*****************************************************
-    //  Initialize result with Stokes
+    //  Get initial result with Stokes equation
     //*****************************************************
 
-	//----------Culculate Ke Fe and Assembling----------
+    //----------Culculate Ke Fe and Assembling----------
     LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);        //  System stiffness matrix
     std::vector<double> F = std::vector<double>(KDEGREE, 0.0);  //  External load vector
     for (int i = 0; i < elementsu.size(); i++) {
@@ -67,73 +76,75 @@ int main() {
     }
 
     //----------Set Boundary Condition----------
-    SetDirichlet(K, F, isufixed, ufixed, 1.0e9);
+    SetDirichlet(K, F, isufixed, dufixed, 1.0e9);
 
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
     std::vector<double> result = CG(Kmod, F, 100000, 1.0e-10);
     std::vector<Vector<double> > up = std::vector<Vector<double> >(nodes.size());     //  Velocity
     FieldResultToNodeValue(result, up, field);
-	std::vector<Vector<double>> u = std::vector<Vector<double>>(nodes.size());
-	std::vector<double> p = std::vector<double>(nodes.size(), 0.0);
-	for(int i = 0; i < nodes.size(); i++){
-		u[i] = up[i].Segment(0, 2);
-		if(up[i].SIZE() == 3){
-			p[i] = up[i](2);
-		}
-	}
+    for(int i = 0; i < nodes.size(); i++){
+        u[i] = up[i].Segment(0, 2);
+        if(up[i].SIZE() == 3){
+            p[i] = up[i](2);
+        }
+    }
 
 
     //*****************************************************
-    //  Update result with NavierStokes equation
+    //  Incremental step loop
     //*****************************************************
-    
-    //----------Newton-Raphson method----------
-    for (int k = 0; k < 5; k++) {
-        //----------Culculate Ke Fe and Assembling----------
-        LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
-        std::vector<double> Q = std::vector<double>(KDEGREE, 0.0);		//Internal load vector
-        for (int i = 0; i < elementsu.size(); i++) {
-            Matrix<double> Ke;
-            Vector<double> Qe;
-            NavierStokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, Qe, nodes, u, p, elementsu[i], elementsp[i], 1.0);
-            Assembling(K, Q, Ke, Qe, elementsu[i], field);
-        }
+    for(int k = 1; k < kmax; k++) {
+        std::cout << "k=" << k;
 
-        //----------Culculate traction term and Assembling----------
-        std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
-        
-        //----------Get residual load vector----------
-        std::vector<double> R = std::vector<double>(KDEGREE, 0.0);		//Residual load vector
-        for(int i = 0; i < KDEGREE; i++){
-            R[i] = F[i] - Q[i];
-        }
-                    
-        //----------Set Dirichlet Boundary Condition----------
-        std::vector<double> tmpufixed = std::vector<double>(isufixed.size(), 0.0);
-        SetDirichlet(K, R, isufixed, tmpufixed, 1.0e3);
-
-        //----------Check convergence----------
-        double normR = std::inner_product(R.begin(), R.end(), R.begin(), 0.0);
-        std::cout << "k = " << k << "\tR Norm = " << normR << std::endl;
-        if (normR < 1.0e-1) {
-            //break;
-        }
-        
-        //----------Solve System Equation----------
-        CSR<double> Kmod = CSR<double>(K);
-        std::vector<double> result = BiCGSTAB2(Kmod, R, 10000, 1.0e-10);
-        std::vector<Vector<double> > dup = std::vector<Vector<double> >(nodes.size());
-        FieldResultToNodeValue(result, dup, field);
+        //----------Set k'th initial condition----------
+        std::vector<Vector<double> > dup0 = std::vector<Vector<double> >(nodes.size());
+        SetInitial(dup0, field, isufixed, dufixed);
         for(int i = 0; i < nodes.size(); i++){
-            u[i] += dup[i].Segment(0, 2);
-            if(dup[i].SIZE() == 3){
-                p[i] += dup[i](2);
+            u[i] += dup0[i].Segment(0, 2);
+            if(dup0[i].SIZE() == 3){
+                p[i] += dup0[i](2);
+            }
+        }
+
+        //----------Newton-Raphson loop----------
+        for(int l = 0; l < 10; l++) {
+            //----------Culculate Ke Fe and Assembling----------
+            LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
+            std::vector<double> R = std::vector<double>(KDEGREE, 0.0);		//Residual load vector
+            for (int i = 0; i < elementsu.size(); i++) {
+                Matrix<double> Ke;
+                Vector<double> Qe;
+                NavierStokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, Qe, nodes, u, p, elementsu[i], elementsp[i], 1.0);
+                Assembling(K, R, Ke, Qe, elementsu[i], field);
+            }
+  
+            //----------Set Dirichlet Boundary Condition----------
+            std::vector<double> tmpufixed = std::vector<double>(isufixed.size(), 0.0);
+            SetDirichlet(K, R, isufixed, tmpufixed, 1.0e3);
+
+            //----------Check convergence----------
+            double normR = std::inner_product(R.begin(), R.end(), R.begin(), 0.0);
+            if (normR < 1.0e-1) {
+                std::cout << "\tConvergence at l = " << l << "\tR Norm = " << normR << std::endl;
+                break;
+            }
+            
+            //----------Solve System Equation----------
+            CSR<double> Kmod = CSR<double>(K);
+            std::vector<double> result = BiCGSTAB2(Kmod, R, 100000, 1.0e-10);
+            std::vector<Vector<double> > dup = std::vector<Vector<double> >(nodes.size());
+            FieldResultToNodeValue(result, dup, field);
+            for(int i = 0; i < nodes.size(); i++){
+                u[i] += dup[i].Segment(0, 2);
+                if(dup[i].SIZE() == 3){
+                    p[i] += dup[i](2);
+                }
             }
         }
     }
 
-        
+
     //*************************************************		
     //  Save values
     //*************************************************

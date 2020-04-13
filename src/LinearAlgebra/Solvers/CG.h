@@ -416,34 +416,28 @@ std::vector<T> ILU0BiCGSTAB(CSR<T>& _A, CSR<T>& _M, std::vector<T>& _b, int _itr
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> rdash = rk;
 	std::vector<T> pk = rk;
+	T rdashrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
 	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
 		std::vector<T> Mpk = PreILU0(_M, pk);		//Preconditioning
-
-		std::vector<T> AMpk = _A * Mpk;
-		T rdashdotrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
-		T alpha = rdashdotrk / std::inner_product(rdash.begin(), rdash.end(), AMpk.begin(), T());
-		std::vector<T> sk = subtract(rk, alpha, AMpk);
-
+		std::vector<T> AMpk = _A*Mpk;
+		T alpha = rdashrk/std::inner_product(rdash.begin(), rdash.end(), AMpk.begin(), T());
+		std::vector<T> sk = zeaxpby(1.0, rk, -alpha, AMpk);
 		std::vector<T> Msk = PreILU0(_M, sk);		//Preconditioning
-
-		std::vector<T> AMsk = _A * Msk;
-		T omega = std::inner_product(AMsk.begin(), AMsk.end(), sk.begin(), T()) / std::inner_product(AMsk.begin(), AMsk.end(), AMsk.begin(), T());
-		std::vector<T> xkp1 = add(xk, alpha, Mpk, omega, Msk);
-		std::vector<T> rkp1 = subtract(sk, omega, AMsk);
-		T beta = alpha / omega * std::inner_product(rdash.begin(), rdash.end(), rkp1.begin(), T()) / rdashdotrk;
-		std::vector<T> pkp1 = addsubstract(rk, beta, pk, omega, AMpk);
-
-		//----------Update values----------
-		xk = xkp1;
-		rk = rkp1;
-		pk = pkp1;
+		std::vector<T> AMsk = _A*Msk;
+		T omega = std::inner_product(AMsk.begin(), AMsk.end(), sk.begin(), T())/std::inner_product(AMsk.begin(), AMsk.end(), AMsk.begin(), T());
+		xeaxpbypcz(1.0, xk, alpha, Mpk, omega, Msk);
+		rk = zeaxpby(1.0, sk, -omega, AMsk);
+		T rdashrkp1 = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
+		T beta = alpha/omega*rdashrkp1/rdashrk;
+		xeaxpbypcz(beta, pk, 1.0, rk, -beta*omega, AMpk);
+		rdashrk = rdashrkp1;
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;

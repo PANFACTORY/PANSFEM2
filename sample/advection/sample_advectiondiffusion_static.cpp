@@ -68,7 +68,7 @@ int main() {
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
     CSR<double> M = ILU0(Kmod);
-    std::vector<double> result = ILU0BiCGSTAB(Kmod, M, F, 100000, 1.0e-10);
+    std::vector<double> result = BiCGSTAB(Kmod, F, 100000, 1.0e-10);
 
     //----------Update T----------
     std::vector<double> T = std::vector<double>(nodes.size(), 0.0);

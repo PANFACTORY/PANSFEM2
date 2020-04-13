@@ -132,6 +132,20 @@ inline void xeaxpbypcz(T _a, std::vector<T>& _x, T _b, const std::vector<T>& _y,
 }
 
 
+//********************{z}=a{x}+b{y}********************
+template<class T>
+inline std::vector<T> zeaxpby(T _a, const std::vector<T>& _x, T _b, const std::vector<T>& _y) {
+	std::vector<T> z = std::vector<T>(_x.size());
+	auto xi = _x.begin(), yi = _y.begin();
+	for(auto& zi : z) {
+		zi = _a*(*xi) + _b*(*yi);
+		++xi;
+		++yi;
+	} 
+	return z;
+}
+
+
 //********************{z}=a{w}+b{x}+c{y}********************
 template<class T>
 inline std::vector<T> zeawpbxpcy(T _a, const std::vector<T>& _w, T _b, const std::vector<T>& _x, T _c, const std::vector<T>& _y) {
@@ -210,25 +224,20 @@ std::vector<T> BiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
-		std::vector<T> Apk = _A * pk;
-		T rdashdotrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
-		T alpha = rdashdotrk / std::inner_product(rdash.begin(), rdash.end(), Apk.begin(), T());
-		std::vector<T> sk = subtract(rk, alpha, Apk);
-		std::vector<T> Ask = _A * sk;
-		T omega = std::inner_product(Ask.begin(), Ask.end(), sk.begin(), T()) / std::inner_product(Ask.begin(), Ask.end(), Ask.begin(), T());
-		std::vector<T> xkp1 = add(xk, alpha, pk, omega, sk);
-		std::vector<T> rkp1 = subtract(sk, omega, Ask);
-		T beta = alpha / omega * std::inner_product(rdash.begin(), rdash.end(), rkp1.begin(), T()) / rdashdotrk;
-		std::vector<T> pkp1 = addsubstract(rk, beta, pk, omega, Apk);
-
-		//----------Update values----------
-		xk = xkp1;
-		rk = rkp1;
-		pk = pkp1;
+		std::vector<T> Apk = _A*pk;
+		T rdashrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
+		T alpha = rdashrk/std::inner_product(rdash.begin(), rdash.end(), Apk.begin(), T());
+		std::vector<T> sk = zeaxpby(1.0, rk, -alpha, Apk);
+		std::vector<T> Ask = _A*sk;
+		T omega = std::inner_product(Ask.begin(), Ask.end(), sk.begin(), T())/std::inner_product(Ask.begin(), Ask.end(), Ask.begin(), T());
+		xeaxpbypcz(1.0, xk, alpha, pk, omega, sk);
+		rk = zeaxpby(1.0, sk, -omega, Ask);
+		T beta = alpha/omega*std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T())/rdashrk;
+		xeaxpbypcz(beta, pk, 1.0, rk, -beta*omega, Apk);
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;

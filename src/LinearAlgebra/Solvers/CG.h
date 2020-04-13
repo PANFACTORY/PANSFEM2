@@ -13,50 +13,6 @@
 #include "../Models/CSR.h"
 
 
-//********************{a}+beta*{b}*******************
-template<class T>
-inline std::vector<T> add(std::vector<T>& _a, T _beta, std::vector<T>& _b) {
-	std::vector<T> v(_a.size());
-	auto ai = _a.begin(), bi = _b.begin();
-	for (auto &vi : v) {
-		vi = (*ai) + _beta * (*bi);
-		++ai;
-		++bi;
-	}
-	return v;
-}
-
-
-//********************{a}+beta*{b}+ganma*{c}********************
-template<class T>
-inline std::vector<T> add(std::vector<T>& _a, T _beta, std::vector<T>& _b, T _ganma, std::vector<T>& _c) {
-	std::vector<T> v(_a.size());
-	auto ai = _a.begin(), bi = _b.begin(), ci = _c.begin();
-	for (auto &vi : v) {
-		vi = (*ai) + _beta * (*bi) + _ganma * (*ci);
-		++ai;
-		++bi;
-		++ci;
-	}
-	return v;
-}
-
-
-//********************{a}+beta({b}-ganma*{c})********************
-template<class T>
-inline std::vector<T> addsubstract(std::vector<T>& _a, T _beta, std::vector<T>& _b, T _ganma, std::vector<T>& _c) {
-	std::vector<T> v(_a.size());
-	auto ai = _a.begin(), bi = _b.begin(), ci = _c.begin();
-	for (auto &vi : v) {
-		vi = (*ai) + _beta * ((*bi) - _ganma * (*ci));
-		++ai;
-		++bi;
-		++ci;
-	}
-	return v;
-}
-
-
 //********************{a}-{b}********************
 template<class T>
 inline std::vector<T> subtract(std::vector<T> _a, std::vector<T> _b) {
@@ -64,20 +20,6 @@ inline std::vector<T> subtract(std::vector<T> _a, std::vector<T> _b) {
 	auto ai = _a.begin(), bi = _b.begin();
 	for (auto &vi : v) {
 		vi = (*ai) - (*bi);
-		++ai;
-		++bi;
-	}
-	return v;
-}
-
-
-//********************{a}-beta*{b}*******************
-template<class T>
-inline std::vector<T> subtract(std::vector<T>& _a, T _beta, std::vector<T>& _b) {
-	std::vector<T> v(_a.size());
-	auto ai = _a.begin(), bi = _b.begin();
-	for (auto &vi : v) {
-		vi = (*ai) - _beta * (*bi);
 		++ai;
 		++bi;
 	}

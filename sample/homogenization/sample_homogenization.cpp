@@ -67,7 +67,7 @@ int main() {
 
 	//----------Solve System Equation----------
 	CSR<double> Kmod = CSR<double>(K);
-	std::vector<double> result0 = ScalingCG(Kmod, F0, 100000, 1.0e-10);
+	std::vector<double> result0 = SORCG(Kmod, F0, 100000, 1.0e-10, 1.75, 100, 1.0e-3);
 	std::vector<double> result1 = ScalingCG(Kmod, F1, 100000, 1.0e-10);
 	std::vector<double> result2 = ScalingCG(Kmod, F2, 100000, 1.0e-10);
 
@@ -90,7 +90,7 @@ int main() {
 	}
 	//CH /= volume;
 
-	std::cout << CH << volume << std::endl;
+	//std::cout << CH << volume << std::endl;
 			
 	//----------Save initial value----------
 	std::ofstream fout(model_path + "result.vtk");

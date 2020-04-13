@@ -111,7 +111,7 @@ int main() {
                     
         //----------Set Dirichlet Boundary Condition----------
         std::vector<double> tmpufixed = std::vector<double>(isufixed.size(), 0.0);
-        SetDirichlet(K, R, isufixed, tmpufixed, 1.0e9);
+        SetDirichlet(K, R, isufixed, tmpufixed, 1.0e3);
 
         //----------Check convergence----------
         double normR = std::inner_product(R.begin(), R.end(), R.begin(), 0.0);

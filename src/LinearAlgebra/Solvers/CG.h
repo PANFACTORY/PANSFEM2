@@ -181,7 +181,7 @@ std::vector<T> BiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;
@@ -241,7 +241,7 @@ std::vector<T> BiCGSTAB2(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 
 		tkm1 = tk;
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		std::cout << "k = " << k << "\teps = " << rnorm/bnorm << std::endl;
+		//std::cout << "k = " << k << "\teps = " << rnorm/bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;

@@ -89,7 +89,7 @@ int main() {
     //*****************************************************
     
     //----------Newton-Raphson method----------
-    for (int k = 0; k < 2; k++) {
+    for (int k = 0; k < 5; k++) {
         //----------Culculate Ke Fe and Assembling----------
         LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
         std::vector<double> Q = std::vector<double>(KDEGREE, 0.0);		//Internal load vector
@@ -122,7 +122,7 @@ int main() {
         
         //----------Solve System Equation----------
         CSR<double> Kmod = CSR<double>(K);
-        std::vector<double> result = BiCGSTAB(Kmod, R, 10000, 1.0e-10);
+        std::vector<double> result = BiCGSTAB2(Kmod, R, 10000, 1.0e-10);
         std::vector<Vector<double> > dup = std::vector<Vector<double> >(nodes.size());
         FieldResultToNodeValue(result, dup, field);
         for(int i = 0; i < nodes.size(); i++){

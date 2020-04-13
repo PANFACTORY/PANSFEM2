@@ -206,40 +206,42 @@ std::vector<T> BiCGSTAB2(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 	std::vector<T> wk(_b.size(), T());
 	std::vector<T> zk(_b.size(), T());
 	T beta = T();
+	T rdashrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
 	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
 
 	//----------Iteration----------
 	for(int k = 0; k < _itrmax; k++) {
 		xeaxpbypcz(beta, pk, 1.0, rk, -beta, uk);
 		std::vector<T> Apk = _A*pk;
-		T alpha = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T())/std::inner_product(rdash.begin(), rdash.end(), Apk.begin(), T());
+		T alpha = rdashrk/std::inner_product(rdash.begin(), rdash.end(), Apk.begin(), T());
 		std::vector<T> yk = zeavpbwpcxpdy(1.0, tkm1, -1.0, rk, -alpha, wk, alpha, Apk);
-		std::vector<T> tk = subtract(rk, alpha, Apk);
-		T zeta = T(), ita = T();
+		std::vector<T> tk = zeaxpby(1.0, rk, -alpha, Apk);
+		T zeta, ita;
 		std::vector<T> Atk = _A*tk;
+		T Att = std::inner_product(Atk.begin(), Atk.end(), tk.begin(), T());
+		T AtAt = std::inner_product(Atk.begin(), Atk.end(), Atk.begin(), T());
 		if(k%2 == 0) {
-			zeta = std::inner_product(Atk.begin(), Atk.end(), tk.begin(), T())/std::inner_product(Atk.begin(), Atk.end(), Atk.begin(), T());
+			zeta = Att/AtAt;
+			ita = T();
 		} else {
 			T yy = std::inner_product(yk.begin(), yk.end(), yk.begin(), T());
-			T Att = std::inner_product(Atk.begin(), Atk.end(), tk.begin(), T());
 			T yt = std::inner_product(yk.begin(), yk.end(), tk.begin(), T());
 			T Aty = std::inner_product(Atk.begin(), Atk.end(), yk.begin(), T());
-			T AtAt = std::inner_product(Atk.begin(), Atk.end(), Atk.begin(), T());
-
 			zeta = (yy*Att - yt*Aty)/(AtAt*yy - Aty*Aty);
 			ita = (AtAt*yt - Aty*Att)/(AtAt*yy - Aty*Aty);
 		}
 		zeawpbxmypcz(zeta, Apk, ita, tkm1, rk, beta, uk);
 		xeaxpbypcz(ita, zk, zeta, rk, -alpha, uk);
 		xeaxpbypcz(1.0, xk, alpha, pk, 1.0, zk);
-		std::vector<T> rkp1 = zeawpbxpcy(1.0, tk, -ita, yk, -zeta, Atk);
-		beta = alpha*std::inner_product(rdash.begin(), rdash.end(), rkp1.begin(), T())/(zeta*std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T()));
-		wk = add(Atk, beta, Apk);
+		rk = zeawpbxpcy(1.0, tk, -ita, yk, -zeta, Atk);
+		T rdashrkp1 = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
+		beta = alpha*rdashrkp1/(zeta*rdashrk);
+		wk = zeaxpby(1.0, Atk, beta, Apk);
+		rdashrk = rdashrkp1;
 
-		rk = rkp1;
 		tkm1 = tk;
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		std::cout << "k = " << k << "\teps = " << rnorm/bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;

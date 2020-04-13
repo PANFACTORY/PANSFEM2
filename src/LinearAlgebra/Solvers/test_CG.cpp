@@ -12,7 +12,7 @@ int main(){
     std::vector<double> x = std::vector<double>(4, 1.0);
     std::vector<double> b = A*x;
 
-    x = BiCGSTAB(A, b, 1000, 1.0e-10);
+    x = BiCGSTAB2(A, b, 1000, 1.0e-10);
 
     for(auto xi : x) {
         std::cout << xi << std::endl;

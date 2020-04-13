@@ -477,40 +477,33 @@ std::vector<T> Scaling(std::vector<T>& _D, std::vector<T>& _b) {
 
 //********************Scaling preconditioning CG method********************
 template<class T>
-std::vector<T> ScalingCG(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
+std::vector<T> ScalingCG(CSR<T>& _A, const std::vector<T>& _b, int _itrmax, T _eps) {
 	//----------Initialize----------
 	std::vector<T> D = GetDiagonal(_A);				//Scaling A matrix
 	std::vector<T> xk(_b.size(), T());
 	std::vector<T> rk = subtract(_b, _A*xk);
 	std::vector<T> pk = Scaling(D, rk);				//Scaling rk
 	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
-
 	std::vector<T> Mrk = Scaling(D, rk);			//Scaling rk
-	T Mrkdotrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
+	T Mrkrk = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
 
 	//----------Iteration----------
 	for (int k = 0; k < _itrmax; ++k) {
-		std::vector<T> Apk = _A * pk;
-		T alpha = Mrkdotrk / std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
-		std::vector<T> xkp1 = add(xk, alpha, pk);
-		std::vector<T> rkp1 = subtract(rk, alpha, Apk);
-		std::vector<T> Mrkp1 = Scaling(D, rkp1);	//Scaling rkp1
-		T Mrkp1dotrkp1 = std::inner_product(Mrkp1.begin(), Mrkp1.end(), rkp1.begin(), T());
-		T beta = Mrkp1dotrkp1 / Mrkdotrk;
-		std::vector<T> pkp1 = add(Mrkp1, beta, pk);
-
-		//----------Update values----------
-		xk = xkp1;
-		rk = rkp1;
-		pk = pkp1;
-		Mrk = Mrkp1;
-		Mrkdotrk = Mrkp1dotrkp1;
+		std::vector<T> Apk = _A*pk;
+		T alpha = Mrkrk/std::inner_product(pk.begin(), pk.end(), Apk.begin(), T());
+		xexpay(xk, alpha, pk);
+		xexpay(rk, -alpha, Apk);
+		Mrk = Scaling(D, rk);						//Scaling rkp1
+		T Mrkp1rkp1 = std::inner_product(Mrk.begin(), Mrk.end(), rk.begin(), T());
+		T beta = Mrkp1rkp1/Mrkrk;
+		xeaxpy(beta, pk, Mrk);
+		Mrkrk = Mrkp1rkp1;
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
 		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
-			//std::cout << "\tConvergence:" << k << std::endl;
+			std::cout << "\tConvergence:" << k << std::endl;
 			return xk;
 		}
 	}

@@ -67,7 +67,8 @@ int main() {
 
 	//----------Solve System Equation----------
 	CSR<double> Kmod = CSR<double>(K);
-	std::vector<double> result0 = SORCG(Kmod, F0, 100000, 1.0e-10, 1.75, 100, 1.0e-3);
+	CSR<double> M = ILU0(Kmod);
+	std::vector<double> result0 = ILU0CG(Kmod, M, F0, 100000, 1.0e-10);
 	std::vector<double> result1 = ScalingCG(Kmod, F1, 100000, 1.0e-10);
 	std::vector<double> result2 = ScalingCG(Kmod, F2, 100000, 1.0e-10);
 

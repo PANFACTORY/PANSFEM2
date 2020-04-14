@@ -53,19 +53,19 @@ int main() {
     }
   
     //----------Set Dirichlet Boundary Condition----------
-    SetDirichlet(K, isufixed, ufixed, 1.0e10);
+    //SetDirichlet(K, isufixed, ufixed, 1.0e10);
 
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
     CSR<double> Mmod = CSR<double>(M);
     std::vector<double> alpha, beta;
 	std::vector<std::vector<double> > q;
-    int m = 5;
-	GeneralInvertLanczos(Kmod, Mmod, alpha, beta, q, m);
+    int m = 20;
+	GeneralShiftedInvertLanczos(Kmod, Mmod, alpha, beta, q, m, 700.0);
     for(int i = 0; i < m; i++){
         //----------Get eigen value and eigen vector----------
         double lambda = BisectionMethod(alpha, beta, (m - 1) - i);
-        std::cout <<  sqrt(1.0/lambda) << std::endl;
+        std::cout <<  sqrt(700.0+1.0/lambda) << std::endl;
         std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
         std::vector<double> result = ReconvertVector(y, q);
 

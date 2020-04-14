@@ -21,19 +21,17 @@ void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, s
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal
     _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
-    for(int i = 0; i < _A.ROWS; i++){
-        _q[0][i] = _A.get(i, i);
-    }
+    _q[0] = GetDiagonal(_A);
     T q0Norm = sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T()));
     std::transform(_q[0].begin(), _q[0].end(), _q[0].begin(), [=](T _q0i) { return _q0i/q0Norm; });
 
     for(int k = 0; k < _m; k++){
         std::vector<T> p = _A*_q[k];
-        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
-        std::transform(p.begin(), p.end(), _q[k].begin(), p.begin(), [=](T _pi, T _qki) {return _pi - _alpha[k]*_qki; });
         if( k != 0){
             std::transform(p.begin(), p.end(), _q[k - 1].begin(), p.begin(), [=](T _pi, T _qkm1i) {return _pi - _beta[k - 1]*_qkm1i; });
         }
+        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
+        std::transform(p.begin(), p.end(), _q[k].begin(), p.begin(), [=](T _pi, T _qki) {return _pi - _alpha[k]*_qki; });
         _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
         if(k != _m - 1){
             std::transform(p.begin(), p.end(), _q[k + 1].begin(), [=](T _pi) { return _pi/_beta[k]; });
@@ -45,17 +43,14 @@ void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, s
 //********************Lanczos Inverse Power process********************
 template<class T>
 void LanczosInversePowerProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
-    int n = _A.ROWS;
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(n, T()));      //Orthogonal vectors
-    for(int i = 0; i < n; i++){
-        _q[0][i] = _A.get(i, i);
-    }
+    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
+    _q[0] = GetDiagonal(_A);
     T q0Norm = sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T()));
     std::transform(_q[0].begin(), _q[0].end(), _q[0].begin(), [=](T _q0i) { return _q0i/q0Norm; });
+    int itrmax = std::max(_A.ROWS, 1000);
     
-    int itrmax = std::max(n, 1000);
     for(int k = 0; k < _m; k++){
         std::vector<T> p = ScalingCG(_A, _q[k], itrmax, 1.0e-10);
         if(k != 0){

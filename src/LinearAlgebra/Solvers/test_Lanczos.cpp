@@ -33,24 +33,25 @@ int main() {
 	A.set(5, 0, 1.0);	A.set(5, 1, 1.0);	A.set(5, 2, 1.0);	A.set(5, 3, 1.0);	A.set(5, 4, 1.0);	A.set(5, 5, 1.0);
 	*/
 
-	int m = 10;
+	int m = 4;
 
-	std::cout << A << std::endl;
+	//std::cout << A << std::endl;
 
 	std::vector<double> alpha, beta;
 	std::vector<std::vector<double> > q;
-	LanczosInversePowerProcess(A, alpha, beta, q, m);
+	//LanczosInversePowerProcess(A, alpha, beta, q, m);
+	LanczosProcess(A, alpha, beta, q, m);
 
 	for(int i = 0; i < m; i++){
 		double lambda = BisectionMethod(alpha, beta, i);
-		std::cout << 1.0 / lambda << std::endl;
+		std::cout << lambda << "\t(";
 		
 		std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
 		std::vector<double> x = ReconvertVector(y, q);
 		for(auto xi : x){
 			std::cout << xi << "\t";
 		}
-		std::cout << std::endl;
+		std::cout << ")" << std::endl;
 	}	
 
 	return 0;

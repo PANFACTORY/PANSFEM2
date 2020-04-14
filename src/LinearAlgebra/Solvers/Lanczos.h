@@ -15,9 +15,9 @@
 #include "CG.h"
 
 
-//********************Lanczos process********************
+//********************Lanczos********************
 template<class T>
-void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
+void Lanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal
     _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
@@ -40,9 +40,12 @@ void LanczosProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, s
 }
 
 
-//********************Lanczos Inverse Power process********************
+//********************RestartLanczosProcess
+
+
+//********************Lanczos Inverse Power********************
 template<class T>
-void LanczosInversePowerProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
+void InvertLanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal
     _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
@@ -50,7 +53,7 @@ void LanczosInversePowerProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<
     T q0Norm = sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T()));
     std::transform(_q[0].begin(), _q[0].end(), _q[0].begin(), [=](T _q0i) { return _q0i/q0Norm; });
     int itrmax = std::max(_A.ROWS, 1000);
-    
+
     for(int k = 0; k < _m; k++){
         std::vector<T> p = ScalingCG(_A, _q[k], itrmax, 1.0e-10);
         if(k != 0){
@@ -68,7 +71,7 @@ void LanczosInversePowerProcess(CSR<T>& _A, std::vector<T>& _alpha, std::vector<
 
 //********************Lanczos Inverse Power process for General eigenvalue problem********************
 template<class T>
-void LanczosInversePowerProcessForGeneral(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
+void GeneralInvertLanczos(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
     int n = _A.ROWS;
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal

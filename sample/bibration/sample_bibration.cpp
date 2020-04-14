@@ -46,14 +46,14 @@ int main() {
     LILCSR<double> M = LILCSR<double>(KDEGREE, KDEGREE);
     for (int i = 0; i < elements.size(); i++) {
         Matrix<double> Ke, Me;
-        PlaneStrain<double, ShapeFunction8Square, Gauss9Square >(Ke, X, elements[i], 210000.0, 0.0, 1.0);
-        PlaneMass<double, ShapeFunction8Square, Gauss9Square >(Me, X, elements[i], 0.0000078, 1.0);
+        PlaneStrainStiffness<double, ShapeFunction8Square, Gauss9Square >(Ke, X, elements[i], 210000.0, 0.0, 1.0);
+        PlaneStrainMass<double, ShapeFunction8Square, Gauss9Square >(Me, X, elements[i], 0.0000078, 1.0);
         Assembling(K, Ke, elements[i], field);
         Assembling(M, Me, elements[i], field);
     }
   
     //----------Set Dirichlet Boundary Condition----------
-    SetDirichlet(K, M, isufixed, ufixed, 1.0e10);
+    SetDirichlet(K, isufixed, ufixed, 1.0e10);
 
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
@@ -61,16 +61,16 @@ int main() {
     std::vector<double> alpha, beta;
 	std::vector<std::vector<double> > q;
     int m = 5;
-	LanczosInversePowerProcessForGeneral(Kmod, Mmod, alpha, beta, q, m);
+	GeneralInvertLanczos(Kmod, Mmod, alpha, beta, q, m);
     for(int i = 0; i < m; i++){
         //----------Get eigen value and eigen vector----------
         double lambda = BisectionMethod(alpha, beta, (m - 1) - i);
-        std::cout <<  sqrt(1.0 / lambda) << std::endl;
+        std::cout <<  sqrt(1.0/lambda) << std::endl;
         std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
         std::vector<double> result = ReconvertVector(y, q);
 
         //----------Post Process----------
-        std::vector<Vector<double> > u;
+        std::vector<Vector<double> > u = std::vector<Vector<double> >(X.size(), Vector<double>(2));;
         FieldResultToNodeValue(result, u, field);
 
         //----------Save file----------

@@ -15,87 +15,125 @@
 #include "CG.h"
 
 
-//********************Lanczos********************
+//********************{x}={x}/a********************
+template<class T>
+void xexda(std::vector<T>& _x, T _a) {
+    for(auto& xi : _x) {
+        xi /= _a;
+    }
+}
+
+
+//********************{x}={y}/a********************
+template<class T>
+void xeyda(std::vector<T>& _x, const std::vector<T>& _y, T _a) {
+    auto yi = _y.begin();
+    for(auto& xi : _x) {
+        xi = (*yi)/_a;
+        ++yi;
+    }
+}
+
+
+//********************Lanczos process********************
 template<class T>
 void Lanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal
     _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
     _q[0] = GetDiagonal(_A);
-    T q0Norm = sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T()));
-    std::transform(_q[0].begin(), _q[0].end(), _q[0].begin(), [=](T _q0i) { return _q0i/q0Norm; });
+    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
 
     for(int k = 0; k < _m; k++){
         std::vector<T> p = _A*_q[k];
         if( k != 0){
-            std::transform(p.begin(), p.end(), _q[k - 1].begin(), p.begin(), [=](T _pi, T _qkm1i) {return _pi - _beta[k - 1]*_qkm1i; });
+            xexpay(p, -_beta[k - 1], _q[k - 1]);
         }
         _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
-        std::transform(p.begin(), p.end(), _q[k].begin(), p.begin(), [=](T _pi, T _qki) {return _pi - _alpha[k]*_qki; });
+        xexpay(p, -_alpha[k], _q[k]);
         _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
         if(k != _m - 1){
-            std::transform(p.begin(), p.end(), _q[k + 1].begin(), [=](T _pi) { return _pi/_beta[k]; });
+            xeyda(_q[k + 1], p, _beta[k]);
         }
     }
 }
 
 
-//********************RestartLanczosProcess
+//********************Restart Lanczos process********************
+template<class T>
+void RestartLanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
+    _alpha = std::vector<T>(_m);        //Values of diagonal
+    _beta = std::vector<T>(_m);         //Values of side of diagonal
+    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
+    _q[0] = GetDiagonal(_A);
+    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
+
+    for(int k = 0; k < _m; k++){
+        std::vector<T> p = _A*_q[k];
+        for(int i = 0; i < k - 2; i++) {
+            xexpay(p, -std::inner_product(p.begin(), p.end(), _q[i].begin(), T()), _q[i]);
+        }
+        if( k != 0){
+            xexpay(p, -_beta[k - 1], _q[k - 1]);
+        }
+        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
+        xexpay(p, -_alpha[k], _q[k]);
+        _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
+        if(k != _m - 1){
+            xeyda(_q[k + 1], p, _beta[k]);
+        }
+    }
+}
 
 
-//********************Lanczos Inverse Power********************
+//********************Invert Lanczos process********************
 template<class T>
 void InvertLanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal
     _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
     _q[0] = GetDiagonal(_A);
-    T q0Norm = sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T()));
-    std::transform(_q[0].begin(), _q[0].end(), _q[0].begin(), [=](T _q0i) { return _q0i/q0Norm; });
+    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
     int itrmax = std::max(_A.ROWS, 1000);
 
     for(int k = 0; k < _m; k++){
         std::vector<T> p = ScalingCG(_A, _q[k], itrmax, 1.0e-10);
-        if(k != 0){
-            std::transform(p.begin(), p.end(), _q[k - 1].begin(), p.begin(), [=](T _pi, T _qkm1i) {return _pi - _beta[k - 1]*_qkm1i; });
+        if( k != 0){
+            xexpay(p, -_beta[k - 1], _q[k - 1]);
         }
-        _alpha[k] = std::inner_product(p.begin(), p.end(), _q[k].begin(), T());
-        std::transform(p.begin(), p.end(), _q[k].begin(), p.begin(), [=](T _pi, T _qki) {return _pi - _alpha[k]*_qki; });
+        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
+        xexpay(p, -_alpha[k], _q[k]);
         _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
         if(k != _m - 1){
-            std::transform(p.begin(), p.end(), _q[k + 1].begin(), [=](T _pi) { return _pi/_beta[k]; });
-        }       
+            xeyda(_q[k + 1], p, _beta[k]);
+        }   
     }
 }
 
 
-//********************Lanczos Inverse Power process for General eigenvalue problem********************
+//********************Invert Lanczos process for General eigenvalue problem********************
 template<class T>
 void GeneralInvertLanczos(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
-    int n = _A.ROWS;
     _alpha = std::vector<T>(_m);        //Values of diagonal
     _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(n, T()));      //Orthogonal vectors
-    for(int i = 0; i < n; i++){
-        _q[0][i] = _A.get(i, i);
-    }
-    T q0Norm = sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T()));
-    std::transform(_q[0].begin(), _q[0].end(), _q[0].begin(), [=](T _q0i) { return _q0i/q0Norm; });
-
+    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
+    _q[0] = GetDiagonal(_A);
+    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
     std::vector<T> p = _B*_q[0];
-    int itrmax = std::max(n, 1000);
+    int itrmax = std::max(_A.ROWS, 10000);
+
     for(int k = 0; k < _m; k++){
         std::vector<T> s = ScalingCG(_A, p, itrmax, 1.0e-10);
         if(k != 0){
-            std::transform(s.begin(), s.end(), _q[k - 1].begin(), s.begin(), [=](T _si, T _qkm1i) {return _si - _beta[k - 1]*_qkm1i; });
+            xexpay(s, -_beta[k - 1], _q[k - 1]);
         }
         _alpha[k] = std::inner_product(p.begin(), p.end(), s.begin(), T());
-        std::transform(s.begin(), s.end(), _q[k].begin(), s.begin(), [=](T _si, T _qki) {return _si - _alpha[k]*_qki; });
+        xexpay(s, -_alpha[k], _q[k]);
         std::vector<T> r = _B*s;
         _beta[k] = sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T()));
-        std::transform(r.begin(), r.end(), p.begin(), [=](T _ri) { return _ri/_beta[k]; });
+        xeyda(p, r, _beta[k]);
         if(k != _m - 1){
-            std::transform(s.begin(), s.end(), _q[k + 1].begin(), [=](T _si) { return _si/_beta[k]; });
+            xeyda(_q[k + 1], s, _beta[k]);
         }       
     }
 }

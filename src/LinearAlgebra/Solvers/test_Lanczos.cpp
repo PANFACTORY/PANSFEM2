@@ -33,18 +33,18 @@ int main() {
 	A.set(5, 0, 1.0);	A.set(5, 1, 1.0);	A.set(5, 2, 1.0);	A.set(5, 3, 1.0);	A.set(5, 4, 1.0);	A.set(5, 5, 1.0);
 	*/
 
-	int m = 3;
+	int m = 5;
 
 	//std::cout << A << std::endl;
 
 	std::vector<double> alpha, beta;
 	std::vector<std::vector<double> > q;
-	InvertLanczos(A, alpha, beta, q, m);
-	//Lanczos(A, alpha, beta, q, m);
+	//InvertLanczos(A, alpha, beta, q, m);
+	RestartLanczos(A, alpha, beta, q, m);
 
 	for(int i = 0; i < m; i++){
 		double lambda = BisectionMethod(alpha, beta, i);
-		std::cout << 0.25 + 1.0/lambda << "\t(";
+		std::cout << lambda << "\t(";
 		
 		std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
 		std::vector<double> x = ReconvertVector(y, q);

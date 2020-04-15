@@ -64,7 +64,7 @@ int main() {
 	GeneralShiftedInvertLanczos(Kmod, Mmod, eigenvalues, eigenvectors, m, 0.0);
     for(int i = 0; i < m; i++){
         //----------Get eigen value and eigen vector----------
-        std::cout << sqrt(eigenvalues[i]) << std::endl;
+        std::cout << eigenvalues[i] << "\t" << sqrt(eigenvalues[i]) << std::endl;
         
         //----------Post Process----------
         std::vector<Vector<double> > u = std::vector<Vector<double> >(X.size(), Vector<double>(2));;

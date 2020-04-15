@@ -21,20 +21,16 @@ int main() {
 
 	std::cout << A << B << std::endl;
 
-	std::vector<double> alpha, beta;
-	std::vector<std::vector<double> > q;
-	LanczosInversePowerProcessForGeneral(A, B, alpha, beta, q, m);
+	std::vector<double> eigenvalues;
+	std::vector<std::vector<double> > eigenvectors;
+	GeneralShiftedInvertLanczos(A, B, eigenvalues, eigenvectors, m, 0.0);
 
 	for(int i = 0; i < m; i++){
-		double lambda = BisectionMethod(alpha, beta, i);
-		std::cout << 1.0 / lambda << std::endl;
-		
-		std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
-		std::vector<double> x = ReconvertVector(y, q);
-		for(auto xi : x){
+		std::cout << eigenvalues[i] << "\t(";
+		for(auto xi : eigenvectors[i]){
 			std::cout << xi << "\t";
 		}
-		std::cout << std::endl;
+		std::cout << ")" << std::endl;
 	}	
 
 	return 0;

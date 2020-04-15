@@ -35,202 +35,6 @@ void xeyda(std::vector<T>& _x, const std::vector<T>& _y, T _a) {
 }
 
 
-//********************Lanczos process********************
-template<class T>
-void Lanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
-    _alpha = std::vector<T>(_m);        //Values of diagonal
-    _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
-    _q[0] = GetDiagonal(_A);
-    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
-
-    for(int k = 0; k < _m; k++){
-        std::vector<T> p = _A*_q[k];
-        if( k != 0){
-            xexpay(p, -_beta[k - 1], _q[k - 1]);
-        }
-        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
-        xexpay(p, -_alpha[k], _q[k]);
-        _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
-        if(k != _m - 1){
-            xeyda(_q[k + 1], p, _beta[k]);
-        }
-    }
-}
-
-
-//********************Restart Lanczos process********************
-template<class T>
-void RestartLanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
-    _alpha = std::vector<T>(_m);        //Values of diagonal
-    _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
-    _q[0] = GetDiagonal(_A);
-    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
-
-    for(int k = 0; k < _m; k++){
-        std::vector<T> p = _A*_q[k];
-        for(int i = 0; i < k - 2; i++) {
-            xexpay(p, -std::inner_product(p.begin(), p.end(), _q[i].begin(), T()), _q[i]);
-        }
-        if( k != 0){
-            xexpay(p, -_beta[k - 1], _q[k - 1]);
-        }
-        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
-        xexpay(p, -_alpha[k], _q[k]);
-        _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
-        if(k != _m - 1){
-            xeyda(_q[k + 1], p, _beta[k]);
-        }
-    }
-}
-
-
-//********************Invert Lanczos process********************
-template<class T>
-void InvertLanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
-    _alpha = std::vector<T>(_m);        //Values of diagonal
-    _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
-    _q[0] = GetDiagonal(_A);
-    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
-    int itrmax = std::max(_A.ROWS, 1000);
-
-    for(int k = 0; k < _m; k++){
-        std::vector<T> p = ScalingCG(_A, _q[k], itrmax, 1.0e-10);
-        if( k != 0){
-            xexpay(p, -_beta[k - 1], _q[k - 1]);
-        }
-        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
-        xexpay(p, -_alpha[k], _q[k]);
-        _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
-        if(k != _m - 1){
-            xeyda(_q[k + 1], p, _beta[k]);
-        }   
-    }
-}
-
-
-//********************Shifted-Invert Lanczos process********************
-template<class T>
-void ShiftedInvertLanczos(CSR<T>& _A, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m, T _sigma){
-    LILCSR<T> I = LILCSR<T>(_A.ROWS, _A.COLS);
-    for(int i = 0; i < _A.ROWS; i++) {
-        I.set(i, i, _sigma);
-    }
-    CSR<T> A = _A - CSR<T>(I);
-
-    _alpha = std::vector<T>(_m);        //Values of diagonal
-    _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(A.ROWS, T()));      //Orthogonal vectors
-    _q[0] = GetDiagonal(_A);
-    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
-    int itrmax = std::max(_A.ROWS, 1000);
-
-    for(int k = 0; k < _m; k++){
-        std::vector<T> p = ScalingCG(A, _q[k], itrmax, 1.0e-10);
-        if( k != 0){
-            xexpay(p, -_beta[k - 1], _q[k - 1]);
-        }
-        _alpha[k] = std::inner_product(_q[k].begin(), _q[k].end(), p.begin(), T());
-        xexpay(p, -_alpha[k], _q[k]);
-        _beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
-        if(k != _m - 1){
-            xeyda(_q[k + 1], p, _beta[k]);
-        }   
-    }
-}
-
-
-//********************Invert Lanczos process for General eigenvalue problem********************
-template<class T>
-void GeneralInvertLanczos(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
-    _alpha = std::vector<T>(_m);        //Values of diagonal
-    _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
-    _q[0] = GetDiagonal(_A);
-    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
-    std::vector<T> p = _B*_q[0];
-    int itrmax = std::max(_A.ROWS, 10000);
-
-    for(int k = 0; k < _m; k++){
-        std::vector<T> s = ScalingCG(_A, p, itrmax, 1.0e-10);
-        if(k != 0){
-            xexpay(s, -_beta[k - 1], _q[k - 1]);
-        }
-        _alpha[k] = std::inner_product(p.begin(), p.end(), s.begin(), T());
-        xexpay(s, -_alpha[k], _q[k]);
-        std::vector<T> r = _B*s;
-        _beta[k] = sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T()));
-        xeyda(p, r, _beta[k]);
-        if(k != _m - 1){
-            xeyda(_q[k + 1], s, _beta[k]);
-        }       
-    }
-}
-
-
-//********************Shifted-Invert Lanczos process for General eigenvalue problem********************
-template<class T>
-void GeneralShiftedInvertLanczos(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m, T _sigma){
-    CSR<T> A = _A - _B*_sigma;
-    _alpha = std::vector<T>(_m);        //Values of diagonal
-    _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
-    _q[0] = GetDiagonal(A);
-    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
-    std::vector<T> p = _B*_q[0];
-    int itrmax = std::max(_A.ROWS, 10000);
-
-    for(int k = 0; k < _m; k++){
-        std::vector<T> s = ScalingCG(A, p, itrmax, 1.0e-10);
-        if(k != 0){
-            xexpay(s, -_beta[k - 1], _q[k - 1]);
-        }
-        _alpha[k] = std::inner_product(p.begin(), p.end(), s.begin(), T());
-        xexpay(s, -_alpha[k], _q[k]);
-        std::vector<T> r = _B*s;
-        _beta[k] = sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T()));
-        xeyda(p, r, _beta[k]);
-        if(k != _m - 1){
-            xeyda(_q[k + 1], s, _beta[k]);
-        }       
-    }
-}
-
-
-//********************Restart Invert Lanczos process for General eigenvalue problem********************
-template<class T>
-void GeneralRestartInvertLanczos(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _alpha, std::vector<T>& _beta, std::vector<std::vector<T> >& _q, int _m){
-    _alpha = std::vector<T>(_m);        //Values of diagonal
-    _beta = std::vector<T>(_m);         //Values of side of diagonal
-    _q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));      //Orthogonal vectors
-    _q[0] = GetDiagonal(_A);
-    xexda(_q[0], sqrt(std::inner_product(_q[0].begin(), _q[0].end(), _q[0].begin(), T())));
-    std::vector<T> p = _B*_q[0];
-    int itrmax = std::max(_A.ROWS, 10000);
-
-    for(int k = 0; k < _m; k++){
-        std::vector<T> s = ScalingCG(_A, p, itrmax, 1.0e-10);
-        for(int i = 0; i < k - 2; i++) {
-            std::vector<T> Bq = _B*_q[i];
-            xexpay(s, -std::inner_product(s.begin(), s.end(), Bq.begin(), T()), Bq);
-        }
-        if(k != 0){
-            xexpay(s, -_beta[k - 1], _q[k - 1]);
-        }
-        _alpha[k] = std::inner_product(p.begin(), p.end(), s.begin(), T());
-        xexpay(s, -_alpha[k], _q[k]);
-        std::vector<T> r = _B*s;
-        _beta[k] = sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T()));
-        xeyda(p, r, _beta[k]);
-        if(k != _m - 1){
-            xeyda(_q[k + 1], s, _beta[k]);
-        }       
-    }
-}
-
-
 //********************Bisection method********************
 template<class T>
 T BisectionMethod(const std::vector<T>& _alpha, const std::vector<T>& _beta, int _mode){
@@ -315,12 +119,206 @@ std::vector<T> ReconvertVector(const std::vector<T>& _y, std::vector<std::vector
     int n = _q[0].size();
     int m = _y.size();
     std::vector<T> x = std::vector<T>(n, T());
-
     for(int k = 0; k < m; k++){
         for(int i = 0; i < n; i++){
             x[i] += _q[k][i]*_y[k];
         } 
     }
-
     return x;
+}
+
+
+//********************Lanczos process********************
+template<class T>
+void Lanczos(CSR<T>& _A, std::vector<T>& _eigenvalues, std::vector<std::vector<T> >& _eigenvectors, int _m){
+    //----------Initialize----------
+    _eigenvalues = std::vector<T>(_m);                                                                  //  Eigenvalues
+    _eigenvectors = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS));                          //  Eigenvectors          
+    std::vector<T> alpha = std::vector<T>(_m);                                                          //  Values of diagonal
+    std::vector<T> beta = std::vector<T>(_m);                                                           //  Values of side of diagonal
+    std::vector<std::vector<T> > q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));    //  Orthogonal vectors
+    q[0] = GetDiagonal(_A);
+    xexda(q[0], sqrt(std::inner_product(q[0].begin(), q[0].end(), q[0].begin(), T())));
+
+    //----------Lanczos process----------
+    for(int k = 0; k < _m; k++){
+        std::vector<T> p = _A*q[k];
+        if( k != 0){
+            xexpay(p, -beta[k - 1], q[k - 1]);
+        }
+        alpha[k] = std::inner_product(q[k].begin(), q[k].end(), p.begin(), T());
+        xexpay(p, -alpha[k], q[k]);
+        beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
+        if(k != _m - 1){
+            xeyda(q[k + 1], p, beta[k]);
+        }
+    }
+
+    //----------Get eigenvalues and eigenvectors----------
+    for(int k = 0; k < _m; k++){
+		_eigenvalues[k] = BisectionMethod(alpha, beta, k);		
+		_eigenvectors[k] = ReconvertVector(InversePowerMethod(alpha, beta, _eigenvalues[k]), q);
+	}	
+}
+
+
+//********************Restart Lanczos process********************
+template<class T>
+void RestartLanczos(CSR<T>& _A, std::vector<T>& _eigenvalues, std::vector<std::vector<T> >& _eigenvectors, int _m){
+    //----------Initialize----------
+    _eigenvalues = std::vector<T>(_m);                                                                  //  Eigenvalues
+    _eigenvectors = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS));                          //  Eigenvectors          
+    std::vector<T> alpha = std::vector<T>(_m);                                                          //  Values of diagonal
+    std::vector<T> beta = std::vector<T>(_m);                                                           //  Values of side of diagonal
+    std::vector<std::vector<T> > q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));    //  Orthogonal vectors
+    q[0] = GetDiagonal(_A);
+    xexda(q[0], sqrt(std::inner_product(q[0].begin(), q[0].end(), q[0].begin(), T())));
+
+    //----------Lanczos process----------
+    for(int k = 0; k < _m; k++){
+        std::vector<T> p = _A*q[k];
+        for(int i = 0; i < k - 2; i++) {
+            xexpay(p, -std::inner_product(p.begin(), p.end(), q[i].begin(), T()), q[i]);
+        }
+        if( k != 0){
+            xexpay(p, -beta[k - 1], q[k - 1]);
+        }
+        alpha[k] = std::inner_product(q[k].begin(), q[k].end(), p.begin(), T());
+        xexpay(p, -alpha[k], q[k]);
+        beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
+        if(k != _m - 1){
+            xeyda(q[k + 1], p, beta[k]);
+        }
+    }
+
+    //----------Get eigenvalues and eigenvectors----------
+    for(int k = 0; k < _m; k++){
+		_eigenvalues[k] = BisectionMethod(alpha, beta, k);		
+		_eigenvectors[k] = ReconvertVector(InversePowerMethod(alpha, beta, _eigenvalues[k]), q);
+	}	
+}
+
+
+//********************Shifted-Invert Lanczos process********************
+template<class T>
+void ShiftedInvertLanczos(CSR<T>& _A, std::vector<T>& _eigenvalues, std::vector<std::vector<T> >& _eigenvectors, int _m, T _sigma){  
+    //----------Initialize----------
+    LILCSR<T> I = LILCSR<T>(_A.ROWS, _A.COLS);
+    for(int i = 0; i < _A.ROWS; i++) {
+        I.set(i, i, _sigma);
+    }
+    CSR<T> A = _A - CSR<T>(I);
+    _eigenvalues = std::vector<T>(_m);                                                                  //  Eigenvalues
+    _eigenvectors = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS));                          //  Eigenvectors          
+    std::vector<T> alpha = std::vector<T>(_m);                                                          //  Values of diagonal
+    std::vector<T> beta = std::vector<T>(_m);                                                           //  Values of side of diagonal
+    std::vector<std::vector<T> > q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));    //  Orthogonal vectors
+    q[0] = GetDiagonal(A);
+    xexda(q[0], sqrt(std::inner_product(q[0].begin(), q[0].end(), q[0].begin(), T())));
+    int itrmax = std::max(_A.ROWS, 1000);
+
+    //----------Lanczos process----------
+    for(int k = 0; k < _m; k++){
+        std::vector<T> p = ScalingCG(A, q[k], itrmax, 1.0e-10);
+        if( k != 0){
+            xexpay(p, -beta[k - 1], q[k - 1]);
+        }
+        alpha[k] = std::inner_product(q[k].begin(), q[k].end(), p.begin(), T());
+        xexpay(p, -alpha[k], q[k]);
+        beta[k] = sqrt(std::inner_product(p.begin(), p.end(), p.begin(), T()));
+        if(k != _m - 1){
+            xeyda(q[k + 1], p, beta[k]);
+        }
+    }
+
+    //----------Get eigenvalues and eigenvectors----------
+    for(int k = 0; k < _m; k++){
+        T eigenvalue = BisectionMethod(alpha, beta, _m - k - 1);
+		_eigenvalues[k] = _sigma + 1.0/eigenvalue;		
+		_eigenvectors[k] = ReconvertVector(InversePowerMethod(alpha, beta, eigenvalue), q);
+	}	
+}
+
+
+//********************Shifted-Invert Lanczos process for General eigenvalue problem********************
+template<class T>
+void GeneralShiftedInvertLanczos(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _eigenvalues, std::vector<std::vector<T> >& _eigenvectors, int _m, T _sigma){
+    //----------Initialize----------
+    CSR<T> A = _A - _B*_sigma;
+    _eigenvalues = std::vector<T>(_m);                                                                  //  Eigenvalues
+    _eigenvectors = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS));                          //  Eigenvectors          
+    std::vector<T> alpha = std::vector<T>(_m);                                                          //  Values of diagonal
+    std::vector<T> beta = std::vector<T>(_m);                                                           //  Values of side of diagonal
+    std::vector<std::vector<T> > q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));    //  Orthogonal vectors
+    q[0] = GetDiagonal(A);
+    xexda(q[0], sqrt(std::inner_product(q[0].begin(), q[0].end(), q[0].begin(), T())));
+    std::vector<T> p = _B*q[0];
+    int itrmax = std::max(_A.ROWS, 10000);
+
+    //----------Lanczos process----------
+    for(int k = 0; k < _m; k++){
+        std::vector<T> s = ScalingCG(A, p, itrmax, 1.0e-10);
+        if(k != 0){
+            xexpay(s, -beta[k - 1], q[k - 1]);
+        }
+        alpha[k] = std::inner_product(p.begin(), p.end(), s.begin(), T());
+        xexpay(s, -alpha[k], q[k]);
+        std::vector<T> r = _B*s;
+        beta[k] = sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T()));
+        xeyda(p, r, beta[k]);
+        if(k != _m - 1){
+            xeyda(q[k + 1], s, beta[k]);
+        }       
+    }
+     
+    //----------Get eigenvalues and eigenvectors----------
+    for(int k = 0; k < _m; k++){
+        T eigenvalue = BisectionMethod(alpha, beta, _m - k - 1);
+		_eigenvalues[k] = _sigma + 1.0/eigenvalue;		
+		_eigenvectors[k] = ReconvertVector(InversePowerMethod(alpha, beta, eigenvalue), q);
+	}	
+}
+
+
+//********************Restart Invert Lanczos process for General eigenvalue problem********************
+template<class T>
+void GeneralRestartShiftedInvertLanczos(CSR<T>& _A, CSR<T>& _B, std::vector<T>& _eigenvalues, std::vector<std::vector<T> >& _eigenvectors, int _m, T _sigma){
+    //----------Initialize----------
+    CSR<T> A = _A - _B*_sigma;
+    _eigenvalues = std::vector<T>(_m);                                                                  //  Eigenvalues
+    _eigenvectors = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS));                          //  Eigenvectors          
+    std::vector<T> alpha = std::vector<T>(_m);                                                          //  Values of diagonal
+    std::vector<T> beta = std::vector<T>(_m);                                                           //  Values of side of diagonal
+    std::vector<std::vector<T> > q = std::vector<std::vector<T> >(_m, std::vector<T>(_A.ROWS, T()));    //  Orthogonal vectors
+    q[0] = GetDiagonal(A);
+    xexda(q[0], sqrt(std::inner_product(q[0].begin(), q[0].end(), q[0].begin(), T())));
+    std::vector<T> p = _B*q[0];
+    int itrmax = std::max(_A.ROWS, 10000);
+
+    //----------Lanczos process----------
+    for(int k = 0; k < _m; k++){
+        std::vector<T> s = ScalingCG(A, p, itrmax, 1.0e-10);
+        for(int i = 0; i < k - 2; i++) {
+            std::vector<T> Bq = _B*q[i];
+            xexpay(s, -std::inner_product(s.begin(), s.end(), Bq.begin(), T()), Bq);
+        }
+        if(k != 0){
+            xexpay(s, -beta[k - 1], q[k - 1]);
+        }
+        alpha[k] = std::inner_product(p.begin(), p.end(), s.begin(), T());
+        xexpay(s, -alpha[k], q[k]);
+        std::vector<T> r = _B*s;
+        beta[k] = sqrt(std::inner_product(r.begin(), r.end(), s.begin(), T()));
+        xeyda(p, r, beta[k]);
+        if(k != _m - 1){
+            xeyda(q[k + 1], s, beta[k]);
+        }       
+    }
+     
+    //----------Get eigenvalues and eigenvectors----------
+    for(int k = 0; k < _m; k++){
+        T eigenvalue = BisectionMethod(alpha, beta, _m - k - 1);
+		_eigenvalues[k] = _sigma + 1.0/eigenvalue;		
+		_eigenvectors[k] = ReconvertVector(InversePowerMethod(alpha, beta, eigenvalue), q);
+	}	
 }

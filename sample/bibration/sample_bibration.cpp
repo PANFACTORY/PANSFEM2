@@ -53,25 +53,22 @@ int main() {
     }
   
     //----------Set Dirichlet Boundary Condition----------
-    //SetDirichlet(K, isufixed, ufixed, 1.0e10);
+    SetDirichlet(K, isufixed, ufixed, 1.0e10);
 
     //----------Solve System Equation----------
     CSR<double> Kmod = CSR<double>(K);
     CSR<double> Mmod = CSR<double>(M);
-    std::vector<double> alpha, beta;
-	std::vector<std::vector<double> > q;
-    int m = 20;
-	GeneralShiftedInvertLanczos(Kmod, Mmod, alpha, beta, q, m, 700.0);
+    std::vector<double> eigenvalues;
+	std::vector<std::vector<double> > eigenvectors;
+    int m = 5;
+	GeneralShiftedInvertLanczos(Kmod, Mmod, eigenvalues, eigenvectors, m, 0.0);
     for(int i = 0; i < m; i++){
         //----------Get eigen value and eigen vector----------
-        double lambda = BisectionMethod(alpha, beta, (m - 1) - i);
-        std::cout <<  sqrt(700.0+1.0/lambda) << std::endl;
-        std::vector<double> y = InversePowerMethod(alpha, beta, lambda);
-        std::vector<double> result = ReconvertVector(y, q);
-
+        std::cout << sqrt(eigenvalues[i]) << std::endl;
+        
         //----------Post Process----------
         std::vector<Vector<double> > u = std::vector<Vector<double> >(X.size(), Vector<double>(2));;
-        FieldResultToNodeValue(result, u, field);
+        FieldResultToNodeValue(eigenvectors[i], u, field);
 
         //----------Save file----------
         std::ofstream fout(model_path + "result" + std::to_string(i) + ".vtk");

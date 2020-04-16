@@ -10,19 +10,22 @@
 #include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/BoundaryCondition2.h"
 
 
 using namespace PANSFEM2;
 
 
 int main() {
-	std::string model_path = "sample/bibration/";
+	std::string model_path = "sample/vibration/";
 	std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elements;
 	ImportElementsFromCSV(elements, model_path + "Element.csv");
 	
     std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
+    std::vector<std::pair<std::pair<int, int>, double> > ufixed = { { { 0, 0 }, 0 }, { { 0, 1 }, 0 }, { { 50, 1 }, 0 } };
+    SetDirichlet(nodetoglobal, ufixed);
 	int KDEGREE = Renumbering(nodetoglobal);
 
     LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
@@ -30,7 +33,7 @@ int main() {
     for (auto element : elements) {
         std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Matrix<double> Ke;
-		PlaneStrainStiffness<double, ShapeFunction8Square, Gauss9Square>(Ke, nodetoelement, element, { 0, 1 }, x, 210000.0, 0.3, 1.0);
+		PlaneStrainStiffness<double, ShapeFunction8Square, Gauss9Square>(Ke, nodetoelement, element, { 0, 1 }, x, 210000.0, 0.0, 1.0);
         Assembling(K, Ke, nodetoglobal, nodetoelement, element);
         Matrix<double> Me;
         PlaneStrainMass<double, ShapeFunction8Square, Gauss9Square >(Me, nodetoelement, element, { 0, 1 }, x, 0.0000078, 1.0);       

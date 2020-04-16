@@ -6,6 +6,7 @@
 #include "../../src/FEM/Equation/PlaneStrain.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/BoundaryCondition2.h"
 #include "../../src/FEM/Controller/Assembling2.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
@@ -18,17 +19,15 @@ int main() {
 	std::vector<Vector<double> > x = { { 0, 0 }, { 1, 0 }, { 2, 0 }, { 2, 1 }, { 1, 1 }, { 0, 1 } };
 	std::vector<std::vector<int> > elements = { { 0, 1, 4 }, { 1, 2, 3 }, { 3, 4, 1 }, { 4, 5, 0 } };
 	std::vector<std::vector<int> > edges = { { 3, 4 }, { 4, 5 } };
+	std::vector<Vector<double> > u = std::vector<Vector<double> >(6, Vector<double>(2));
 
-	std::vector<std::vector<int> > nodetoglobal = { { -1, -1 }, { 1, 2 }, { 0, 3 }, { 4, 5 }, { 6, 7 }, { -1, 8 } };
+	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
+	std::vector<std::pair<std::pair<int, int>, double> > ufixed = { { { 0, 0 }, 0 }, { { 0, 1 }, 0 }, { { 5, 0 }, 0 } };
+    SetDirichlet(u, nodetoglobal, ufixed);
 	int KDEGREE = Renumbering(nodetoglobal);
 
-	std::vector<Vector<double> > u = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } };
-	std::vector<Vector<double> > f = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, -100 }, { 0, 0 }, { 0, 0 } };
-	
 	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		
-
-	ConvertNodeToGlobal(F, f, nodetoglobal);
 
 	for(auto element : elements) {
 		std::vector<std::vector<std::pair<int, int> > > nodetoelement;
@@ -42,6 +41,9 @@ int main() {
 		}, 1.0);
 		Assembling(F, Fe, nodetoglobal, nodetoelement, element);
 	}
+
+	std::vector<std::pair<std::pair<int, int>, double> > qfixed = { { { 3, 1 }, -100.0 } };
+    Assembling(F, qfixed, nodetoglobal);
 
 	for(auto edge : edges) {
 		std::vector<std::vector<std::pair<int, int> > > nodetoelement;

@@ -74,6 +74,17 @@ namespace PANSFEM2 {
     }
 
 
+    //********************Assembling Neumann boundary conditions********************
+    template<class T>
+    void Assembling(std::vector<T>& _F, const std::vector<std::pair<std::pair<int, int>, T> >& _f, const std::vector<std::vector<int> >& _nodetoglobal) {
+        for(auto doui : _f) {
+            if(_nodetoglobal[doui.first.first][doui.first.second] != -1) {
+                _F[_nodetoglobal[doui.first.first][doui.first.second]] += doui.second;
+            }
+        }
+    }
+
+
     //********************Disassembling global result********************
     template<class T>
     void Disassembling(std::vector<Vector<T> >& _u, const std::vector<T>& _result, const std::vector<std::vector<int> >& _nodetoglobal) {

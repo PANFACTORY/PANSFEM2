@@ -19,6 +19,31 @@
 namespace PANSFEM2 {
     //********************Assembling global matrix********************
     template<class T>
+    void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, Vector<T>& _Fe, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
+        for(int i = 0; i < _element.size(); i++) {
+            for(auto doui : _nodetoelement[i]) {
+                if(_nodetoglobal[_element[i]][doui.first] != -1) {
+                    for(int j = 0; j < _element.size(); j++) {
+                        for(auto douj : _nodetoelement[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_element[j]][douj.first] != -1) {
+                                _K.set(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first], _K.get(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first]) + _Ke(doui.second, douj.second));
+                            }
+                            //----------Dirichlet condition imposed----------
+                            else {
+                                _F[_nodetoglobal[_element[i]][doui.first]] -= _Ke(doui.second, douj.second)*_u[_element[j]](douj.first);
+                            }
+                        }
+                    }
+                    _F[_nodetoglobal[_element[i]][doui.first]] += _Fe(doui.second);
+                }
+            }
+        }
+    }
+    
+    
+    //********************Assembling global matrix********************
+    template<class T>
     void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
         for(int i = 0; i < _element.size(); i++) {
             for(auto doui : _nodetoelement[i]) {

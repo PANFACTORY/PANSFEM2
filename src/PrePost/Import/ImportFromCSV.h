@@ -262,6 +262,45 @@ namespace PANSFEM2 {
 	}
 
 
+	//********************ImportNeumannConditionFromCSV********************
+	template<class T>
+	bool ImportNeumannFromCSV(std::vector<std::pair<std::pair<int, int>, T> >& _qfixed, std::string _fname) {
+		std::ifstream ifs(_fname);
+
+		if (!ifs.is_open()) {
+			std::cout << "Dirichlet Condition file " << _fname << " open error!" << std::endl;
+			return false;
+		}
+
+		//.....Pass a line.....
+		std::string str0;
+		std::getline(ifs, str0);
+
+		while (!ifs.eof()) {
+			//.....Read a line.....
+			std::string buf;
+			ifs >> buf;
+			std::istringstream sbuf(buf);
+			std::string str;
+
+			//.....Get id of a node.....
+			std::getline(sbuf, str, ',');
+			if (!str.empty()) {
+				int idn = stoi(str);
+				for(int i = 0; std::getline(sbuf, str, ','); i++) {
+					if(str != "free") {
+						_qfixed.push_back(std::make_pair(std::make_pair(idn, i), stod(str)));
+					}
+				}
+			}
+		}
+
+		ifs.close();
+
+		return true;
+	}
+
+
 	//********************ImportInitialConditionFromCSV********************
 	template<class T>
 	bool ImportInitialFromCSV(std::vector<Vector<T> >& _u, std::string _fname) {

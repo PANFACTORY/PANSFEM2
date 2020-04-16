@@ -24,6 +24,8 @@ int main() {
 	ImportElementsFromCSV(elements, model_path + "Element.csv");
     std::vector<std::pair<std::pair<int, int>, double> > ufixed;
 	ImportDirichletFromCSV(ufixed, model_path + "Dirichlet.csv");
+	std::vector<std::pair<std::pair<int, int>, double> > qfixed0;
+	ImportNeumannFromCSV(qfixed0, model_path + "Neumann.csv");
 
 	std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(3)); 
 	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(3, 0));
@@ -54,11 +56,16 @@ int main() {
 				Assembling(K, R, u, Ke, Qe, nodetoglobal, nodetoelement, element);
 			}
 
-            std::vector<std::pair<std::pair<int, int>, double> > qfixed = { { { 764, 1 }, -100.0*(finc/(double)fincmax) }, { { 815, 1 }, -100.0*(finc/(double)fincmax) }, { { 1070, 1 }, -100.0*(finc/(double)fincmax) }, { { 1121, 1 }, -100.0*(finc/(double)fincmax) } };
+			double normF = 0.0;
+            std::vector<std::pair<std::pair<int, int>, double> > qfixed = qfixed0;
+			for(auto& qfixedi : qfixed) {
+				qfixedi.second *= finc/(double)fincmax;
+				normF += pow(qfixedi.second, 2.0);
+			}
             Assembling(R, qfixed, nodetoglobal);
 
 			double normR = std::inner_product(R.begin(), R.end(), R.begin(), 0.0);
-            double normF = 200.0*(finc/(double)fincmax);
+            normF = sqrt(normF);
 			if (normR/normF < 1.0e-10) {
 				std::cout << "k = " << k << "\tNorm = " << normR/normF << std::endl;
 				break;

@@ -24,6 +24,8 @@ int main() {
 	ImportElementsFromCSV(elements, model_path + "Element.csv");
 	std::vector<std::pair<std::pair<int, int>, double> > ufixed;
 	ImportDirichletFromCSV(ufixed, model_path + "Dirichlet.csv");
+	std::vector<std::pair<std::pair<int, int>, double> > qfixed;
+	ImportNeumannFromCSV(qfixed, model_path + "Neumann.csv");
 
 	std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(3));
 	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(3, 0));
@@ -40,8 +42,6 @@ int main() {
 		SolidLinearIsotropicElastic<double, ShapeFunction8Cubic, Gauss8Cubic >(Ke, nodetoelement, element, { 0, 1, 2, }, x, 210000.0, 0.3);
 		Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, element);
 	}
-
-	std::vector<std::pair<std::pair<int, int>, double> > qfixed = { { { 764, 1 }, -100.0 }, { { 815, 1 }, -100.0 }, { { 1070, 1 }, -100.0 }, { { 1121, 1 }, -100.0 } };
     Assembling(F, qfixed, nodetoglobal);
 
 	CSR<double> Kmod = CSR<double>(K);

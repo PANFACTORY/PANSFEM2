@@ -83,6 +83,21 @@ namespace PANSFEM2 {
 	}
 
 
+	//********************Add Point Scalers********************
+	template<class T>
+	void AddPointScalers(std::vector<Vector<T> > _values, std::string _symbol, std::ofstream& _fout, bool _isheader) {
+		if(_isheader){
+			_fout << "\nPOINT_DATA\t" << _values.size() << "\n";
+		}
+		_fout << "SCALARS " << _symbol << " float\n";
+		_fout << "LOOKUP_TABLE default\n";
+
+		for (auto value : _values) {
+			_fout << value;
+		}
+	}
+
+
 	//********************Add Point Vectors********************
 	template<class T>
 	void AddPointVectors(std::vector<Vector<T> > _values, std::string _symbol, std::ofstream& _fout, bool _isheader) {

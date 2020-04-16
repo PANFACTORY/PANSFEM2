@@ -1,8 +1,8 @@
 //*****************************************************************************
-//Title		:src/FEM/Equation/HeatTransfer.h
-//Author	:Tanabe Yuta
-//Date		:2019/10/03
-//Copyright	:(C)2019 TanabeYuta
+//	Title		:	src/FEM/Equation/HeatTransfer.h
+//	Author		:	Tanabe Yuta
+//	Date		:	2020/04/16
+//	Copyright	:	(C)2020 TanabeYuta
 //*****************************************************************************
 
 
@@ -17,60 +17,56 @@
 namespace PANSFEM2 {
 	//******************************Heat transfer matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void HeatTransfer(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _alpha, T _t) {
-		//----------Initialize element matrix----------
-		_Ke = Matrix<T>(_element.size(), _element.size());
+	void HeatTransfer(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _alpha, T _t) {
+		assert(_doulist.size() == 1);
 
-		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(_element.size(), 2);
-		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+		_Ke = Matrix<T>(_element.size(), _element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
 		}
 
-		//----------Loop of Gauss Integration----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);
+			X(i, 1) = _x[_element[i]](1);
+		}
+
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get difference of shape function----------
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr * X;
+			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
-			Matrix<T> B = dXdr.Inverse() * dNdr;
+			Matrix<T> B = dXdr.Inverse()*dNdr;
 
-			//----------Update element stiffness matrix----------
-			_Ke += B.Transpose()*B*J*_alpha*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+			_Ke += B.Transpose()*B*J*_alpha*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 
 
 	//******************************Heat capacity matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void HeatCapacity(Matrix<T>& _Ce, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _rho, T _c, T _t) {
-		//----------Get element matrix----------
+	void HeatCapacity(Matrix<T>& _Ce, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _rho, T _c, T _t) {
+		assert(_doulist.size() == 1);
+
 		_Ce = Matrix<T>(_element.size(), _element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
+		}
 		
-		//----------Generate cordinate matrix X----------
 		Matrix<T> X = Matrix<T>(_element.size(), 2);
 		for(int i = 0; i < _element.size(); i++){
-			for(int j = 0; j < 2; j++){
-				X(i, j) = _x[_element[i]](j);
-			}
+			X(i, 0) = _x[_element[i]](0);
+			X(i, 1) = _x[_element[i]](1);
 		}
 
-		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function and difference of shape function----------
 			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
-			Matrix<T> dXdr = dNdr * X;
+			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 
-			//----------Make C matrix----------
-			_Ce += N*N.Transpose()*J*_rho*_c*_t*IC<T>::Weights[g][0] * IC<T>::Weights[g][1];
+			_Ce += N*N.Transpose()*J*_rho*_c*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 }

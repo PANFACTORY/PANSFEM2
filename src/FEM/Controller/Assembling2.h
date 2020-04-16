@@ -91,7 +91,7 @@ namespace PANSFEM2 {
         for(int i = 0; i < _nodetoglobal.size(); i++) {
             for(int j = 0; j < _nodetoglobal[i].size(); j++) {
                 if(_nodetoglobal[i][j] != -1) {
-                    _u[i](j) += _result[_nodetoglobal[i][j]]; 
+                    _u[i](j) = _result[_nodetoglobal[i][j]]; 
                 }
             }
         }

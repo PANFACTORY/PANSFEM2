@@ -244,4 +244,60 @@ namespace PANSFEM2 {
 			_Fe += BL.Transpose()*Sv*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1]*IC<T>::Weights[g][2];
 		}
 	}
+
+
+
+
+
+
+
+
+
+
+	//********************Linear Isotropic Elastic Solid 3D********************
+	template<class T, template<class>class SF, template<class>class IC>
+	void SolidLinearIsotropicElastic(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _E, T _V) {
+		assert(_doulist.size() == 3);
+
+		_Ke = Matrix<T>(3*_element.size(), 3*_element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(3));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], 3*i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], 3*i + 1);
+			_nodetoelement[i][2] = std::make_pair(_doulist[2], 3*i + 2);
+		}
+		
+		Matrix<T> X = Matrix<T>(_element.size(), 3);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);	X(i, 2) = _x[_element[i]](2);
+		}
+
+		Matrix<T> C = Matrix<T>(6, 6);
+		C(0, 0) = 1.0 - _V;	C(0, 1) = _V;		C(0, 2) = _V;		C(0, 3) = T();					C(0, 4) = T();					C(0, 5) = T();
+		C(1, 0) = _V;		C(1, 1) = 1.0 - _V;	C(1, 2) = _V;		C(1, 3) = T();					C(1, 4) = T();					C(1, 5) = T();
+		C(2, 0) = _V;		C(2, 1) = _V;		C(2, 2) = 1.0 - _V;	C(2, 3) = T();					C(2, 4) = T();					C(2, 5) = T();
+		C(3, 0) = T();		C(3, 1) = T();		C(3, 2) = T();		C(3, 3) = 0.5*(1.0 - 2.0*_V);	C(3, 4) = T();					C(3, 5) = T();
+		C(4, 0) = T();		C(4, 1) = T();		C(4, 2) = T();		C(4, 3) = T();					C(4, 4) = 0.5*(1.0 - 2.0*_V);	C(4, 5) = T();
+		C(5, 0) = T();		C(5, 1) = T();		C(5, 2) = T();		C(5, 3) = T();					C(5, 4) = T();					C(5, 5) = 0.5*(1.0 - 2.0*_V);
+		C *= _E/((1.0 + _V)*(1.0 - 2.0*_V));
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			Matrix<T> B = Matrix<T>(6, 3 * _element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 3*n) = dNdX(0, n);	B(0, 3*n + 1) = T();		B(0, 3*n + 2) = T();
+				B(1, 3*n) = T();		B(1, 3*n + 1) = dNdX(1, n);	B(1, 3*n + 2) = T();
+				B(2, 3*n) = T();		B(2, 3*n + 1) = T();		B(2, 3*n + 2) = dNdX(2, n);
+				B(3, 3*n) = dNdX(1, n);	B(3, 3*n + 1) = dNdX(0, n);	B(3, 3*n + 2) = T();
+				B(4, 3*n) = T();		B(4, 3*n + 1) = dNdX(2, n);	B(4, 3*n + 2) = dNdX(1, n);
+				B(5, 3*n) = dNdX(2, n);	B(5, 3*n + 1) = T();		B(5, 3*n + 2) = dNdX(0, n);
+			}
+
+			_Ke += B.Transpose()*C*B*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1]*IC<T>::Weights[g][2];
+		}
+	}	
 }

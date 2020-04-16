@@ -1,82 +1,60 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
 
 
-#include "LinearAlgebra/Models/Vector.h"
-#include "LinearAlgebra/Models/Matrix.h"
-#include "LinearAlgebra/Models/LILCSR.h"
-#include "PrePost/Import/ImportFromCSV.h"
-#include "FEM/Controller/Assembling.h"
-#include "FEM/Equation/Solid.h"
-#include "FEM/Controller/BoundaryCondition.h"
-#include "LinearAlgebra/Solvers/CG.h"
-#include "PrePost/Export/ExportToVTK.h"
-#include "FEM/Controller/ShapeFunction.h"
-#include "FEM/Controller/GaussIntegration.h"
+#include "../../src/LinearAlgebra/Models/Vector.h"
+#include "../../src/PrePost/Import/ImportFromCSV.h"
+#include "../../src/FEM/Equation/Solid.h"
+#include "../../src/FEM/Controller/ShapeFunction.h"
+#include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/BoundaryCondition2.h"
+#include "../../src/FEM/Controller/Assembling2.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
+
 
 
 using namespace PANSFEM2;
 
 
 int main() {
-	//----------Model Path----------
 	std::string model_path = "sample/solid/";
-	
-	//----------Add Nodes----------
-	std::vector<Vector<double> > nodes;
-	ImportNodesFromCSV(nodes, model_path + "Node.csv");
-	
-	//----------Add Elements----------
+	std::vector<Vector<double> > x;
+	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elements;
 	ImportElementsFromCSV(elements, model_path + "Element.csv");
-	
-	//----------Add Field----------
-	std::vector<int> field;
-	int KDEGREE = 0;
-	ImportFieldFromCSV(field, KDEGREE, nodes.size(), model_path + "Field.csv");
+	std::vector<std::pair<std::pair<int, int>, double> > ufixed;
+	ImportDirichletFromCSV(ufixed, model_path + "Dirichlet.csv");
 
-	//----------Add Dirichlet Condition----------
-	std::vector<int> isufixed;
-	std::vector<double> ufixed;
-	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
-
-	//----------Add Neumann Condition----------
-	std::vector<int> isqfixed;
-	std::vector<double> qfixed;
-	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
+	std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(3));
+	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(3, 0));
 	
-	//----------Assembling----------
+    SetDirichlet(u, nodetoglobal, ufixed);
+	int KDEGREE = Renumbering(nodetoglobal);
+
 	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
 	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
+
 	for (auto element : elements) {
+		std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Matrix<double> Ke;
-		LinearIsotropicElasticSolid<double, ShapeFunction8Cubic, Gauss8Cubic >(Ke, nodes, element, 210000.0, 0.3);
-		Assembling(K, Ke, element, field);
+		SolidLinearIsotropicElastic<double, ShapeFunction8Cubic, Gauss8Cubic >(Ke, nodetoelement, element, { 0, 1, 2, }, x, 210000.0, 0.3);
+		Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, element);
 	}
-	
-	//----------Set Neumann Boundary Condition----------
-	SetNeumann(F, isqfixed, qfixed);
-	
-	//----------Set Dirichlet Boundary Condition----------
-	SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
-	
-	//----------Solve System Equation----------
+
+	std::vector<std::pair<std::pair<int, int>, double> > qfixed = { { { 764, 1 }, -100.0 }, { { 815, 1 }, -100.0 }, { { 1070, 1 }, -100.0 }, { { 1121, 1 }, -100.0 } };
+    Assembling(F, qfixed, nodetoglobal);
+
 	CSR<double> Kmod = CSR<double>(K);
 	std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
-	
-	//----------Post Process----------
-	std::vector<Vector<double> > u;
-	FieldResultToNodeValue(result, u, field);
+	Disassembling(u, result, nodetoglobal);
 
-	//----------Save file----------
-	std::ofstream fout(model_path + "result.vtk");
+	std::ofstream fout(model_path + "result_linear.vtk");
 	MakeHeadderToVTK(fout);
-	AddPointsToVTK(nodes, fout);
+	AddPointsToVTK(x, fout);
 	AddElementToVTK(elements, fout);
-	std::vector<int> et = std::vector<int>(elements.size(), 12);
-	AddElementTypes(et, fout);
-	AddPointVectors(u, "u", fout);
+	AddElementTypes(std::vector<int>(elements.size(), 12), fout);
+	AddPointVectors(u, "u", fout, true);
 	fout.close();
 	
 	return 0;

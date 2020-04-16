@@ -25,6 +25,7 @@ int main() {
 	
     std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
     std::vector<std::pair<std::pair<int, int>, double> > ufixed = { { { 0, 0 }, 0 }, { { 0, 1 }, 0 }, { { 50, 1 }, 0 } };
+    //std::vector<std::pair<std::pair<int, int>, double> > ufixed = { { { 0, 0 }, 0 }, { { 0, 1 }, 0 }, { { 1, 0 }, 0 }, { { 2, 0 }, 0 }, { { 3, 0 }, 0 }, { { 4, 0 }, 0 } };
     SetDirichlet(nodetoglobal, ufixed);
 	int KDEGREE = Renumbering(nodetoglobal);
 

@@ -214,6 +214,41 @@ namespace PANSFEM2 {
 	}
 
 
+	//******************************Make element mass matrix******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void PlaneStrainMass(Matrix<T>& _Me, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _rho, T _t) {
+		assert(_doulist.size() == 2);
+
+		_Me = Matrix<T>(2*_element.size(), 2*_element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], 2*i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], 2*i + 1);
+		}
+
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);
+			X(i, 1) = _x[_element[i]](1);
+		}
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+
+			Matrix<T> B = Matrix<T>(2, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2*n) = N(n);	B(0, 2*n + 1) = T();			
+				B(1, 2*n) = T();	B(1, 2*n + 1) = N(n);	
+			}
+
+			_Me += B.Transpose()*B*J*_rho*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
+
+
 	//******************************Make surface force vector******************************
 	template<class T, template<class>class SF, template<class>class IC, class F>
 	void PlaneStrainSurfaceForce(Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, F _f, T _t){

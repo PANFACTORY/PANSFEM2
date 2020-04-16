@@ -1,105 +1,67 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
 
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/LinearAlgebra/Models/Matrix.h"
-#include "../../src/LinearAlgebra/Models/LILCSR.h"
-#include "../../src/PrePost/Import/ImportFromCSV.h"
-#include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/FEM/Equation/PlaneStrain.h"
-#include "../../src/FEM/Controller/BoundaryCondition.h"
-#include "../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/Assembling2.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
 
 
 using namespace PANSFEM2;
 
 
-Vector<double> f(Vector<double> _x){
-    return { 0.0, -200.0 };
-}
-
-
-Vector<double> g(Vector<double> _x){
-    return { 0.0, -300.0 };
-}
-
-
 int main() {
-	//----------Model Path----------
-	std::string model_path = "sample/planestrain/";
+	std::vector<Vector<double> > x = { { 0, 0 }, { 1, 0 }, { 2, 0 }, { 2, 1 }, { 1, 1 }, { 0, 1 } };
+	std::vector<std::vector<int> > elements = { { 0, 1, 4 }, { 1, 2, 3 }, { 3, 4, 1 }, { 4, 5, 0 } };
+	std::vector<std::vector<int> > edges = { { 3, 4 }, { 4, 5 } };
+
+	std::vector<std::vector<int> > nodetoglobal = { { -1, -1 }, { 1, 2 }, { 0, 3 }, { 4, 5 }, { 6, 7 }, { -1, 8 } };
+	int KDEGREE = Renumbering(nodetoglobal);
+
+	std::vector<Vector<double> > u = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } };
+	std::vector<Vector<double> > f = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, -100 }, { 0, 0 }, { 0, 0 } };
 	
-	//----------Add Nodes----------
-	std::vector<Vector<double> > nodes;
-	ImportNodesFromCSV(nodes, model_path + "Node.csv");
-	
-	//----------Add Elements----------
-	std::vector<std::vector<int> > elements;
-	ImportElementsFromCSV(elements, model_path + "Element.csv");
+	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			
+	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		
 
-	//----------Add Edge----------
-	std::vector<std::vector<int> > edges;
-	ImportElementsFromCSV(edges, model_path + "Edge.csv");
+	ConvertNodeToGlobal(F, f, nodetoglobal);
 
-	//----------Add Field----------
-	std::vector<int> field;
-	int KDEGREE = 0;
-	ImportFieldFromCSV(field, KDEGREE, nodes.size(), model_path + "Field.csv");
-	
-	//----------Add Dirichlet Condition----------
-	std::vector<int> isufixed;
-	std::vector<double> ufixed;
-	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
-
-	//----------Add Neumann Condition----------
-	std::vector<int> isqfixed;
-	std::vector<double> qfixed;
-	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
-
-	//----------Culculate Ke, body force and Assembling----------
-	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
-	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
-	for (auto element : elements) {
+	for(auto element : elements) {
+		std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Matrix<double> Ke;
-		PlaneStrainStiffness<double, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodes, element, 210000.0, 0.3, 1.0);
-		Assembling(K, Ke, element, field);
+		PlaneStrainStiffness<double, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodetoelement, element, { 0, 1 }, x, 210000.0, 0.3, 1.0);
+		Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, element);
 		Vector<double> Fe;
-		PlaneStrainBodyForce<double, ShapeFunction3Triangle, Gauss1Triangle>(Fe, nodes, element, g, 1.0);
-		Assembling(F, Fe, element, field);
+		PlaneStrainBodyForce<double, ShapeFunction3Triangle, Gauss1Triangle>(Fe, nodetoelement, element, { 0, 1 }, x, [](Vector<double> _x){
+			Vector<double> f = { 0.0, -300.0 };
+			return f;
+		}, 1.0);
+		Assembling(F, Fe, nodetoglobal, nodetoelement, element);
 	}
 
-	//----------Culculate Surface force and Assembling----------
-	for(auto edge : edges){
+	for(auto edge : edges) {
+		std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Vector<double> Fe;
-		PlaneStrainSurfaceForce<double, ShapeFunction2Line, Gauss1Line>(Fe, nodes, edge, f, 1.0);
-		Assembling(F, Fe, edge, field);
+		PlaneStrainSurfaceForce<double, ShapeFunction2Line, Gauss1Line>(Fe, nodetoelement, edge, { 0, 1 }, x, [](Vector<double> _x){
+			Vector<double> f = { 0.0, -200.0 };
+			return f;
+		}, 1.0);
+		Assembling(F, Fe, nodetoglobal, nodetoelement, edge);
 	}
 
-	//----------Set Neumann Boundary Condition----------
-	SetNeumann(F, isqfixed, qfixed);
-
-	//----------Set Dirichlet Boundary Condition----------
-	SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
-
-	//----------Solve System Equation----------
 	CSR<double> Kmod = CSR<double>(K);
-	std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
+	std::vector<double> result = CG(Kmod, F, 100000, 1.0e-10);
+	Disassembling(u, result, nodetoglobal);
 
-	//----------Update displacement u----------
-	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
-	FieldResultToNodeValue(result, u, field);
-			
-	//----------Save initial value----------
-	std::ofstream fout(model_path + "result.vtk");
+	std::ofstream fout("sample/planestrain/result.vtk");
 	MakeHeadderToVTK(fout);
-	AddPointsToVTK(nodes, fout);
+	AddPointsToVTK(x, fout);
 	AddElementToVTK(elements, fout);
-	std::vector<int> et = std::vector<int>(elements.size(), 5);
-	AddElementTypes(et, fout);
+	AddElementTypes(std::vector<int>(elements.size(), 5), fout);
 	AddPointVectors(u, "u", fout, true);
 	fout.close();
 

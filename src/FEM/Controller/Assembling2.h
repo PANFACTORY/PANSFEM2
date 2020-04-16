@@ -98,19 +98,6 @@ namespace PANSFEM2 {
     }
 
 
-    //********************Convert nodal value to global********************
-    template<class T>
-    void ConvertNodeToGlobal(std::vector<T>& _U, std::vector<Vector<T> >& _u, const std::vector<std::vector<int> >& _nodetoglobal) {
-        for(int i = 0; i < _u.size(); i++) {
-            for(int j = 0; j < _u[i].SIZE(); j++) {
-                if(_nodetoglobal[i][j] != -1) {
-                    _U[_nodetoglobal[i][j]] = _u[i](j);
-                }
-            }
-        }
-    }
-
-
     //********************Renumbering********************
     int Renumbering(std::vector<std::vector<int> >& _nodetoglobal) {
         int KDEGREE = 0;

@@ -26,9 +26,8 @@ public:
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
         std::vector<std::vector<int> > GenerateEdges();
-        std::vector<int> GenerateFields(int _nu);
         template<class F>
-        std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
+        std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
 private:
         T x, y;
         int nx, ny;  
@@ -88,29 +87,19 @@ private:
 
 
     template<class T>
-    std::vector<int> SquareMesh<T>::GenerateFields(int _nu){
-        std::vector<int> fields = std::vector<int>((this->nx + 1)*(this->ny + 1) + 1, 0);
-        for(int i = 1; i < (this->nx + 1)*(this->ny + 1) + 1; i++){
-            fields[i] = fields[i - 1] + _nu;
-        }
-        return fields;
-    }
-
-
-    template<class T>
     template<class F>
-    std::vector<int> SquareMesh<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
-        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
-        std::vector<int> isfixed;
+    std::vector<std::pair<std::pair<int, int>, T> > SquareMesh<T>::GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond) {
+        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()));
+        std::vector<std::pair<std::pair<int, int>, T> > ufixed;
         for(int i = 0; i < this->nx + 1; i++){
             for(int j = 0; j < this->ny + 1; j++){
                 if(_iscorrespond(Vector<T>({ this->x*(i/(T)this->nx), this->y*(j/(T)this->ny) }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*((this->ny + 1)*i + j) + ui);
+                        ufixed.push_back({ { (this->ny + 1)*i + j, ui }, 0 });
                     }
                 }
             }
         }
-        return isfixed;
+        return ufixed;
     }
 }

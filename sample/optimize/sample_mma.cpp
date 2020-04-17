@@ -1,56 +1,50 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
 
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/LinearAlgebra/Models/Matrix.h"
-#include "../../src/LinearAlgebra/Models/LILCSR.h"
-#include "../../src/PrePost/Mesher/SquareMesh.h"
-#include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/FEM/Equation/PlaneStrain.h"
-#include "../../src/FEM/Controller/BoundaryCondition.h"
-#include "../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/BoundaryCondition2.h"
+#include "../../src/FEM/Controller/Assembling2.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/Optimize/Solver/MMA.h"
 #include "../../src/Optimize/Filter/Heaviside.h"
+#include "../../src/PrePost/Mesher/SquareMesh.h"
 
 
 using namespace PANSFEM2;
 
 
 int main() {
-	//----------Generate design region----------
+    //----------Generate design region----------
 	SquareMesh<double> mesh = SquareMesh<double>(60.0, 40.0, 60, 40);
-    std::vector<Vector<double> > nodes = mesh.GenerateNodes();
+    std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
-    std::vector<int> field = mesh.GenerateFields(2);
-    int KDEGREE = *(field.end() - 1);
-    std::vector<int> isufixed = mesh.GenerateFixedlist(2, { 0, 1 }, [](Vector<double> _x){
-        if(fabs(_x(0)) < 1.0e-5) {
+    std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x){
+        if(abs(_x(0)) < 1.0e-5) {
             return true;
         }
         return false;
     });
-    std::vector<double> ufixed = std::vector<double>(isufixed.size(), 0.0);
-    std::vector<int> isqfixed = mesh.GenerateFixedlist(2, { 1 }, [](Vector<double> _x){
-        if(fabs(_x(0) - 60.0) < 1.0e-5 && fabs(_x(1) - 20.0) < 1.0e-5) {
+    std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 1 }, [](Vector<double> _x){
+        if(abs(_x(0) - 60.0) < 1.0e-5 && abs(_x(1) - 20.0) < 1.0e-5) {
             return true;
         }
         return false;
     });
-    std::vector<double> qfixed = std::vector<double>(isqfixed.size(), -1.0);
-    std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
-	SetNeumann(F, isqfixed, qfixed);
+    for(auto& qfixedi : qfixed) {
+        qfixedi.second = -1.0;
+    }
 
-    //----------Get cg of element----------
+	//----------Get cg of element----------
     std::vector<Vector<double> > cg = std::vector<Vector<double> >(elements.size());
     for(int i = 0; i < elements.size(); i++){
         Vector<double> centeri = Vector<double>(2);
         for(auto nodei : elements[i]){
-            centeri += nodes[nodei];
+            centeri += x[nodei];
         }
         cg[i] = centeri/(double)elements[i].size();
     }
@@ -80,11 +74,11 @@ int main() {
 	double Poisson = 0.3;
 	double p = 3.0;
 
-	double weightlimit = 0.3;
+	double weightlimit = 0.5;
 	double scale0 = 1.0e5;
 	double scale1 = 1.0;
 
-    double beta = 1.0;
+    double beta = 0.5;
 
     MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
 		std::vector<double>(1, 0.0),
@@ -92,11 +86,11 @@ int main() {
 		std::vector<double>(1, 0.0), 
 		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
 	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-6);
-		
+			
 	//----------Optimize loop----------
 	for(int k = 0; k < 500; k++){
 		std::cout << "\nk = " << k << "\t";
-        if(k%40 == 1){
+        if(k%40 == 0){
             beta*=2.0;
             filter.UpdateBeta(beta);
         }
@@ -125,35 +119,42 @@ int main() {
         double f = 0.0;													    //Function value of compliance
 		std::vector<double> dfdrho = std::vector<double>(s.size(), 0.0);    //Sensitivities of compliance
 
-        //----------Assembling----------
-		LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+		std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(2));
+        std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
+        
+        SetDirichlet(u, nodetoglobal, ufixed);
+        int KDEGREE = Renumbering(nodetoglobal);
+
+        LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+        std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
+
 		for (int i = 0; i < elements.size(); i++) {
-			double E = E1 * pow(rho[i], p) + E0 * (1.0 - pow(rho[i], p));
-			Matrix<double> Ke;
-			PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], E, Poisson, 1.0);
-			Assembling(K, Ke, elements[i], field);
+			double E = E1*pow(rho[i], p) + E0*(1.0 - pow(rho[i], p));
+			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+            Matrix<double> Ke;
+            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, E, 0.3, 1.0);
+            Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, elements[i]);
 		}
 
-		//----------Set Dirichlet Boundary Condition(Only fix displacement 0.0)----------
-		SetDirichlet(K, isufixed, ufixed, 1.0e10);
+        Assembling(F, qfixed, nodetoglobal);
+
         CSR<double> Kmod = CSR<double>(K);	
+        std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
+        Disassembling(u, result, nodetoglobal);
 
-        //----------Get function value and sensitivities----------
-        std::vector<double> d = ScalingCG(Kmod, F, 100000, 1.0e-10);
-
-        f = scale0*std::inner_product(F.begin(), F.end(), d.begin(), 0.0);
-        
-        std::vector<Vector<double> > dv = std::vector<Vector<double> >(nodes.size(), Vector<double>(2));
-		FieldResultToNodeValue(d, dv, field);
-        
+        for(auto qfixedi : qfixed) {
+            f += scale0*qfixedi.second*u[qfixedi.first.first](qfixedi.first.second);        //  Should MODIFY! : Surface force and body force are ignored in this way
+        }
+      
         for(int i = 0; i < elements.size(); i++){
+            std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-		    PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square >(Ke, nodes, elements[i], 1.0, Poisson, 1.0);
-			Vector<double> de = Vector<double>();
+            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, 1.0, 0.3, 1.0);
+			Vector<double> ue = Vector<double>();
             for(int j = 0; j < elements[i].size(); j++){
-                de = de.Vstack(dv[elements[i][j]]);
+                ue = ue.Vstack(u[elements[i][j]]);                  //  Should MODIFY! : Assembling based on nodetoelement
             }
-            dfdrho[i] = -scale0*p*(- E0 + E1)*pow(rho[i], p - 1.0)*(de*(Ke*de));
+            dfdrho[i] = -scale0*p*(- E0 + E1)*pow(rho[i], p - 1.0)*(ue*(Ke*ue));
         }
 
 
@@ -169,10 +170,10 @@ int main() {
         //*************************************************
 		std::ofstream fout("sample/optimize/result" + std::to_string(k) + ".vtk");
 		MakeHeadderToVTK(fout);
-		AddPointsToVTK(nodes, fout);
+		AddPointsToVTK(x, fout);
 		AddElementToVTK(elements, fout);
 		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
-		AddPointVectors(dv, "d", fout, true);
+		AddPointVectors(u, "u", fout, true);
 		AddElementScalers(rho, "s", fout, true);
 		fout.close();
        

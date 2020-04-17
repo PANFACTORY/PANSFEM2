@@ -17,7 +17,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-	std::string model_path = "sample/stokes/model1/";
+	std::string model_path = "sample/stokes/model3/";
 	std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elementsu;
@@ -74,7 +74,7 @@ int main() {
 		p[i] = up[i](2);
 	}
         
-    std::ofstream fout(model_path + "result2.vtk");
+    std::ofstream fout(model_path + "result.vtk");
     MakeHeadderToVTK(fout);
     AddPointsToVTK(x, fout);
     AddElementToVTK(elementsp, fout);

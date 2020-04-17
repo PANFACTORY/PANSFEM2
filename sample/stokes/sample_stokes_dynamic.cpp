@@ -1,115 +1,110 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
 
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/LinearAlgebra/Models/Matrix.h"
-#include "../../src/LinearAlgebra/Models/LILCSR.h"
 #include "../../src/PrePost/Import/ImportFromCSV.h"
-#include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/FEM/Equation/Stokes.h"
-#include "../../src/FEM/Controller/BoundaryCondition.h"
-#include "../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/BoundaryCondition2.h"
+#include "../../src/FEM/Controller/Assembling2.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
 
 
 using namespace PANSFEM2;
 
 
 int main() {
-	//----------Model Path----------
 	std::string model_path = "sample/stokes/model1/";
-	
-	//----------Add Nodes----------
-	std::vector<Vector<double> > nodes;
-	ImportNodesFromCSV(nodes, model_path + "Node.csv");
-	
-	//----------Add Elements for velocity u----------
+	std::vector<Vector<double> > x;
+	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elementsu;
 	ImportElementsFromCSV(elementsu, model_path + "ElementU.csv");
-
-    //----------Add Elements for pressure p----------
 	std::vector<std::vector<int> > elementsp;
 	ImportElementsFromCSV(elementsp, model_path + "ElementP.csv");
-
-	//----------Add Edge for velocity u----------
 	std::vector<std::vector<int> > edgesu;
 	ImportElementsFromCSV(edgesu, model_path + "EdgeU.csv");
-
-    //----------Add Edge for pressure p----------
 	std::vector<std::vector<int> > edgesp;
 	ImportElementsFromCSV(edgesp, model_path + "EdgeP.csv");
+    std::vector<std::pair<std::pair<int, int>, double> > ufixed;
+	ImportDirichletFromCSV(ufixed, model_path + "Dirichlet.csv");
+	
+    std::vector<Vector<double> > up = std::vector<Vector<double> >(x.size(), Vector<double>(3));
+	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(3, 0));
 
-	//----------Add Field for velocity----------
-	std::vector<int> field;
-	int KDEGREE = 0;
-	ImportFieldFromCSV(field, KDEGREE, nodes.size(), model_path + "Field.csv");
-
-	//----------Add Dirichlet Condition----------
-	std::vector<int> isufixed;
-	std::vector<double> ufixed;
-	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
-
-	//----------Initialize velocity and pressure----------
-	std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size());     //  Velocity
-    for(int i = 0; i < nodes.size(); i++){
-        u[i] = Vector<double>(field[i + 1] - field[i]);
-    }
-	ImportInitialFromCSV(u, model_path + "Dirichlet.csv");
-    	
-	//----------Define time step and theta----------
+    SetDirichlet(up, nodetoglobal, ufixed);
+	int KDEGREE = Renumbering(nodetoglobal);
+    
 	double dt = 0.01;   		//	Time step
 	double theta = 0.5;			//	FDM parameter for time
 
-	//----------Time step loop----------
 	for(int t = 0; t < 200; t++){
 		std::cout << "t = " << t << std::endl;
 
-        //----------Culculate Ke Fe and Assembling----------
-        LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);        //  System stiffness matrix
-        std::vector<double> F = std::vector<double>(KDEGREE, 0.0);  //  External load vector
-        for (int i = 0; i < elementsu.size(); i++) {
-            Vector<double> ue = Vector<double>();
-            for(int j = 0; j < elementsu[i].size(); j++){
-                ue = ue.Vstack(u[elementsu[i][j]]);
-            }
-            Matrix<double> Ke;
-            Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodes, elementsu[i], elementsp[i], 1.0);
-            Matrix<double> Me;
-            StokesMass<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Me, nodes, elementsu[i], elementsp[i], 1.0);
+        LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+        std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
         
+        for (int i = 0; i < elementsu.size(); i++) {
+            std::vector<std::vector<std::pair<int, int> > > nodetoelementu;
+            std::vector<std::vector<std::pair<int, int> > > nodetoelementp;
+            
+            Vector<double> upe = Vector<double>(2*elementsu[i].size() + elementsp[i].size());
+            for(int j = 0; j < elementsu[i].size(); j++){
+                upe(j) = up[elementsu[i][j]](0);
+                upe(j + elementsu[i].size()) = up[elementsu[i][j]](1);
+            }
+            for(int j = 0; j < elementsp[i].size(); j++){
+                upe(j + 2*elementsu[i].size()) = up[elementsp[i][j]](2);
+            }
+
+            Matrix<double> Ke;
+            Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, 1.0);
+            Matrix<double> Me;
+            StokesMass<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Me, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, 1.0);
             Matrix<double> Ae = Me/dt + theta*Ke;
-			Vector<double> be = (Me/dt - (1.0 - theta)*Ke)*ue;
-			Assembling(K, F, Ae, be, elementsu[i], field);        
+			Vector<double> be = (Me/dt - (1.0 - theta)*Ke)*upe;
+
+            Assembling(K, F, up, Ae, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementu, elementsu[i]);
+            Assembling(K, F, up, Ae, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i]);
+            Assembling(K, F, up, Ae, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementu, elementsu[i]);
+            Assembling(K, F, up, Ae, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementp, elementsp[i]); 
+
+            Assembling(F, be, nodetoglobal, nodetoelementu, elementsu[i]);
+            Assembling(F, be, nodetoglobal, nodetoelementp, elementsp[i]);  
         }
 
-		//----------Culculate traction term and Assembling----------
 		for(int i = 0; i < edgesu.size(); i++){
-			Vector<double> Fe;
-			StokesTraction<double, ShapeFunction3Line, ShapeFunction2Line, Gauss2Line>(Fe, nodes, edgesu[i], edgesp[i], 1.0/3.0, 0.0);
-			Assembling(F, Fe, edgesu[i], field);
-		}
+            std::vector<std::vector<std::pair<int, int> > > nodetoelementu;
+            std::vector<std::vector<std::pair<int, int> > > nodetoelementp;
+            Vector<double> Fe;
+            StokesTraction<double, ShapeFunction3Line, ShapeFunction2Line, Gauss2Line>(Fe, nodetoelementu, edgesu[i], nodetoelementp, edgesp[i], { 0, 1, 2 }, x, [](Vector<double> _x){
+                Vector<double> f = { 1.0/3.0, 0.0 };
+                return f;
+            });
+            Assembling(F, Fe, nodetoglobal, nodetoelementu, edgesu[i]);
+            Assembling(F, Fe, nodetoglobal, nodetoelementp, edgesp[i]);
+        }
 
-		//----------Set Dirichlet Boundary Condition----------
-		SetDirichlet(K, F, isufixed, ufixed, 1.0e9);
-
-		//----------Solve System Equation----------
 		CSR<double> Kmod = CSR<double>(K);
-		std::vector<double> result = CG(Kmod, F, 100000, 1.0e-20);
-        FieldResultToNodeValue(result, u, field);
-            
-        //*************************************************		
-        //  Save values
-        //*************************************************
+		std::vector<double> result = CG(Kmod, F, 100000, 1.0e-10);
+        Disassembling(up, result, nodetoglobal);
+
+        std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size());
+        std::vector<double> p = std::vector<double>(x.size(), 0.0);
+        for(int i = 0; i < x.size(); i++){
+            u[i] = up[i].Segment(0, 2);
+            p[i] = up[i](2);
+        }
+        
         std::ofstream fout(model_path + "result" + std::to_string(t) + ".vtk");
         MakeHeadderToVTK(fout);
-        AddPointsToVTK(nodes, fout);
+        AddPointsToVTK(x, fout);
         AddElementToVTK(elementsp, fout);
         AddElementTypes(std::vector<int>(elementsp.size(), 5), fout);
         AddPointVectors(u, "u", fout, true);
+        AddPointScalers(p, "p", fout, false);
         fout.close();
 	}
 

@@ -77,6 +77,7 @@ int main() {
         for(int l = 0; l < 10; l++) {
             LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
             std::vector<double> R = std::vector<double>(KDEGREE, 0.0);		//Residual load vector
+            std::vector<Vector<double> > dup = std::vector<Vector<double> >(x.size(), Vector<double>(3));
 
             for (int i = 0; i < elementsu.size(); i++) {
                 std::vector<std::vector<std::pair<int, int> > > nodetoelementu;
@@ -86,10 +87,10 @@ int main() {
                 Vector<double> Qe;
                 NavierStokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, Qe, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, up, 1.0);
             
-                Assembling(K, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementu, elementsu[i]);
-                Assembling(K, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i]);
-                Assembling(K, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementu, elementsu[i]);
-                Assembling(K, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementp, elementsp[i]); 
+                Assembling(K, R, dup, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementu, elementsu[i]);
+                Assembling(K, R, dup, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i]);
+                Assembling(K, R, dup, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementu, elementsu[i]);
+                Assembling(K, R, dup, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementp, elementsp[i]); 
 
                 Assembling(R, Qe, nodetoglobal, nodetoelementu, elementsu[i]);
                 Assembling(R, Qe, nodetoglobal, nodetoelementp, elementsp[i]);  
@@ -103,7 +104,6 @@ int main() {
             
             CSR<double> Kmod = CSR<double>(K);
             std::vector<double> result = BiCGSTAB(Kmod, R, 100000, 1.0e-10);
-            std::vector<Vector<double> > dup = std::vector<Vector<double> >(x.size(), Vector<double>(3));
             Disassembling(dup, result, nodetoglobal);
             for(int i = 0; i < x.size(); i++){
                 up[i] += dup[i];

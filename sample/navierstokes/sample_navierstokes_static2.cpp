@@ -64,7 +64,7 @@ int main() {
     Disassembling(up, result, nodetoglobal);
     
     //----------Incremental step loop----------
-    for(int k = 1; k < 2; k++) {
+    for(int k = 1; k < kmax; k++) {
         std::cout << "k=" << k;
 
         std::vector<std::pair<std::pair<int, int>, double> > ufixedk = ufixed;
@@ -74,7 +74,7 @@ int main() {
         SetDirichlet(up, nodetoglobal, ufixedk);
 
         //----------Newton-Raphson loop----------
-        for(int l = 0; l < 0; l++) {
+        for(int l = 0; l < 10; l++) {
             LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
             std::vector<double> R = std::vector<double>(KDEGREE, 0.0);		//Residual load vector
 
@@ -86,10 +86,10 @@ int main() {
                 Vector<double> Qe;
                 NavierStokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, Qe, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, up, 1.0);
             
-                Assembling(K, R, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementu, elementsu[i]);
-                Assembling(K, R, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i]);
-                Assembling(K, R, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementu, elementsu[i]);
-                Assembling(K, R, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementp, elementsp[i]); 
+                Assembling(K, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementu, elementsu[i]);
+                Assembling(K, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i]);
+                Assembling(K, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementu, elementsu[i]);
+                Assembling(K, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementp, elementsp[i]); 
 
                 Assembling(R, Qe, nodetoglobal, nodetoelementu, elementsu[i]);
                 Assembling(R, Qe, nodetoglobal, nodetoelementp, elementsp[i]);  

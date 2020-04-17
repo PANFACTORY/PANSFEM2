@@ -110,6 +110,26 @@ namespace PANSFEM2 {
     }
 
 
+    //********************Assembling global matrix********************
+    template<class T>
+    void Assembling(LILCSR<T>& _K, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementi, const std::vector<int>& _elementi, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementj, const std::vector<int>& _elementj) {
+        for(int i = 0; i < _elementi.size(); i++) {
+            for(auto doui : _nodetoelementi[i]) {
+                if(_nodetoglobal[_elementi[i]][doui.first] != -1) {
+                    for(int j = 0; j < _elementj.size(); j++) {
+                        for(auto douj : _nodetoelementj[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_elementj[j]][douj.first] != -1) {
+                                _K.set(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first], _K.get(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first]) + _Ke(doui.second, douj.second));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     //********************Assembling global vector********************
     template<class T>
     void Assembling(std::vector<T>& _F, Vector<T>& _Fe, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {

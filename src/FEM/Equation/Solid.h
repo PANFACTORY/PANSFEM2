@@ -1,8 +1,8 @@
 //*****************************************************************************
-//Title		:src/FEM/Equation/Solid.h
-//Author	:Tanabe Yuta
-//Date		:2019/10/10
-//Copyright	:(C)2019 TanabeYuta
+//	Title		:	src/FEM/Equation/Solid.h
+//	Author		:	Tanabe Yuta
+//	Date		:	2020/04/17
+//	Copyright	:	(C)2020 TanabeYuta
 //*****************************************************************************
 
 

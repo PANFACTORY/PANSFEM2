@@ -28,9 +28,8 @@ public:
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
         std::vector<std::vector<int> > GenerateEdges();
-        std::vector<int> GenerateFields(int _nu);
         template<class F>
-        std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
+        std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
 private:
         T a, b, c, d;
         int nx, ny, nt, nxy;  
@@ -96,51 +95,41 @@ private:
 
 
     template<class T>
-    std::vector<int> SquareAnnulusMesh<T>::GenerateFields(int _nu){
-        std::vector<int> fields = std::vector<int>(this->nxy*(this->nt + 1) + 1, 0);
-        for(int i = 1; i < this->nxy*(this->nt + 1) + 1; i++){
-            fields[i] = fields[i - 1] + _nu;
-        }
-        return fields;
-    }
-
-
-    template<class T>
     template<class F>
-    std::vector<int> SquareAnnulusMesh<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
-        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
-        std::vector<int> isfixed;
+    std::vector<std::pair<std::pair<int, int>, T> > SquareAnnulusMesh<T>::GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond) {
+        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()));
+        std::vector<std::pair<std::pair<int, int>, T> > ufixed;
         for(int i = 0; i < this->nt + 1; i++){
             T t = i/(T)this->nt;
             for(int j = 0; j < this->ny; j++){
                 if(_iscorrespond(Vector<T>({ (1 - t)*0.5*this->a + t*0.5*this->c, (1 - t)*this->b*(j/(T)this->ny - 0.5) + t*this->d*(j/(T)this->ny - 0.5) }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nxy*i + j) + ui);
+                        ufixed.push_back({ { this->nxy*i + j, ui }, T() });
                     }
                 }
             }
             for(int j = 0; j < this->nx; j++){
                 if(_iscorrespond(Vector<T>({ (1 - t)*this->a*(0.5 - j/(T)this->nx) + t*this->c*(0.5 - j/(T)this->nx), (1 - t)*0.5*this->b + t*0.5*this->d }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nxy*i + j + this->ny) + ui);
+                        ufixed.push_back({ { this->nxy*i + j + this->ny, ui }, T() });
                     }
                 }
             }
             for(int j = 0; j < this->ny; j++){
                 if(_iscorrespond(Vector<T>({ -(1 - t)*0.5*this->a - t*0.5*this->c, (1 - t)*this->b*(0.5 - j/(T)this->ny) + t*this->d*(0.5 - j/(T)this->ny) }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nxy*i + j + this->ny + this->nx) + ui);
+                        ufixed.push_back({ { this->nxy*i + j + this->ny + this->nx, ui }, T() });
                     }
                 }
             }
             for(int j = 0; j < this->nx; j++){
                 if(_iscorrespond(Vector<T>({ (1 - t)*this->a*(j/(T)this->nx - 0.5) + t*this->c*(j/(T)this->nx - 0.5), -(1 - t)*0.5*this->b - t*0.5*this->d }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nxy*i + j + 2*this->ny + this->nx) + ui);
+                        ufixed.push_back({ { this->nxy*i + j + 2*this->ny + this->nx, ui }, T() });
                     }
                 }
             }
         }
-        return isfixed;
+        return ufixed;
     }
 }

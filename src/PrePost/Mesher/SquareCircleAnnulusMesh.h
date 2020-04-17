@@ -28,9 +28,8 @@ public:
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
         std::vector<std::vector<int> > GenerateEdges();
-        std::vector<int> GenerateFields(int _nu);
         template<class F>
-        std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
+        std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
 private:
         T a, b, r, p;
         int nx, ny, nr, nxy;  
@@ -104,27 +103,17 @@ private:
 
 
     template<class T>
-    std::vector<int> SquareCircleAnnulusMesh<T>::GenerateFields(int _nu){
-        std::vector<int> fields = std::vector<int>(this->nxy*(this->nr + 1) + 1, 0);
-        for(int i = 1; i < this->nxy*(this->nr + 1) + 1; i++){
-            fields[i] = fields[i - 1] + _nu;
-        }
-        return fields;
-    }
-
-
-    template<class T>
     template<class F>
-    std::vector<int> SquareCircleAnnulusMesh<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
-        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
-        std::vector<int> isfixed;
+    std::vector<std::pair<std::pair<int, int>, T> > SquareCircleAnnulusMesh<T>::GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond) {
+        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()));
+        std::vector<std::pair<std::pair<int, int>, T> > ufixed;
         for(int i = 0; i < this->nr + 1; i++){
             T t = pow(i/(T)this->nr, this->p);
             for(int j = 0; j < this->ny; j++){
                 T theta = 2*M_PI*(j - 0.5*this->ny)/(T)this->nxy;
                 if(_iscorrespond(Vector<T>({ (1 - t)*this->r*cos(theta) + t*0.5*this->a, (1 - t)*this->r*sin(theta) + t*this->b*(j/(T)this->ny - 0.5) }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nxy*i + j) + ui);
+                        ufixed.push_back({ { this->nxy*i + j, ui }, T() });
                     }
                 }
             }
@@ -132,7 +121,7 @@ private:
                 T theta = 2*M_PI*(j + 0.5*this->ny)/(T)this->nxy;
                 if(_iscorrespond(Vector<T>({ (1 - t)*this->r*cos(theta) + t*this->a*(0.5 - j/(T)this->nx), (1 - t)*this->r*sin(theta) + t*0.5*this->b }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nxy*i + j + this->ny) + ui);
+                        ufixed.push_back({ { this->nxy*i + j + this->ny, ui }, T() });
                     }
                 }
             }
@@ -140,7 +129,7 @@ private:
                 T theta = 2*M_PI*(j + 0.5*this->ny + this->nx)/(T)this->nxy;
                 if(_iscorrespond(Vector<T>({ (1 - t)*this->r*cos(theta) - t*0.5*this->a, (1 - t)*this->r*sin(theta) + t*this->b*(0.5 - j/(T)this->ny) }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nxy*i + j + this->ny + this->nx) + ui);
+                        ufixed.push_back({ { this->nxy*i + j + this->ny + this->nx, ui }, T() });
                     }
                 }
             }
@@ -148,11 +137,11 @@ private:
                 T theta = 2*M_PI*(j + 1.5*this->ny + this->nx)/(T)this->nxy;
                 if(_iscorrespond(Vector<T>({ (1 - t)*this->r*cos(theta) + t*this->a*(j/(T)this->nx - 0.5), (1 - t)*this->r*sin(theta) - t*0.5*this->b }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nxy*i + j + 2*this->ny + this->nx) + ui);
+                        ufixed.push_back({ { this->nxy*i + j + 2*this->ny + this->nx, ui }, T() });
                     }
                 }
             }
         }
-        return isfixed;
+        return ufixed;
     }
 }

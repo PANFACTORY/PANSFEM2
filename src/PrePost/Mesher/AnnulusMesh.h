@@ -28,9 +28,8 @@ public:
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
         std::vector<std::vector<int> > GenerateEdges();
-        std::vector<int> GenerateFields(int _nu);
         template<class F>
-        std::vector<int> GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond);
+        std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
 private:
         T r0, r1;
         int nr, nt;  
@@ -88,31 +87,21 @@ private:
 
 
     template<class T>
-    std::vector<int> AnnulusMesh<T>::GenerateFields(int _nu){
-        std::vector<int> fields = std::vector<int>((this->nr + 1)*this->nt + 1, 0);
-        for(int i = 1; i < (this->nr + 1)*this->nt + 1; i++){
-            fields[i] = fields[i - 1] + _nu;
-        }
-        return fields;
-    }
-
-
-    template<class T>
     template<class F>
-    std::vector<int> AnnulusMesh<T>::GenerateFixedlist(int _nu, std::vector<int> _ulist, F _iscorrespond) {
-        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()) && *std::max_element(_ulist.begin(), _ulist.end()) < _nu);
-        std::vector<int> isfixed;
+    std::vector<std::pair<std::pair<int, int>, T> > AnnulusMesh<T>::GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond) {
+        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()));
+        std::vector<std::pair<std::pair<int, int>, T> > ufixed;
         for(int i = 0; i < this->nr + 1; i++){
             T r = (this->r1 - this->r0)*i/(T)this->nr + this->r0;
             for(int j = 0; j < this->nt; j++){
                 T theta = 2.0*M_PI*j/(T)this->nt;
                 if(_iscorrespond(Vector<T>({ r*cos(theta), r*sin(theta) }))) {
                     for(auto ui : _ulist) {
-                        isfixed.push_back(_nu*(this->nt*i + j) + ui);
+                        ufixed.push_back({ { this->nt*i + j, ui }, T() });
                     }
                 }
             }
         }
-        return isfixed;
+        return ufixed;
     }
 }

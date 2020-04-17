@@ -95,7 +95,7 @@ private:
             for(int j = 0; j < this->ny + 1; j++){
                 if(_iscorrespond(Vector<T>({ this->x*(i/(T)this->nx), this->y*(j/(T)this->ny) }))) {
                     for(auto ui : _ulist) {
-                        ufixed.push_back({ { (this->ny + 1)*i + j, ui }, 0 });
+                        ufixed.push_back({ { (this->ny + 1)*i + j, ui }, T() });
                     }
                 }
             }

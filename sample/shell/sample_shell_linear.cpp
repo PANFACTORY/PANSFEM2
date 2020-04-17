@@ -1,88 +1,65 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
 
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/LinearAlgebra/Models/Matrix.h"
-#include "../../src/LinearAlgebra/Models/LILCSR.h"
 #include "../../src/PrePost/Import/ImportFromCSV.h"
-#include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/FEM/Equation/Shell.h"
-#include "../../src/FEM/Controller/BoundaryCondition.h"
-#include "../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/BoundaryCondition2.h"
+#include "../../src/FEM/Controller/Assembling2.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
 
 
 using namespace PANSFEM2;
 
 
 int main() {
-	//----------Model Path----------
 	std::string model_path = "sample/shell/";
-	
-	//----------Add Nodes----------
-	std::vector<Vector<double> > nodes;
-	ImportNodesFromCSV(nodes, model_path + "Node.csv");
-	
-	//----------Add Elements----------
+	std::vector<Vector<double> > x;
+	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elements;
 	ImportElementsFromCSV(elements, model_path + "Element.csv");
+    std::vector<std::pair<std::pair<int, int>, double> > ufixed;
+	ImportDirichletFromCSV(ufixed, model_path + "Dirichlet.csv");
+    std::vector<std::pair<std::pair<int, int>, double> > qfixed;
+	ImportNeumannFromCSV(qfixed, model_path + "Neumann.csv");
 
-	//----------Add Field----------
-	std::vector<int> field;
-	int KDEGREE = 0;
-	ImportFieldFromCSV(field, KDEGREE, nodes.size(), model_path + "Field.csv");
+    std::vector<Vector<double> > v3 = std::vector<Vector<double> >(x.size(), { 0.0, 0.0, 1.0 });    //  Director vector
+
+	std::vector<Vector<double> > ur = std::vector<Vector<double> >(x.size(), Vector<double>(5));
+	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(5, 0));
 	
-	//----------Add Dirichlet Condition----------
-	std::vector<int> isufixed;
-	std::vector<double> ufixed;
-	ImportDirichletFromCSV(isufixed, ufixed, field, model_path + "Dirichlet.csv");
+    SetDirichlet(ur, nodetoglobal, ufixed);
+	int KDEGREE = Renumbering(nodetoglobal);
 
-	//----------Add Neumann Condition----------
-	std::vector<int> isqfixed;
-	std::vector<double> qfixed;
-	ImportNeumannFromCSV(isqfixed, qfixed, field, model_path + "Neumann.csv");
+	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 
-    //----------Generate director vector----------
-    std::vector<Vector<double> > v3 = std::vector<Vector<double> >(nodes.size(), { 0.0, 0.0, 1.0 });
-
-	//----------Culculate Ke, body force and Assembling----------
-	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
-	std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//External load vector
 	for (auto element : elements) {
+        std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Matrix<double> Ke;
-		LinearIsotropicElasticShell<double, ShapeFunction4Square, Gauss1Square, Gauss2Line>(Ke, nodes, element, v3, 210000.0, 0.3, 1.0);
-		Assembling(K, Ke, element, field);
+		ShellLinearIsotropicElastic<double, ShapeFunction4Square, Gauss1Square, Gauss2Line>(Ke, nodetoelement, element, { 0, 1, 2, 3, 4 }, x, v3, 210000.0, 0.3, 1.0);
+        Assembling(K, F, ur, Ke, nodetoglobal, nodetoelement, element);
 	}
+    Assembling(F, qfixed, nodetoglobal);
 
-	//----------Set Neumann Boundary Condition----------
-	SetNeumann(F, isqfixed, qfixed);
-
-	//----------Set Dirichlet Boundary Condition----------
-	SetDirichlet(K, F, isufixed, ufixed, 1.0e10);
-
-	//----------Solve System Equation----------
 	CSR<double> Kmod = CSR<double>(K);
 	std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
+    Disassembling(ur, result, nodetoglobal);
 
-	//----------Update displacement u----------
-	std::vector<Vector<double> > ur = std::vector<Vector<double> >(nodes.size(), Vector<double>(5));
-	FieldResultToNodeValue(result, ur, field);
-    std::vector<Vector<double> > u = std::vector<Vector<double> >(nodes.size());
-    for(int i = 0; i < nodes.size(); i++){
+    std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size());
+    for(int i = 0; i < x.size(); i++){
         u[i] = ur[i].Segment(0, 3);
     }
-			
-	//----------Save initial value----------
+	
 	std::ofstream fout(model_path + "result.vtk");
 	MakeHeadderToVTK(fout);
-	AddPointsToVTK(nodes, fout);
+	AddPointsToVTK(x, fout);
 	AddElementToVTK(elements, fout);
-	std::vector<int> et = std::vector<int>(elements.size(), 9);
-	AddElementTypes(et, fout);
+	AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 	AddPointVectors(u, "u", fout, true);
 	fout.close();
 

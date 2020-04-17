@@ -18,18 +18,25 @@
 namespace PANSFEM2 {
     //********************Linear Isotropic Elastic Shell********************
 	template<class T, template<class>class SF, template<class>class IC01, template<class>class IC2>
-	void LinearIsotropicElasticShell(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, std::vector<Vector<T> >& _v, T _E, T _V, T _t) {
-		//----------Initialize element stiffness matrix----------
-		_Ke = Matrix<T>(5*_element.size(), 5*_element.size());
+	void ShellLinearIsotropicElastic(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _v, T _E, T _V, T _t) {
+		assert(_doulist.size() == 5);
+        
+        _Ke = Matrix<T>(5*_element.size(), 5*_element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(5));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], 5*i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], 5*i + 1);
+			_nodetoelement[i][2] = std::make_pair(_doulist[2], 5*i + 2);
+            _nodetoelement[i][3] = std::make_pair(_doulist[3], 5*i + 3);
+			_nodetoelement[i][4] = std::make_pair(_doulist[4], 5*i + 4);
+		}
 		
-		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(0, 3);
-		for(auto i : _element){
-			X = X.Vstack(_x[i].Transpose());
+		Matrix<T> X = Matrix<T>(_element.size(), 3);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);	X(i, 2) = _x[_element[i]](2);
 		}
         Vector<T> l = _x[_element[1]] - _x[_element[0]];
 
-		//----------Generate director vector----------
         Matrix<T> v3 = Matrix<T>(0, 3);
         Matrix<T> v1 = Matrix<T>(0, 3);
         Matrix<T> v2 = Matrix<T>(0, 3);
@@ -42,7 +49,6 @@ namespace PANSFEM2 {
             v2 = v2.Vstack(v2i.Transpose());
         }
 
-        //----------Generate local D matrix----------
         T k = 1.2;
         Matrix<T> D0 = Matrix<T>(5, 5); 
         D0(0, 0) = 1.0; D0(0, 1) = _V;  D0(0, 2) = T();             D0(0, 3) = T();                 D0(0, 4) = T();
@@ -52,14 +58,11 @@ namespace PANSFEM2 {
         D0(4, 0) = T(); D0(4, 1) = T(); D0(4, 2) = T();             D0(4, 3) = T();                 D0(4, 4) = 0.5*(1.0 - _V)/k;
         D0 *= _E/(1.0 - _V*_V);
 
-		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC01<T>::N; g++) {
             for(int h = 0; h < IC2<T>::N; h++){
-                //----------Get difference of shape function----------
                 Vector<T> N = SF<T>::N(IC01<T>::Points[g]);
                 Matrix<T> dNdr = SF<T>::dNdr(IC01<T>::Points[g]);
-                
-                //----------Generate Jacobi matrix and derivative----------
+           
                 Vector<T> zeta = IC2<T>::Points[h];
                 Matrix<T> J = (dNdr*(X + 0.5*_t*zeta(0)*v3)).Vstack(0.5*_t*N.Transpose()*v3);
                 T detJ = J.Determinant();
@@ -67,7 +70,6 @@ namespace PANSFEM2 {
                 Matrix<T> dNdx = invJ.Block(0, 0, 3, 2)*dNdr;
                 Matrix<T> dNzdx = dNdx*zeta(0) + invJ.Block(0, 2, 3, 1)*N.Transpose();
 
-                //----------Generate B matrix----------
                 Matrix<T> B = Matrix<T>(6, 5*_element.size());
                 for(int i = 0; i < _element.size(); i++){
                     B(0, 5*i) = dNdx(0, i); B(0, 5*i + 1) = T();        B(0, 5*i + 2) = T();        B(0, 5*i + 3) = 0.5*_t*dNzdx(0, i)*v1(i, 0);                            B(0, 5*i + 4) = -0.5*_t*dNzdx(0, i)*v2(i, 0);
@@ -78,7 +80,6 @@ namespace PANSFEM2 {
                     B(5, 5*i) = T();        B(5, 5*i + 1) = dNdx(2, i); B(5, 5*i + 2) = dNdx(1, i); B(5, 5*i + 3) = 0.5*_t*(dNzdx(2, i)*v1(i, 1) + dNzdx(1, i)*v1(i, 2));   B(5, 5*i + 4) = -0.5*_t*(dNzdx(2, i)*v2(i, 1) + dNzdx(1, i)*v2(i, 2));
                 }
 
-                //----------Genarate global D matrix----------
                 Vector<T> J0 = J.Block(0, 0, 1, 3).Transpose();
                 Vector<T> J1 = J.Block(1, 0, 1, 3).Transpose();
                 Vector<T> P2 = VectorProduct(J0, J1).Normal();
@@ -92,7 +93,6 @@ namespace PANSFEM2 {
                 P(4, 0) = 2.0*P1(0)*P2(0);  P(4, 1) = 2.0*P1(1)*P2(1);  P(4, 2) = 2.0*P1(2)*P2(2);  P(4, 3) = P1(0)*P2(1) + P1(1)*P2(0);    P(4, 4) = P1(0)*P2(2) + P1(2)*P2(0);    P(4, 5) = P1(1)*P2(2) + P1(2)*P2(1);        
                 Matrix<T> D = P.Transpose()*D0*P;
 
-                //----------Update element stiffness matrix----------
                 _Ke += B.Transpose()*D*B*detJ*IC01<T>::Weights[g][0]*IC01<T>::Weights[g][1]*IC2<T>::Weights[h][0];
             }
 		}

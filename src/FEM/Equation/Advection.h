@@ -1,8 +1,8 @@
 //*****************************************************************************
-//Title		:src/FEM/Equation/Advection.h
-//Author	:Tanabe Yuta
-//Date		:2019/10/03
-//Copyright	:(C)2019 TanabeYuta
+//	Title		:	src/FEM/Equation/Advection.h
+//	Author		:	Tanabe Yuta
+//	Date		:	2019/10/03
+//	Copyright	:	(C)2019 TanabeYuta
 //*****************************************************************************
 
 
@@ -17,31 +17,29 @@
 namespace PANSFEM2 {
 	//******************************Get element advection matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void Advection(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _cx, T _cy) {
-		//----------Initialize element matrix----------
+	void Advection(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _cx, T _cy) {
+		assert(_doulist.size() == 1);
+		
 		_Ke = Matrix<T>(_element.size(), _element.size());
-
-		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(0, 2);
-		for(int i = 0; i < _element.size(); i++){
-			X = X.Vstack(_x[_element[i]].Transpose());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
 		}
 
-		//----------Loop of Gauss Integration----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);
+		}
+
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function and difference of shape function----------
 			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
-			//----------Generate advection velocity----------
 			Vector<T> c = Vector<T>({ _cx, _cy });
 
-			//----------Update element advection matrix----------
 			_Ke += N*c.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
@@ -49,30 +47,28 @@ namespace PANSFEM2 {
 
 	//******************************Get element advection matrix of SUPG******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void AdvectionSUPG(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _ax, T _ay, T _k) {
-		//----------Initialize element matrix----------
+	void AdvectionSUPG(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _ax, T _ay, T _k) {
+		assert(_doulist.size() == 1);
+		
 		_Ke = Matrix<T>(_element.size(), _element.size());
-
-		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(0, 2);
-		for(int i = 0; i < _element.size(); i++){
-			X = X.Vstack(_x[_element[i]].Transpose());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
 		}
 
-		//----------Generate advection velocity----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);
+		}
+
 		Vector<T> a = Vector<T>({ _ax, _ay });
 		
-		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function and difference of shape function----------
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
-			//----------Get stability parameter----------
 			Vector<T> dNdXa = dNdX.Transpose()*a; 
 			T sum = T();
 			for(int i = 0; i < _element.size(); i++){
@@ -87,7 +83,6 @@ namespace PANSFEM2 {
 				tau *= 1.0;
 			}
 			
-			//----------Update element advection matrix----------
 			_Ke += tau*dNdX.Transpose()*a*a.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}		
 	}
@@ -95,30 +90,28 @@ namespace PANSFEM2 {
 
 	//******************************Get element advection matrix of shock capturing******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void AdvectionShockCapturing(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _ax, T _ay, T _k) {
-		//----------Initialize element matrix----------
+	void AdvectionShockCapturing(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _ax, T _ay, T _k) {
+		assert(_doulist.size() == 1);
+		
 		_Ke = Matrix<T>(_element.size(), _element.size());
-
-		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(0, 2);
-		for(int i = 0; i < _element.size(); i++){
-			X = X.Vstack(_x[_element[i]].Transpose());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
 		}
 
-		//----------Generate advection velocity----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);
+		}
+
 		Vector<T> a = Vector<T>({ _ax, _ay });
 		
-		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function and difference of shape function----------
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
-			//----------Get stability parameter----------
 			Vector<T> dNdXa = dNdX.Transpose()*a; 
 			T sum = T();
 			for(int i = 0; i < _element.size(); i++){
@@ -133,7 +126,6 @@ namespace PANSFEM2 {
 				tau *= 1.0;
 			}
 
-			//----------Update element shock capturing matrix----------
 			_Ke += tau*dNdX.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}		
 	}
@@ -141,27 +133,26 @@ namespace PANSFEM2 {
 
 	//******************************Get element diffusion matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void Diffusion(Matrix<T>& _Ke, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _k) {
-		//----------Initialize element matrix----------
+	void Diffusion(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _k) {
+		assert(_doulist.size() == 1);
+		
 		_Ke = Matrix<T>(_element.size(), _element.size());
-
-		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(0, 2);
-		for(int i = 0; i < _element.size(); i++){
-			X = X.Vstack(_x[_element[i]].Transpose());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
 		}
 
-		//----------Loop of Gauss Integration----------
-		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function and difference of shape function----------
-			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);
+		}
 
-			//----------Get difference of shape function----------
+		for (int g = 0; g < IC<T>::N; g++) {
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
-			//----------Update element advection matrix----------
 			_Ke += _k*dNdX.Transpose()*dNdX*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
@@ -169,27 +160,26 @@ namespace PANSFEM2 {
 
 	//******************************Get element mass matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void Mass(Matrix<T>& _Ce, std::vector<Vector<T> >& _x, std::vector<int>& _element) {
-		//----------Get element matrix----------
-		_Ce = Matrix<T>(_element.size(), _element.size());
+	void Mass(Matrix<T>& _Ce, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x) {
+		assert(_doulist.size() == 1);
 		
-		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(0, 2);
-		for(int i = 0; i < _element.size(); i++){
-			X = X.Vstack(_x[_element[i]].Transpose());
+		_Ce = Matrix<T>(_element.size(), _element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
 		}
 
-		//----------Loop of Gauss Integration----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);
+		}
+
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function and difference of shape function----------
 			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 
-			//----------Make C matrix----------
 			_Ce += N*N.Transpose()*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
@@ -197,31 +187,29 @@ namespace PANSFEM2 {
 
 	//******************************Get element mass matrix of SUPG******************************
 	template<class T, template<class>class SF, template<class>class IC>
-	void MassSUPG(Matrix<T>& _Ce, std::vector<Vector<T> >& _x, std::vector<int>& _element, T _ax, T _ay, T _k) {
-		//----------Get element matrix----------
-		_Ce = Matrix<T>(_element.size(), _element.size());
+	void MassSUPG(Matrix<T>& _Ce, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _ax, T _ay, T _k) {
+		assert(_doulist.size() == 1);
 		
-		//----------Generate cordinate matrix X----------
-		Matrix<T> X = Matrix<T>(0, 2);
-		for(int i = 0; i < _element.size(); i++){
-			X = X.Vstack(_x[_element[i]].Transpose());
+		_Ce = Matrix<T>(_element.size(), _element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
 		}
 
-		//----------Generate advection velocity----------
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);
+		}
+		
 		Vector<T> a = Vector<T>({ _ax, _ay });
 		
-		//----------Loop of Gauss Integration----------
 		for (int g = 0; g < IC<T>::N; g++) {
-			//----------Get shape function and difference of shape function----------
 			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
-
-			//----------Get difference of shape function----------
 			Matrix<T> dXdr = dNdr*X;
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
 
-			//----------Get stability parameter----------
 			Vector<T> dNdXa = dNdX.Transpose()*a; 
 			T sum = T();
 			for(int i = 0; i < _element.size(); i++){
@@ -236,7 +224,6 @@ namespace PANSFEM2 {
 				tau *= 1.0;
 			}
 
-			//----------Update element mass matrix of SUPG----------
 			_Ce += tau*dNdX.Transpose()*a*N.Transpose()*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}

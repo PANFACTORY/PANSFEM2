@@ -1,8 +1,8 @@
 //*****************************************************************************
-//Title		:PANSFEM2/FEM/Controller/BoundaryCondition2.h
-//Author	:Tanabe Yuta
-//Date		:2020/04/16
-//Copyright	:(C)2020 TanabeYuta
+//  Title		:   PANSFEM2/FEM/Controller/BoundaryCondition2.h
+//  Author	    :   Tanabe Yuta
+//  Date		:   2020/04/16
+//  Copyright	:   (C)2020 TanabeYuta
 //*****************************************************************************
 
 
@@ -32,4 +32,7 @@ namespace PANSFEM2 {
             _nodetoglobal[ufixed.first.first][ufixed.first.second] = -1;
         }
     }
+
+
+    //********************Set Periodic boundary conditions********************
 }

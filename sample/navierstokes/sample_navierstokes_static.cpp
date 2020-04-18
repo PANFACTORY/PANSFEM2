@@ -49,14 +49,10 @@ int main() {
     std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 
     for (int i = 0; i < elementsu.size(); i++) {
-        std::vector<std::vector<std::pair<int, int> > > nodetoelementu;
-        std::vector<std::vector<std::pair<int, int> > > nodetoelementp;
+        std::vector<std::vector<std::pair<int, int> > > nodetoelementu, nodetoelementp;
         Matrix<double> Ke;
         Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, 1.0);
-        Assembling(K, F, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementu, elementsu[i]);
-        Assembling(K, F, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i]);
-        Assembling(K, F, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementu, elementsu[i]);
-        Assembling(K, F, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementp, elementsp[i]);
+        Assembling(K, F, up, Ke, nodetoglobal, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
     }
 
     CSR<double> Kmod = CSR<double>(K);
@@ -80,18 +76,11 @@ int main() {
             std::vector<Vector<double> > dup = std::vector<Vector<double> >(x.size(), Vector<double>(3));
 
             for (int i = 0; i < elementsu.size(); i++) {
-                std::vector<std::vector<std::pair<int, int> > > nodetoelementu;
-                std::vector<std::vector<std::pair<int, int> > > nodetoelementp;
-
+                std::vector<std::vector<std::pair<int, int> > > nodetoelementu, nodetoelementp;
                 Matrix<double> Ke;
                 Vector<double> Qe;
                 NavierStokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, Qe, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, up, 1.0);
-            
-                Assembling(K, R, dup, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementu, elementsu[i]);
-                Assembling(K, R, dup, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i]);
-                Assembling(K, R, dup, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementu, elementsu[i]);
-                Assembling(K, R, dup, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementp, elementsp[i]); 
-
+                Assembling(K, R, dup, Ke, nodetoglobal, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
                 Assembling(R, Qe, nodetoglobal, nodetoelementu, elementsu[i]);
                 Assembling(R, Qe, nodetoglobal, nodetoelementp, elementsp[i]);  
             }

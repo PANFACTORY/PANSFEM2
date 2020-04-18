@@ -66,21 +66,25 @@ namespace PANSFEM2 {
     }
 
 
-    //********************Assembling global matrix and global vector from element matrix with 2 nodetoelement********************
+    //********************Assembling global matrix and global vector from element matrix with multi nodetoelements********************
     template<class T>
-    void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementi, const std::vector<int>& _elementi, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementj, const std::vector<int>& _elementj) {
-        for(int i = 0; i < _elementi.size(); i++) {
-            for(auto doui : _nodetoelementi[i]) {
-                if(_nodetoglobal[_elementi[i]][doui.first] != -1) {
-                    for(int j = 0; j < _elementj.size(); j++) {
-                        for(auto douj : _nodetoelementj[j]) {
-                            //----------Dirichlet condition NOT imposed----------
-                            if(_nodetoglobal[_elementj[j]][douj.first] != -1) {
-                                _K.set(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first], _K.get(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first]) + _Ke(doui.second, douj.second));
-                            }
-                            //----------Dirichlet condition imposed----------
-                            else {
-                                _F[_nodetoglobal[_elementi[i]][doui.first]] -= _Ke(doui.second, douj.second)*_u[_elementj[j]](douj.first);
+    void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::vector<std::pair<int, int> > > >& _nodetoelements, const std::vector<std::vector<int> >& _elements) {
+        for(int i = 0; i < _elements.size(); i++) {
+            for(int j = 0; j < _elements[i].size(); j++) {
+                for(auto douj : _nodetoelements[i][j]) {
+                    if(_nodetoglobal[_elements[i][j]][douj.first] != -1) {
+                        for(int k = 0; k < _elements.size(); k++) {
+                            for(int l = 0; l < _elements[k].size(); l++) {
+                                for(auto doul : _nodetoelements[k][l]) {
+                                    //----------Dirichlet condition NOT imposed----------
+                                    if(_nodetoglobal[_elements[k][l]][doul.first] != -1) {
+                                        _K.set(_nodetoglobal[_elements[i][j]][douj.first], _nodetoglobal[_elements[k][l]][doul.first], _K.get(_nodetoglobal[_elements[i][j]][douj.first], _nodetoglobal[_elements[k][l]][doul.first]) + _Ke(douj.second, doul.second));
+                                    }
+                                    //----------Dirichlet condition imposed----------
+                                    else {
+                                        _F[_nodetoglobal[_elements[i][j]][douj.first]] -= _Ke(douj.second, doul.second)*_u[_elements[k][l]](doul.first);
+                                    }
+                                }
                             }
                         }
                     }
@@ -101,26 +105,6 @@ namespace PANSFEM2 {
                             //----------Dirichlet condition NOT imposed----------
                             if(_nodetoglobal[_element[j]][douj.first] != -1) {
                                 _K.set(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first], _K.get(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first]) + _Ke(doui.second, douj.second));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    //********************Assembling global matrix from element matrix with 2 nodetoelement********************
-    template<class T>
-    void Assembling(LILCSR<T>& _K, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementi, const std::vector<int>& _elementi, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementj, const std::vector<int>& _elementj) {
-        for(int i = 0; i < _elementi.size(); i++) {
-            for(auto doui : _nodetoelementi[i]) {
-                if(_nodetoglobal[_elementi[i]][doui.first] != -1) {
-                    for(int j = 0; j < _elementj.size(); j++) {
-                        for(auto douj : _nodetoelementj[j]) {
-                            //----------Dirichlet condition NOT imposed----------
-                            if(_nodetoglobal[_elementj[j]][douj.first] != -1) {
-                                _K.set(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first], _K.get(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first]) + _Ke(doui.second, douj.second));
                             }
                         }
                     }

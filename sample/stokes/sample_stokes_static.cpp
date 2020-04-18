@@ -17,7 +17,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-	std::string model_path = "sample/stokes/model3/";
+	std::string model_path = "sample/stokes/model2/";
 	std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elementsu;
@@ -45,10 +45,7 @@ int main() {
         std::vector<std::vector<std::pair<int, int> > > nodetoelementp;
         Matrix<double> Ke;
         Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, 1.0);
-        Assembling(K, F, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementu, elementsu[i]);
-        Assembling(K, F, up, Ke, nodetoglobal, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i]);
-        Assembling(K, F, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementu, elementsu[i]);
-        Assembling(K, F, up, Ke, nodetoglobal, nodetoelementp, elementsp[i], nodetoelementp, elementsp[i]);
+        Assembling(K, F, up, Ke, nodetoglobal, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
     }
 
 	for(int i = 0; i < edgesu.size(); i++){

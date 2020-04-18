@@ -11,7 +11,7 @@
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
-#include "../../src/FEM/Equation/Geometric.h"
+#include "../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -53,11 +53,6 @@ int main() {
 			double ax = -(ge(1) - 0.5);
 			double ay = (ge(0) - 0.5);
 
-			Vector<double> Te = Vector<double>();
-			for(auto i : element){
-				Te = Te.Vstack(T[i]);
-			}
-
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 			Matrix<double> M;
 			Mass<double, ShapeFunction3Triangle, Gauss1Triangle>(M, nodetoelement, element, { 0 }, x);
@@ -69,6 +64,7 @@ int main() {
 			Diffusion<double, ShapeFunction3Triangle, Gauss1Triangle>(D, nodetoelement, element, { 0 }, x, k);
 			Matrix<double> AS;
 			AdvectionSUPG<double, ShapeFunction3Triangle, Gauss1Triangle>(AS, nodetoelement, element, { 0 }, x, ax, ay, k);
+			Vector<double> Te =ElementVector(T, nodetoelement, element);
 			Matrix<double> Ke = (M + MS)/dt + theta*(A + D + AS);
 			Vector<double> Fe = ((M + MS)/dt - (1.0 - theta)*(A + D + AS))*Te;
 			Assembling(K, F, T, Ke, Fe, nodetoglobal, nodetoelement, element);

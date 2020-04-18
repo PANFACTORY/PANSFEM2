@@ -11,6 +11,7 @@
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
+#include "../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -40,16 +41,11 @@ int main() {
 		
         for (auto element : elements) {
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
-
-			Vector<double> Te = Vector<double>();
-			for(auto i : element){
-				Te = Te.Vstack(T[i]);
-			}
-			
 			Matrix<double> Ke;
 			HeatTransfer<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, element, { 0 }, x, 1.0, 1.0);
 			Matrix<double> Ce;
 			HeatCapacity<double, ShapeFunction4Square, Gauss4Square>(Ce, nodetoelement, element, { 0 }, x, 1.0, 1.0, 1.0);
+			Vector<double> Te = ElementVector(T, nodetoelement, element);
 			Matrix<double> Ae = Ce/dt + Ke*theta;
 			Vector<double> be = (Ce/dt - Ke*(1.0 - theta))*Te; 
 			Assembling(K, F, T, Ae, nodetoglobal, nodetoelement, element);

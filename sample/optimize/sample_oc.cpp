@@ -13,6 +13,7 @@
 #include "../../src/Optimize/Solver/OC.h"
 #include "../../src/Optimize/Filter/Heaviside.h"
 #include "../../src/PrePost/Mesher/SquareMesh.h"
+#include "../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -42,11 +43,7 @@ int main() {
 	//----------Get cg of element----------
     std::vector<Vector<double> > cg = std::vector<Vector<double> >(elements.size());
     for(int i = 0; i < elements.size(); i++){
-        Vector<double> centeri = Vector<double>(2);
-        for(auto nodei : elements[i]){
-            centeri += x[nodei];
-        }
-        cg[i] = centeri/(double)elements[i].size();
+        cg[i] = CenterOfGravity(x, elements[i]);
     }
 
     //----------Get neighbor elements list and weight----------
@@ -145,10 +142,7 @@ int main() {
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
             PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, 1.0, 0.3, 1.0);
-			Vector<double> ue = Vector<double>();
-            for(int j = 0; j < elements[i].size(); j++){
-                ue = ue.Vstack(u[elements[i][j]]);                  //  Should MODIFY! : Assembling based on nodetoelement
-            }
+			Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             dfdrho[i] = -scale0*p*(- E0 + E1)*pow(rho[i], p - 1.0)*(ue*(Ke*ue));
         }
 

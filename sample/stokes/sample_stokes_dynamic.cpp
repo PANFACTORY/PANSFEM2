@@ -11,6 +11,7 @@
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
+#include "../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -49,20 +50,12 @@ int main() {
         for (int i = 0; i < elementsu.size(); i++) {
             std::vector<std::vector<std::pair<int, int> > > nodetoelementu;
             std::vector<std::vector<std::pair<int, int> > > nodetoelementp;
-            
-            Vector<double> upe = Vector<double>(2*elementsu[i].size() + elementsp[i].size());
-            for(int j = 0; j < elementsu[i].size(); j++){
-                upe(j) = up[elementsu[i][j]](0);
-                upe(j + elementsu[i].size()) = up[elementsu[i][j]](1);
-            }
-            for(int j = 0; j < elementsp[i].size(); j++){
-                upe(j + 2*elementsu[i].size()) = up[elementsp[i][j]](2);
-            }
 
             Matrix<double> Ke;
             Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, 1.0);
             Matrix<double> Me;
             StokesMass<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Me, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, 1.0);
+            Vector<double> upe = ElementVector(up, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
             Matrix<double> Ae = Me/dt + theta*Ke;
 			Vector<double> be = (Me/dt - (1.0 - theta)*Ke)*upe;
 

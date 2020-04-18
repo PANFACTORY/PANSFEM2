@@ -17,7 +17,7 @@
 
 
 namespace PANSFEM2 {
-    //********************Assembling global matrix********************
+    //********************Assembling global matrix and global vector from element matrix and element vector********************
     template<class T>
     void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, Vector<T>& _Fe, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
         for(int i = 0; i < _element.size(); i++) {
@@ -42,7 +42,7 @@ namespace PANSFEM2 {
     }
 
 
-    //********************Assembling global matrix********************
+    //********************Assembling global matrix and global vector from element matrix********************
     template<class T>
     void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
         for(int i = 0; i < _element.size(); i++) {
@@ -66,7 +66,7 @@ namespace PANSFEM2 {
     }
 
 
-    //********************Assembling global matrix********************
+    //********************Assembling global matrix and global vector from element matrix with 2 nodetoelement********************
     template<class T>
     void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementi, const std::vector<int>& _elementi, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementj, const std::vector<int>& _elementj) {
         for(int i = 0; i < _elementi.size(); i++) {
@@ -90,7 +90,7 @@ namespace PANSFEM2 {
     }
 
 
-    //********************Assembling global matrix********************
+    //********************Assembling global matrix from element matrix********************
     template<class T>
     void Assembling(LILCSR<T>& _K, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
         for(int i = 0; i < _element.size(); i++) {
@@ -110,9 +110,9 @@ namespace PANSFEM2 {
     }
 
 
-    //********************Assembling global matrix********************
+    //********************Assembling global matrix from element matrix with 2 nodetoelement********************
     template<class T>
-    void Assembling(LILCSR<T>& _K, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementi, const std::vector<int>& _elementi, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementj, const std::vector<int>& _elementj) {
+    void Assembling(LILCSR<T>& _K, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementi, const std::vector<int>& _elementi, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementj, const std::vector<int>& _elementj) {
         for(int i = 0; i < _elementi.size(); i++) {
             for(auto doui : _nodetoelementi[i]) {
                 if(_nodetoglobal[_elementi[i]][doui.first] != -1) {
@@ -130,13 +130,33 @@ namespace PANSFEM2 {
     }
 
 
-    //********************Assembling global vector********************
+    //********************Assembling global vector from element vector********************
     template<class T>
     void Assembling(std::vector<T>& _F, Vector<T>& _Fe, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
         for(int i = 0; i < _element.size(); i++) {
             for(auto doui : _nodetoelement[i]) {
                 if(_nodetoglobal[_element[i]][doui.first] != -1) {
                     _F[_nodetoglobal[_element[i]][doui.first]] += _Fe(doui.second);
+                }
+            }
+        }
+    }
+
+
+    //********************Apply Dirichlet condition influence to global vector********************
+    template<class T>
+    void Assembling(std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
+        for(int i = 0; i < _element.size(); i++) {
+            for(auto doui : _nodetoelement[i]) {
+                if(_nodetoglobal[_element[i]][doui.first] != -1) {
+                    for(int j = 0; j < _element.size(); j++) {
+                        for(auto douj : _nodetoelement[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_element[j]][douj.first] == -1) {
+                                _F[_nodetoglobal[_element[i]][doui.first]] -= _Ke(doui.second, douj.second)*_u[_element[j]](douj.first);
+                            }
+                        }
+                    }
                 }
             }
         }

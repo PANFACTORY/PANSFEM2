@@ -35,4 +35,29 @@ namespace PANSFEM2 {
 
 
     //********************Set Periodic boundary conditions********************
+    int SetPeriodic(std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::pair<int, int> >& _ufixed) {
+        for(auto nodes : _ufixed) {
+            for(auto& nodetoglobali : _nodetoglobal[nodes.second]) {
+                nodetoglobali = -1;
+            }
+        }
+
+        int KDEGREE = 0;
+        for(auto& node : _nodetoglobal) {
+            for(auto& dou : node) {
+                if(dou != -1) {
+                    dou = KDEGREE;
+                    KDEGREE++;
+                }
+            }
+        }
+
+        for(auto pairset : _ufixed) {
+            for(int i = 0; i < _nodetoglobal[pairset.second].size(); i++) {
+                _nodetoglobal[pairset.second][i] = _nodetoglobal[pairset.first][i];
+            }
+        }
+
+        return KDEGREE;
+    }
 }

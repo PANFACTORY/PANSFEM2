@@ -1,4 +1,5 @@
 #include <iostream>
+#include <numeric>
 #include "Vector.h"
 #include "Matrix.h"
 
@@ -27,6 +28,9 @@ int main(){
     Vector<double> A1 = { 2.0, -1.0, -3.0 };
 
     std::cout << VectorProduct(A0, A1) << std::endl;
+
+    std::vector<Vector<double> > vs = { { 1.0, 2.0 }, { 3.0, 4.0 } };
+    std::cout << std::inner_product(vs.begin(), vs.end(), vs.begin(), 0.0);
 
     return 0;
 }

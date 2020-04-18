@@ -4,13 +4,13 @@
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
 #include "../../src/PrePost/Import/ImportFromCSV.h"
-#include "../../src/FEM/Controller/Assembling2.h"
+#include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/FEM/Equation/PlaneStrain.h"
 #include "../../src/LinearAlgebra/Solvers/Lanczos.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
-#include "../../src/FEM/Controller/BoundaryCondition2.h"
+#include "../../src/FEM/Controller/BoundaryCondition.h"
 
 
 using namespace PANSFEM2;

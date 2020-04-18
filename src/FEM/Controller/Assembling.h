@@ -1,8 +1,8 @@
 //*****************************************************************************
 //Title		:src/FEM/Controller/Assembling.h
 //Author	:Tanabe Yuta
-//Date		:2019/10/04
-//Copyright	:(C)2019 TanabeYuta
+//Date		:2020/04/16
+//Copyright	:(C)2020 TanabeYuta
 //*****************************************************************************
 
 
@@ -17,88 +17,187 @@
 
 
 namespace PANSFEM2 {
-	//********************Assembling K Matrix from Ke Matrix********************
-	template<class T>
-	void Assembling(LILCSR<T>& _K, Matrix<T>& _Ke, const std::vector<int>& _element, const std::vector<int>& _field) {
-		int ei = 0;
-		for (auto ni : _element) {
-			for (int si = _field[ni]; si < _field[ni + 1]; si++) {
-				int ej = 0;
-				for (auto nj : _element) {
-					for (int sj = _field[nj]; sj < _field[nj + 1]; sj++) {
-						_K.set(si, sj, _K.get(si, sj) + _Ke(ei, ej));
-						ej++;
-					}
-				}
-				ei++;
-			}
-		}
-	}
+    //********************Assembling global matrix and global vector from element matrix and element vector********************
+    template<class T>
+    void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, Vector<T>& _Fe, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
+        for(int i = 0; i < _element.size(); i++) {
+            for(auto doui : _nodetoelement[i]) {
+                if(_nodetoglobal[_element[i]][doui.first] != -1) {
+                    for(int j = 0; j < _element.size(); j++) {
+                        for(auto douj : _nodetoelement[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_element[j]][douj.first] != -1) {
+                                _K.set(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first], _K.get(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first]) + _Ke(doui.second, douj.second));
+                            }
+                            //----------Dirichlet condition imposed----------
+                            else {
+                                _F[_nodetoglobal[_element[i]][doui.first]] -= _Ke(doui.second, douj.second)*_u[_element[j]](douj.first);
+                            }
+                        }
+                    }
+                    _F[_nodetoglobal[_element[i]][doui.first]] += _Fe(doui.second);
+                }
+            }
+        }
+    }
 
 
-	//********************Assembling F vector from Fe Vector********************
-	template<class T>
-	void Assembling(std::vector<T>& _F, Vector<T>& _Fe, const std::vector<int>& _element, const std::vector<int>& _field){
-		int ei = 0;
-		for (auto ni : _element) {
-			for (int si = _field[ni]; si < _field[ni + 1]; si++) {
-				_F[si] += _Fe(ei);
-				ei++;
-			}
-		}
-	}
+    //********************Assembling global matrix and global vector from element matrix********************
+    template<class T>
+    void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
+        for(int i = 0; i < _element.size(); i++) {
+            for(auto doui : _nodetoelement[i]) {
+                if(_nodetoglobal[_element[i]][doui.first] != -1) {
+                    for(int j = 0; j < _element.size(); j++) {
+                        for(auto douj : _nodetoelement[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_element[j]][douj.first] != -1) {
+                                _K.set(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first], _K.get(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first]) + _Ke(doui.second, douj.second));
+                            }
+                            //----------Dirichlet condition imposed----------
+                            else {
+                                _F[_nodetoglobal[_element[i]][doui.first]] -= _Ke(doui.second, douj.second)*_u[_element[j]](douj.first);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
-	//********************Assembling K & F from Ke & Fe********************
-	template<class T>
-	void Assembling(LILCSR<T>& _K, std::vector<T>& _F, Matrix<T>& _Ke, Vector<T>& _Fe, const std::vector<int>& _element, const std::vector<int>& _field) {
-		int ei = 0;
-		for (auto ni : _element) {
-			for (int si = _field[ni]; si < _field[ni + 1]; si++) {
-				int ej = 0;
-				for (auto nj : _element) {
-					for (int sj = _field[nj]; sj < _field[nj + 1]; sj++) {
-						_K.set(si, sj, _K.get(si, sj) + _Ke(ei, ej));
-						ej++;
-					}
-				}
-				_F[si] += _Fe(ei);
-				ei++;
-			}
-		}
-	}
+    //********************Assembling global matrix and global vector from element matrix with 2 nodetoelement********************
+    template<class T>
+    void Assembling(LILCSR<T>& _K, std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementi, const std::vector<int>& _elementi, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementj, const std::vector<int>& _elementj) {
+        for(int i = 0; i < _elementi.size(); i++) {
+            for(auto doui : _nodetoelementi[i]) {
+                if(_nodetoglobal[_elementi[i]][doui.first] != -1) {
+                    for(int j = 0; j < _elementj.size(); j++) {
+                        for(auto douj : _nodetoelementj[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_elementj[j]][douj.first] != -1) {
+                                _K.set(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first], _K.get(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first]) + _Ke(doui.second, douj.second));
+                            }
+                            //----------Dirichlet condition imposed----------
+                            else {
+                                _F[_nodetoglobal[_elementi[i]][doui.first]] -= _Ke(doui.second, douj.second)*_u[_elementj[j]](douj.first);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
-	//********************FieldResultToNodeVector********************
-	template<class T>
-	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<Vector<T> >& _values, const std::vector<int>& _field) {
-		assert(_values.size() == _field.size() - 1);
+    //********************Assembling global matrix from element matrix********************
+    template<class T>
+    void Assembling(LILCSR<T>& _K, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
+        for(int i = 0; i < _element.size(); i++) {
+            for(auto doui : _nodetoelement[i]) {
+                if(_nodetoglobal[_element[i]][doui.first] != -1) {
+                    for(int j = 0; j < _element.size(); j++) {
+                        for(auto douj : _nodetoelement[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_element[j]][douj.first] != -1) {
+                                _K.set(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first], _K.get(_nodetoglobal[_element[i]][doui.first], _nodetoglobal[_element[j]][douj.first]) + _Ke(doui.second, douj.second));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-		int resultindex = 0;
-		for (int i = 0; i < _field.size() - 1; i++) {
-			std::vector<T> value;
-			for (int k = _field[i]; k < _field[i + 1]; k++) {
-				value.push_back(_result[resultindex]);
-				resultindex++;
-			}
-			_values[i] = Vector<T>(value);
-		}
-	}
+
+    //********************Assembling global matrix from element matrix with 2 nodetoelement********************
+    template<class T>
+    void Assembling(LILCSR<T>& _K, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementi, const std::vector<int>& _elementi, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelementj, const std::vector<int>& _elementj) {
+        for(int i = 0; i < _elementi.size(); i++) {
+            for(auto doui : _nodetoelementi[i]) {
+                if(_nodetoglobal[_elementi[i]][doui.first] != -1) {
+                    for(int j = 0; j < _elementj.size(); j++) {
+                        for(auto douj : _nodetoelementj[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_elementj[j]][douj.first] != -1) {
+                                _K.set(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first], _K.get(_nodetoglobal[_elementi[i]][doui.first], _nodetoglobal[_elementj[j]][douj.first]) + _Ke(doui.second, douj.second));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
-	//********************FieldResultToNodeScaler********************
-	template<class T>
-	void FieldResultToNodeValue(const std::vector<T>& _result, std::vector<T>& _values, const std::vector<int>& _field) {
-		assert(_values.size() == _field.size() - 1);
-		
-		int resultindex = 0;
-		for (int i = 0; i < _field.size() - 1; i++) {
-			T value = T();
-			for (int k = _field[i]; k < _field[i + 1]; k++) {
-				value = _result[resultindex];
-				resultindex++;
-			}
-			_values[i] = value;
-		}
-	}
+    //********************Assembling global vector from element vector********************
+    template<class T>
+    void Assembling(std::vector<T>& _F, Vector<T>& _Fe, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
+        for(int i = 0; i < _element.size(); i++) {
+            for(auto doui : _nodetoelement[i]) {
+                if(_nodetoglobal[_element[i]][doui.first] != -1) {
+                    _F[_nodetoglobal[_element[i]][doui.first]] += _Fe(doui.second);
+                }
+            }
+        }
+    }
+
+
+    //********************Apply Dirichlet condition influence to global vector********************
+    template<class T>
+    void Assembling(std::vector<T>& _F, std::vector<Vector<T> >& _u, Matrix<T>& _Ke, const std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element) {
+        for(int i = 0; i < _element.size(); i++) {
+            for(auto doui : _nodetoelement[i]) {
+                if(_nodetoglobal[_element[i]][doui.first] != -1) {
+                    for(int j = 0; j < _element.size(); j++) {
+                        for(auto douj : _nodetoelement[j]) {
+                            //----------Dirichlet condition NOT imposed----------
+                            if(_nodetoglobal[_element[j]][douj.first] == -1) {
+                                _F[_nodetoglobal[_element[i]][doui.first]] -= _Ke(doui.second, douj.second)*_u[_element[j]](douj.first);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    //********************Assembling Neumann boundary conditions********************
+    template<class T>
+    void Assembling(std::vector<T>& _F, const std::vector<std::pair<std::pair<int, int>, T> >& _f, const std::vector<std::vector<int> >& _nodetoglobal) {
+        for(auto doui : _f) {
+            if(_nodetoglobal[doui.first.first][doui.first.second] != -1) {
+                _F[_nodetoglobal[doui.first.first][doui.first.second]] += doui.second;
+            }
+        }
+    }
+
+
+    //********************Disassembling global result********************
+    template<class T>
+    void Disassembling(std::vector<Vector<T> >& _u, const std::vector<T>& _result, const std::vector<std::vector<int> >& _nodetoglobal) {
+        for(int i = 0; i < _nodetoglobal.size(); i++) {
+            for(int j = 0; j < _nodetoglobal[i].size(); j++) {
+                if(_nodetoglobal[i][j] != -1) {
+                    _u[i](j) = _result[_nodetoglobal[i][j]]; 
+                }
+            }
+        }
+    }
+
+
+    //********************Renumbering********************
+    int Renumbering(std::vector<std::vector<int> >& _nodetoglobal) {
+        int KDEGREE = 0;
+        for(auto& node : _nodetoglobal) {
+            for(auto& dou : node) {
+                if(dou != -1) {
+                    dou = KDEGREE;
+                    KDEGREE++;
+                }
+            }
+        }
+        return KDEGREE;
+    }
 }

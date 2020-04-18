@@ -1,8 +1,8 @@
 //*****************************************************************************
-//Title		:PANSFEM2/FEM/Controller/BoundaryCondition.h
-//Author	:Tanabe Yuta
-//Date		:2019/10/02
-//Copyright	:(C)2019 TanabeYuta
+//  Title		:   PANSFEM2/FEM/Controller/BoundaryCondition.h
+//  Author	    :   Tanabe Yuta
+//  Date		:   2020/04/16
+//  Copyright	:   (C)2020 TanabeYuta
 //*****************************************************************************
 
 
@@ -15,78 +15,49 @@
 
 
 namespace PANSFEM2 {
-	//******************************Set Dirichlet boundary conditions******************************
-	template<class T>
-	void SetDirichlet(LILCSR<T>& _K, std::vector<T>& _F, std::vector<int>& _isufixed, std::vector<T>& _u, T _alpha) {
-		assert(_isufixed.size() == _u.size());
-
-		for (int i = 0; i < _isufixed.size(); i++) {
-			T Kii = _K.get(_isufixed[i], _isufixed[i]);
-			if(fabs(Kii) < 1.0e-10){
-				_F[_isufixed[i]] = _alpha*_u[i];
-				_K.set(_isufixed[i], _isufixed[i], _alpha);
-			} else{
-				_F[_isufixed[i]] = _alpha*Kii*_u[i];
-				_K.set(_isufixed[i], _isufixed[i], _alpha*Kii);
-			}
-		}
-	}
+    //********************Set Dirichlet boundary conditions********************
+    template<class T>
+    void SetDirichlet(std::vector<Vector<T> >& _u, std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::pair<std::pair<int, int>, T> >& _ufixed) {
+        for(auto ufixed : _ufixed) {
+            _u[ufixed.first.first](ufixed.first.second) = ufixed.second;
+            _nodetoglobal[ufixed.first.first][ufixed.first.second] = -1;
+        }
+    }
 
 
-	//******************************Set Dirichlet boundary conditions******************************
-	template<class T>
-	void SetDirichlet(LILCSR<T>& _K, std::vector<int>& _isufixed, std::vector<T>& _u, T _alpha) {
-		assert(_isufixed.size() == _u.size());
-
-		for (int i = 0; i < _isufixed.size(); i++) {
-			_K.set(_isufixed[i], _isufixed[i], _alpha*_K.get(_isufixed[i], _isufixed[i]));
-		}
-	}
+    //********************Set Dirichlet boundary conditions********************
+    template<class T>
+    void SetDirichlet(std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::pair<std::pair<int, int>, T> >& _ufixed) {
+        for(auto ufixed : _ufixed) {
+            _nodetoglobal[ufixed.first.first][ufixed.first.second] = -1;
+        }
+    }
 
 
-	//******************************Set Neumann boundary conditions******************************
-	template<class T>
-	void SetNeumann(std::vector<T>& _F, std::vector<int>& _isqfixed, std::vector<T>& _q) {
-		assert(_isqfixed.size() == _q.size());
+    //********************Set Periodic boundary conditions********************
+    int SetPeriodic(std::vector<std::vector<int> >& _nodetoglobal, const std::vector<std::pair<int, int> >& _ufixed) {
+        for(auto nodes : _ufixed) {
+            for(auto& nodetoglobali : _nodetoglobal[nodes.second]) {
+                nodetoglobali = -1;
+            }
+        }
 
-		for (int i = 0; i < _isqfixed.size(); i++) {
-			_F[_isqfixed[i]] += _q[i];
-		}
-	}
+        int KDEGREE = 0;
+        for(auto& node : _nodetoglobal) {
+            for(auto& dou : node) {
+                if(dou != -1) {
+                    dou = KDEGREE;
+                    KDEGREE++;
+                }
+            }
+        }
 
+        for(auto pairset : _ufixed) {
+            for(int i = 0; i < _nodetoglobal[pairset.second].size(); i++) {
+                _nodetoglobal[pairset.second][i] = _nodetoglobal[pairset.first][i];
+            }
+        }
 
-	//******************************Set Periodic boundary conditions******************************
-	template<class T>
-	void SetPeriodic(LILCSR<T>& _K, std::vector<int>& _ismasterfixed, std::vector<int>& _isslavefixed, T _alpha) {
-		assert(_ismasterfixed.size() == _isslavefixed.size());
-
-		for(int i = 0; i < _ismasterfixed.size(); i++) {
-			_K.set(_ismasterfixed[i], _ismasterfixed[i], _K.get(_ismasterfixed[i], _ismasterfixed[i]) + _alpha);
-			_K.set(_ismasterfixed[i], _isslavefixed[i], -_alpha);
-			_K.set(_isslavefixed[i], _ismasterfixed[i], -_alpha);
-			_K.set(_isslavefixed[i], _isslavefixed[i], _K.get(_isslavefixed[i], _isslavefixed[i]) + _alpha);
-		}
-	}
-
-
-	//******************************Set Initial boundary conditions*******************************
-	template<class T>
-	void SetInitial(std::vector<Vector<T> >& _values, const std::vector<int>& _field, const std::vector<int>& _isufixed, const std::vector<T>& _ufixed) {
-		assert(_isufixed.size() == _ufixed.size() && _values.size() == _field.size() - 1);
-
-		std::vector<T> result = std::vector<T>(_field[_field.size() - 1], T());
-		for(int i = 0; i < _isufixed.size(); i++) {
-			result[_isufixed[i]] += _ufixed[i];
-		}
-
-		int resultindex = 0;
-		for (int i = 0; i < _field.size() - 1; i++) {
-			std::vector<T> value;
-			for (int k = _field[i]; k < _field[i + 1]; k++) {
-				value.push_back(result[resultindex]);
-				resultindex++;
-			}
-			_values[i] = Vector<T>(value);
-		}
-	}
+        return KDEGREE;
+    }
 }

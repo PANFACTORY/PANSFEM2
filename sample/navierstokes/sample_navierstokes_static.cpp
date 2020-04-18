@@ -8,8 +8,8 @@
 #include "../../src/FEM/Equation/NavierStokes.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
-#include "../../src/FEM/Controller/BoundaryCondition2.h"
-#include "../../src/FEM/Controller/Assembling2.h"
+#include "../../src/FEM/Controller/BoundaryCondition.h"
+#include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
 

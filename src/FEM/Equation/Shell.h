@@ -1,8 +1,8 @@
 //*****************************************************************************
-//Title		:src/FEM/Equation/Shell.h
-//Author	:Tanabe Yuta
-//Date		:2020/02/17
-//Copyright	:(C)2020 TanabeYuta
+//  Title		:   src/FEM/Equation/Shell.h
+//  Author	    :   Tanabe Yuta
+//  Date		:   2020/02/17
+//  Copyright	:   (C)2020 TanabeYuta
 //*****************************************************************************
 
 

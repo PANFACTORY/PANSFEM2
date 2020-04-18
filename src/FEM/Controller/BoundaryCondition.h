@@ -60,4 +60,14 @@ namespace PANSFEM2 {
 
         return KDEGREE;
     }
+
+
+    //********************Remove all boundary conditions********************
+    void RemoveBoundaryConditions(std::vector<std::vector<int> >& _nodetoglobal) {
+        for(auto& nodetoglobali : _nodetoglobal) {
+            for(auto& doui : nodetoglobali) {
+                doui = 0;
+            }
+        }
+    }
 }

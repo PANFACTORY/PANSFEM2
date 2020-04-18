@@ -21,7 +21,7 @@ int main() {
 	std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elements;
-	ImportElementsFromCSV(elements, model_path + "ElementT.csv");
+	ImportElementsFromCSV(elements, model_path + "Element.csv");
     std::vector<std::pair<std::pair<int, int>, double> > ufixed;
 	ImportDirichletFromCSV(ufixed, model_path + "Dirichlet.csv");
 

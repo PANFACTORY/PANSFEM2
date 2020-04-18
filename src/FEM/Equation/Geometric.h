@@ -1,8 +1,8 @@
 //*****************************************************************************
-//Title		:src/FEM/Equation/Geometric.h
-//Author	:Tanabe Yuta
-//Date		:2020/04/10
-//Copyright	:(C)2020 TanabeYuta
+//  Title		:   src/FEM/Equation/Geometric.h
+//  Author	    :   Tanabe Yuta
+//  Date		:   2020/04/10
+//  Copyright	:   (C)2020 TanabeYuta
 //*****************************************************************************
 
 

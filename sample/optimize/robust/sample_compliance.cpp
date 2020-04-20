@@ -2,15 +2,15 @@
 #include <vector>
 
 
-#include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/FEM/Equation/PlaneStrain.h"
-#include "../../src/FEM/Controller/ShapeFunction.h"
-#include "../../src/FEM/Controller/GaussIntegration.h"
-#include "../../src/FEM/Controller/BoundaryCondition.h"
-#include "../../src/FEM/Controller/Assembling.h"
-#include "../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../src/PrePost/Mesher/SquareMesh.h"
-#include "../../src/FEM/Equation/General.h"
+#include "../../../src/LinearAlgebra/Models/Vector.h"
+#include "../../../src/FEM/Equation/PlaneStrain.h"
+#include "../../../src/FEM/Controller/ShapeFunction.h"
+#include "../../../src/FEM/Controller/GaussIntegration.h"
+#include "../../../src/FEM/Controller/BoundaryCondition.h"
+#include "../../../src/FEM/Controller/Assembling.h"
+#include "../../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../../src/PrePost/Mesher/SquareMesh.h"
+#include "../../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;

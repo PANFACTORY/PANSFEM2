@@ -2,18 +2,18 @@
 #include <vector>
 
 
-#include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/FEM/Equation/PlaneStrain.h"
-#include "../../src/FEM/Controller/ShapeFunction.h"
-#include "../../src/FEM/Controller/GaussIntegration.h"
-#include "../../src/FEM/Controller/BoundaryCondition.h"
-#include "../../src/FEM/Controller/Assembling.h"
-#include "../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../src/PrePost/Export/ExportToVTK.h"
-#include "../../src/Optimize/Solver/OC.h"
-#include "../../src/Optimize/Filter/Heaviside.h"
-#include "../../src/PrePost/Mesher/SquareMesh.h"
-#include "../../src/FEM/Equation/General.h"
+#include "../../../src/LinearAlgebra/Models/Vector.h"
+#include "../../../src/FEM/Equation/PlaneStrain.h"
+#include "../../../src/FEM/Controller/ShapeFunction.h"
+#include "../../../src/FEM/Controller/GaussIntegration.h"
+#include "../../../src/FEM/Controller/BoundaryCondition.h"
+#include "../../../src/FEM/Controller/Assembling.h"
+#include "../../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../../src/PrePost/Export/ExportToVTK.h"
+#include "../../../src/Optimize/Solver/OC.h"
+#include "../../../src/Optimize/Filter/Heaviside.h"
+#include "../../../src/PrePost/Mesher/SquareMesh.h"
+#include "../../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -238,7 +238,7 @@ int main() {
         //*************************************************
         //  Post Process
         //*************************************************
-		std::ofstream fout("sample/optimize/result" + std::to_string(k) + ".vtk");
+		std::ofstream fout("sample/optimize/robust/result" + std::to_string(k) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(x, fout);
 		AddElementToVTK(elements, fout);

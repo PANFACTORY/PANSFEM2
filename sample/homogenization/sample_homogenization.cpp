@@ -19,7 +19,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-	std::string model_path = "sample/homogenization/model1/";
+	std::string model_path = "sample/homogenization/model2/";
 	std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elements;
@@ -39,10 +39,10 @@ int main() {
 	std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);
 	
     for (int i = 0; i < elements.size(); i++) {
-		double E = 10.0;
-		double Poisson = 0.3;
+		double E = 68.894;//10.0;
+		double Poisson = 0.33;
 		if(i%2 == 1) {
-			E *= 10.0;
+			//E *= 10.0;
 		}
 
         std::vector<std::vector<std::pair<int, int> > > nodetoelement;
@@ -82,10 +82,10 @@ int main() {
 	Matrix<double> I = Matrix<double>(3, 3);
 	double volume = 0.0;
 	for (int i = 0; i < elements.size(); i++) {
-		double E = 10.0;
-		double Poisson = 0.3;
+		double E = 68.894;//10.0;
+		double Poisson = 0.33;
 		if(i%2 == 1) {
-			E *= 10.0;
+			//E *= 10.0;
 		}
 		CH += HomogenizePlaneStrainConstitutive<double, ShapeFunction4Square, Gauss4Square>(x, elements[i], chi0, chi1, chi2, E, Poisson, 1.0);
 		I += HomogenizePlaneStrainCheck<double, ShapeFunction4Square, Gauss4Square>(x, elements[i], chi0, chi1, chi2, 1.0);

@@ -59,7 +59,7 @@ namespace PANSFEM2 {
 
     //********************Make homogenized elemental Constitutive********************
     template<class T, template<class>class SF, template<class>class IC>
-	Matrix<T> HomogenizePlaneStrainCheck(std::vector<Vector<T> >& _x, std::vector<int>& _element, std::vector<Vector<T> >& _chi0, std::vector<Vector<T> >& _chi1, std::vector<Vector<T> >& _chi2, T _t) {
+	Matrix<T> HomogenizePlaneStrainCheck(std::vector<Vector<T> >& _x, std::vector<int>& _element, std::vector<Vector<T> >& _chi0, std::vector<Vector<T> >& _chi1, std::vector<Vector<T> >& _chi2, T _E, T _V, T _t) {
 		Matrix<T> C = Matrix<T>(3, 3);
 
 		Matrix<T> X = Matrix<T>(_element.size(), 2);
@@ -72,6 +72,12 @@ namespace PANSFEM2 {
             CHI(2*i, 0) = _chi0[_element[i]](0); 		CHI(2*i, 1) = _chi1[_element[i]](0);		CHI(2*i, 2) = _chi2[_element[i]](0);
             CHI(2*i + 1, 0) = _chi0[_element[i]](1);	CHI(2*i + 1, 1) = _chi1[_element[i]](1);	CHI(2*i + 1, 2) = _chi2[_element[i]](1);
 		}
+
+		Matrix<T> D = Matrix<T>(3, 3);
+		D(0, 0) = 1.0 - _V;	D(0, 1) = _V;		D(0, 2) = T();
+		D(1, 0) = D(0, 1);	D(1, 1) = 1.0 - _V;	D(1, 2) = T();
+		D(2, 0) = D(0, 2);	D(2, 1) = D(1, 2);	D(2, 2) = 0.5*(1.0 - 2.0*_V);
+		D *= _E/((1.0 - 2.0*_V)*(1.0 + _V));
 
 		Matrix<T> I = Identity<T>(3);
 
@@ -88,7 +94,7 @@ namespace PANSFEM2 {
 				B(2, 2*n) = dNdX(1, n);	B(2, 2*n + 1) = dNdX(0, n);	
 			}
 
-			C += (/*I + */B*CHI)*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			C += D*(I - B*CHI)*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 
 		return C;

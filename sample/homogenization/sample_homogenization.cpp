@@ -39,7 +39,7 @@ int main() {
 	std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);
 	
     for (int i = 0; i < elements.size(); i++) {
-		double E = 68.689;//10.0;
+		double E = 68.894;//10.0;
 		double Poisson = 0.33;
 		if(i%2 == 1) {
 			//E *= 10.0;
@@ -80,9 +80,14 @@ int main() {
 
 	Matrix<double> CH = Matrix<double>(3, 3);
 	double volume = 0.0;
-	for (auto element : elements) {
-		CH += HomogenizePlaneStrainCheck<double, ShapeFunction4Square, Gauss4Square>(x, element, chi0, chi1, chi2, 1.0);
-		volume += Area<double, ShapeFunction4Square, Gauss4Square>(x, element);
+	for (int i = 0; i < elements.size(); i++) {
+		double E = 68.894;//10.0;
+		double Poisson = 0.33;
+		if(i%2 == 1) {
+			//E *= 10.0;
+		}
+		CH += HomogenizePlaneStrainCheck<double, ShapeFunction4Square, Gauss4Square>(x, elements[i], chi0, chi1, chi2, E, Poisson, 1.0);
+		volume += Area<double, ShapeFunction4Square, Gauss4Square>(x, elements[i]);
 	}
 	std::cout << CH/volume << std::endl;;
 

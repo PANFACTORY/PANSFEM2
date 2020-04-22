@@ -36,8 +36,8 @@ int main() {
     std::vector<Vector<double> > up = std::vector<Vector<double> >(x.size(), Vector<double>(3));
 	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(3, 0));
 	
-    double rho = 1.2;
-    double mu = 0.02;
+    double rho = 1.0;
+    double mu = 0.01;
     int kmax = 10;
 	std::vector<std::pair<std::pair<int, int>, double> > ufixed0 = ufixed;
     for(auto& ufixedi : ufixed0) {
@@ -88,6 +88,7 @@ int main() {
             }
   
             double normR = std::inner_product(R.begin(), R.end(), R.begin(), 0.0);
+            std::cout << "\t\tl = " << l << "\tR Norm = " << normR << std::endl;
             if (normR < 1.0e-10) {
                 std::cout << "\tConvergence at l = " << l << "\tR Norm = " << normR << std::endl;
                 break;

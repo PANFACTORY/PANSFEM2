@@ -68,12 +68,12 @@ int main() {
 
     HeavisideFilter<double> filter = HeavisideFilter<double>(elements.size(), neighbors, w);
 	std::vector<double> s = std::vector<double>(elements.size(), weightlimit);
-	OC<double> optimizer = OC<double>(s.size(), 1.0, 0.0, 1.0e6, 1.0e-4, 0.15, std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
+	OC<double> optimizer = OC<double>(s.size(), 1.0, 0.0, 1.0e6, 1.0e-4, 0.01, std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
 		
 	//----------Optimize loop----------
 	for(int k = 0; k < 200; k++){
 		std::cout << "\nk = " << k << "\t";
-        if(k%80 == 0){
+        if(k%100 == 0){
             beta*=2.0;
             filter.UpdateBeta(beta);
         }

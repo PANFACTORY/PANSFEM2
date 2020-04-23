@@ -12,6 +12,7 @@
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
+#include "../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -37,27 +38,36 @@ int main() {
 	std::vector<double> F1 = std::vector<double>(KDEGREE, 0.0);
 	std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);
 	
-    for (auto element : elements) {
+    for (int i = 0; i < elements.size(); i++) {
+		double E = 68.894;//10.0;
+		double Poisson = 0.33;
+		if(i%2 == 1) {
+			//E *= 10.0;
+		}
+
         std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Matrix<double> Ke;
-		PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, element, { 0, 1 }, x, 68.894, 0.33, 1.0);
-		Assembling(K, Ke, nodetoglobal, nodetoelement, element);
-		Assembling(F0, chi0, Ke, nodetoglobal, nodetoelement, element);
-		Assembling(F1, chi1, Ke, nodetoglobal, nodetoelement, element);
-		Assembling(F2, chi2, Ke, nodetoglobal, nodetoelement, element);
+		PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, E, Poisson, 1.0);
+		Assembling(K, Ke, nodetoglobal, nodetoelement, elements[i]);
+		Assembling(F0, chi0, Ke, nodetoglobal, nodetoelement, elements[i]);
+		Assembling(F1, chi1, Ke, nodetoglobal, nodetoelement, elements[i]);
+		Assembling(F2, chi2, Ke, nodetoglobal, nodetoelement, elements[i]);
 
 		Matrix<double> Fes;
-		HomogenizePlaneStrainBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodetoelement, element, { 0, 1 }, x, 68.894, 0.33, 1.0);
+		HomogenizePlaneStrainBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodetoelement, elements[i], { 0, 1 }, x, E, Poisson, 1.0);
 		Vector<double> Fe0 = Fes.Block(0, 0, Ke.ROW(), 1);
-		Assembling(F0, Fe0, nodetoglobal, nodetoelement, element);
+		Assembling(F0, Fe0, nodetoglobal, nodetoelement, elements[i]);
 		Vector<double> Fe1 = Fes.Block(0, 1, Ke.ROW(), 1);
-		Assembling(F1, Fe1, nodetoglobal, nodetoelement, element);
+		Assembling(F1, Fe1, nodetoglobal, nodetoelement, elements[i]);
 		Vector<double> Fe2 = Fes.Block(0, 2, Ke.ROW(), 1);
-		Assembling(F2, Fe2, nodetoglobal, nodetoelement, element);
+		Assembling(F2, Fe2, nodetoglobal, nodetoelement, elements[i]);
 	}
 
-	for(int i = 0; i < KDEGREE; i++) {
-		K.set(i, i, K.get(i, i) + 1.0e-6);
+	for (auto element : elements) {
+        std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+		Matrix<double> Ke;
+		WeakSpring<double>(Ke, nodetoelement, element, { 0, 1 }, x, 1.0e-9);
+		Assembling(K, Ke, nodetoglobal, nodetoelement, element);
 	}
 
 	CSR<double> Kmod = CSR<double>(K);
@@ -69,10 +79,19 @@ int main() {
     Disassembling(chi2, result2, nodetoglobal);
 
 	Matrix<double> CH = Matrix<double>(3, 3);
-	for (auto element : elements) {
-		CH += HomogenizePlaneStrainConstitutive<double, ShapeFunction4Square, Gauss4Square>(x, element, chi0, chi1, chi2, 68.894, 0.33, 1.0);
+	Matrix<double> I = Matrix<double>(3, 3);
+	double volume = 0.0;
+	for (int i = 0; i < elements.size(); i++) {
+		double E = 68.894;//10.0;
+		double Poisson = 0.33;
+		if(i%2 == 1) {
+			//E *= 10.0;
+		}
+		CH += HomogenizePlaneStrainConstitutive<double, ShapeFunction4Square, Gauss4Square>(x, elements[i], chi0, chi1, chi2, E, Poisson, 1.0);
+		I += HomogenizePlaneStrainCheck<double, ShapeFunction4Square, Gauss4Square>(x, elements[i], chi0, chi1, chi2, 1.0);
+		volume += Area<double, ShapeFunction4Square, Gauss4Square>(x, elements[i]);
 	}
-	std::cout << CH;
+	std::cout << I/volume << std::endl << CH/volume << std::endl;;
 
 	std::ofstream fout(model_path + "result.vtk");
 	MakeHeadderToVTK(fout);

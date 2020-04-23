@@ -92,4 +92,20 @@ namespace PANSFEM2 {
         
         return elementvector;
     }
+
+
+    //**********Weak spring to prevent rigid body mode**********
+    template<class T>
+	void WeakSpring(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _alpha) {
+		int n = _doulist.size();
+
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(n));
+		for(int i = 0; i < _element.size(); i++) {
+            for(int j = 0; j < n; j++) {
+                _nodetoelement[i][j] = std::make_pair(_doulist[j], n*i);
+            }
+		}
+
+		_Ke = _alpha*Identity<T>(n*_element.size());
+	}
 }

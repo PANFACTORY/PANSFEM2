@@ -90,17 +90,10 @@ public:
 		bool active;											//is in boundary
 		bool check;												//has already checked
 
-		void setnode(int _node0, int _node1, int _node2);					//set node id
-		void setneighbor(int _neighbor0, int _neighbor1, int _neighbor2);	//set neighbor id
-		void setside(bool _side0, bool _side1, bool _side2);				//set edge is or not on boundary
-		void copy(const Element<T>& _originalelement);						//copy element
 		void getangle(std::vector<Node<T> >& _node);						//get angle
 
 		int inouton(int _nodenum, std::vector<Node<T> >& _nodes);			//get location of node
 		int oppositenode(int _elementname);									//get id of opposite node 
-
-		T space(std::vector<Node<T> >& _node);								//get space of element
-		int nodeorder(int _nodenum);										//get node id in element 
 private: 
 	};
 
@@ -140,39 +133,6 @@ private:
 
 		this->active = true;
 		this->check = false;
-	}
-
-
-	template<class T>
-	void Element<T>::setnode(int _node0, int _node1, int _node2) {
-		this->nodes[0] = _node0;
-		this->nodes[1] = _node1;
-		this->nodes[2] = _node2;
-	}
-
-
-	template<class T>
-	void Element<T>::setneighbor(int _neighbor0, int _neighbor1, int _neighbor2) {
-		this->neighbors[0] = _neighbor0;
-		this->neighbors[1] = _neighbor1;
-		this->neighbors[2] = _neighbor2;
-	}
-
-
-	template<class T>
-	void Element<T>::setside(bool _side0, bool _side1, bool _side2) {
-		this->sides[0] = _side0;
-		this->sides[1] = _side1;
-		this->sides[2] = _side2;
-	}
-
-
-	template<class T>
-	void Element<T>::copy(const Element<T>& _originalelement) {
-		this->nodes = _originalelement.nodes;
-		this->neighbors = _originalelement.neighbors;
-		this->sides = _originalelement.sides;
-		this->angles = _originalelement.angles;
 	}
 
 
@@ -219,17 +179,6 @@ private:
 
 
 	template<class T>
-	int Element<T>::nodeorder(int _nodenum) {
-		for (int i = 0; i < 3; i++) {
-			if (this->nodes[i] == _nodenum) {
-				return i;
-			}
-		}
-		return -1;
-	}
-
-
-	template<class T>
 	int Element<T>::oppositenode(int _elementname) {
 		for (int i = 0; i < 3; i++) {
 			if (this->neighbors[i] == _elementname) {
@@ -245,12 +194,6 @@ private:
 		for (int i = 0; i < 3; i++) {
 			this->angles[i] = 180.0*acos(_nodes[this->nodes[i]].innpro(_nodes[this->nodes[(i + 1) % 3]], _nodes[this->nodes[(i + 2) % 3]]) / (_nodes[this->nodes[i]].distance(_nodes[this->nodes[(i + 1) % 3]]) * _nodes[this->nodes[i]].distance(_nodes[this->nodes[(i + 2) % 3]]))) / M_PI;
 		}
-	}
-
-
-	template<class T>
-	T Element<T>::space(std::vector<Node<T> >& _nodes) {
-		return 0.5*_nodes[this->nodes[0]].vecpro(_nodes[this->nodes[1]], _nodes[this->nodes[2]]);
 	}
 
 
@@ -275,6 +218,7 @@ private:
 		void deletesupertriangle();
 		void deleteelement();
 		void sortelement();
+		void sortnode();
 		void getinternalelement(T _maxside);
 
 		void getelementin(int _nowtri, int _nodenump1, int _nodenum, int _nodenumm1);
@@ -313,8 +257,10 @@ private:
 		this->deletesupertriangle();
 		this->deleteelement();
 
-		//----------Sort Elements----------
+		//----------Sort needless Elements and Nodes----------
 		this->sortelement();
+		this->sortnode();
+
 
 		//----------subdivide----------
 		if (_maxsize > 0) {
@@ -485,6 +431,32 @@ private:
 
 
 	template<class T>
+	void Delaunay<T>::sortnode() {
+		//----------Search needless nodes and renumbering elements nodes----------
+		for(int i = this->nodes.size() - 1; i >= 0; i--) {
+			if(!this->nodes[i].isset) {
+				for(auto& element : this->elements) {
+					for(auto& nodej : element.nodes) {
+						if(nodej > i) {
+							--nodej;
+						}
+					}
+				}
+			}
+		}
+
+		//----------Renumbring nodes----------
+		for (auto node = this->nodes.begin(); node != this->nodes.end();) {
+			if (!(*node).isset) {
+				node = this->nodes.erase(node);
+			} else {
+				++node;
+			}
+		}
+	}
+
+
+	template<class T>
 	void Delaunay<T>::getelementin(int _nowtri, int _nodenump1, int _nodenum, int _nodenumm1) {
 		std::vector<int> stack;
 		std::array<Element<T>, 3> tmpelement;
@@ -495,12 +467,12 @@ private:
 				tmpelement[(i+1)%3].sides[1] = true;
 				tmpelement[(i+2)%3].sides[2] = true;
 			}
-			tmpelement[i].setnode(_nodenum, this->elements[_nowtri].nodes[(i+1)%3], this->elements[_nowtri].nodes[(i+2)%3]);
+			tmpelement[i].nodes = { _nodenum, this->elements[_nowtri].nodes[(i+1)%3], this->elements[_nowtri].nodes[(i+2)%3] };
 			tmpelement[i].getangle(this->nodes);
 		}
-		tmpelement[0].setneighbor(this->elements[_nowtri].neighbors[0], this->elements.size(), this->elements.size() + 1);
-		tmpelement[1].setneighbor(this->elements[_nowtri].neighbors[1], this->elements.size() + 1, _nowtri);
-		tmpelement[2].setneighbor(this->elements[_nowtri].neighbors[2], _nowtri, this->elements.size());
+		tmpelement[0].neighbors = { this->elements[_nowtri].neighbors[0], this->elements.size(), this->elements.size() + 1 };
+		tmpelement[1].neighbors = { this->elements[_nowtri].neighbors[1], this->elements.size() + 1, _nowtri };
+		tmpelement[2].neighbors = { this->elements[_nowtri].neighbors[2], _nowtri, this->elements.size() };
 
 		for (int k = 0; k < 2; k++) {
 			int neighbor = this->elements[_nowtri].neighbors[1 + k];
@@ -513,7 +485,7 @@ private:
 		stack.push_back(this->elements.size());
 		stack.push_back(this->elements.size() + 1);
 
-		this->elements[_nowtri].copy(tmpelement[0]);
+		this->elements[_nowtri] = tmpelement[0];
 		this->elements.push_back(tmpelement[1]);
 		this->elements.push_back(tmpelement[2]);
 
@@ -532,20 +504,20 @@ private:
 			int neinode = this->elements[neitri].oppositenode(_nowtri);
 			std::array<Element<T>, 4> tmptri;			//0:nowtri	1:neitri
 
-			tmptri[0].setnode(_nodenum, this->elements[_nowtri].nodes[nownode], this->elements[_nowtri].nodes[(nownode + 1)%3]);
-			tmptri[0].setneighbor(this->elements[_nowtri].neighbors[(nownode + 2)%3], neitri, this->elements.size());
-			tmptri[0].setside(this->elements[_nowtri].sides[(nownode + 2)%3], false, false);
+			tmptri[0].nodes = { _nodenum, this->elements[_nowtri].nodes[nownode], this->elements[_nowtri].nodes[(nownode + 1)%3] };
+			tmptri[0].neighbors = { this->elements[_nowtri].neighbors[(nownode + 2)%3], neitri, this->elements.size() };
+			tmptri[0].sides = { this->elements[_nowtri].sides[(nownode + 2)%3], false, false };
 
-			tmptri[1].setnode(_nodenum, this->elements[_nowtri].nodes[(nownode + 1)%3], this->elements[neitri].nodes[neinode]);
-			tmptri[1].setneighbor(this->elements[neitri].neighbors[(neinode + 1)%3], this->elements.size() + 1, _nowtri);
-			tmptri[1].setside(this->elements[neitri].sides[(neinode + 1)%3], false, false);
+			tmptri[1].nodes = { _nodenum, this->elements[_nowtri].nodes[(nownode + 1)%3], this->elements[neitri].nodes[neinode] };
+			tmptri[1].neighbors = { this->elements[neitri].neighbors[(neinode + 1)%3], this->elements.size() + 1, _nowtri };
+			tmptri[1].sides = { this->elements[neitri].sides[(neinode + 1)%3], false, false };
 
-			tmptri[2].setnode(_nodenum, this->elements[_nowtri].nodes[(nownode + 2)%3], this->elements[_nowtri].nodes[nownode]);
-			tmptri[2].setneighbor(this->elements[_nowtri].neighbors[(nownode + 1)%3], _nowtri, this->elements.size() + 1);
+			tmptri[2].nodes = { _nodenum, this->elements[_nowtri].nodes[(nownode + 2)%3], this->elements[_nowtri].nodes[nownode] };
+			tmptri[2].neighbors = { this->elements[_nowtri].neighbors[(nownode + 1)%3], _nowtri, this->elements.size() + 1 };
 			tmptri[2].sides[0] = this->elements[_nowtri].sides[(nownode + 1)%3];
 
-			tmptri[3].setnode(_nodenum, this->elements[neitri].nodes[neinode], this->elements[_nowtri].nodes[(nownode + 2)%3]);
-			tmptri[3].setneighbor(this->elements[neitri].neighbors[(neinode + 2)%3], this->elements.size(), neitri);
+			tmptri[3].nodes = { _nodenum, this->elements[neitri].nodes[neinode], this->elements[_nowtri].nodes[(nownode + 2)%3] };
+			tmptri[3].neighbors = { this->elements[neitri].neighbors[(neinode + 2)%3], this->elements.size(), neitri };
 			tmptri[3].sides[0] = this->elements[neitri].sides[(neinode + 2)%3];
 
 			int nei1 = this->elements[_nowtri].neighbors[(nownode + 1)%3];
@@ -593,8 +565,8 @@ private:
 			stack.push_back(this->elements.size());
 			stack.push_back(this->elements.size() + 1);
 
-			this->elements[_nowtri].copy(tmptri[0]);
-			this->elements[neitri].copy(tmptri[1]);
+			this->elements[_nowtri] = tmptri[0];
+			this->elements[neitri] = tmptri[1];
 			this->elements.push_back(tmptri[2]);
 			this->elements.push_back(tmptri[3]);
 		}
@@ -603,13 +575,13 @@ private:
 		else {
 			std::array<Element<T>, 2> tmptri;
 
-			tmptri[0].setnode(_nodenum, this->elements[_nowtri].nodes[nownode], this->elements[_nowtri].nodes[(nownode + 1)%3]);
-			tmptri[0].setneighbor(this->elements[_nowtri].neighbors[(nownode + 2)%3], -1, this->elements.size());
-			tmptri[0].setside(this->elements[_nowtri].sides[(nownode + 2)%3], false, false);
+			tmptri[0].nodes = { _nodenum, this->elements[_nowtri].nodes[nownode], this->elements[_nowtri].nodes[(nownode + 1)%3] };
+			tmptri[0].neighbors = { this->elements[_nowtri].neighbors[(nownode + 2)%3], -1, this->elements.size() };
+			tmptri[0].sides = { this->elements[_nowtri].sides[(nownode + 2)%3], false, false };
 
-			tmptri[1].setnode(_nodenum, this->elements[_nowtri].nodes[(nownode + 2)%3], this->elements[_nowtri].nodes[nownode]);
-			tmptri[1].setneighbor(this->elements[_nowtri].neighbors[(nownode + 1)%3], _nowtri, -1);
-			tmptri[1].setside(this->elements[_nowtri].sides[(nownode + 1)%3], false, false);
+			tmptri[1].nodes = { _nodenum, this->elements[_nowtri].nodes[(nownode + 2)%3], this->elements[_nowtri].nodes[nownode] };
+			tmptri[1].neighbors = { this->elements[_nowtri].neighbors[(nownode + 1)%3], _nowtri, -1 };
+			tmptri[1].sides = { this->elements[_nowtri].sides[(nownode + 1)%3], false, false };
 
 			int nei1 = this->elements[_nowtri].neighbors[(nownode + 1)%3];
 			if (nei1 != -1) {
@@ -639,7 +611,7 @@ private:
 			stack.push_back(_nowtri);
 			stack.push_back(this->elements.size());
 
-			this->elements[_nowtri].copy(tmptri[0]);
+			this->elements[_nowtri] = tmptri[0];
 			this->elements.push_back(tmptri[1]);
 		}
 		
@@ -678,13 +650,13 @@ private:
 						this->elements[neighbor2].neighbors[this->elements[neighbor2].oppositenode(nowstack)] = neighbortri;
 					}
 
-					this->elements[neighbortri].setside(tmpelement.sides[(neighbornode + 2)%3], this->elements[nowstack].sides[1], false);
-					this->elements[neighbortri].setnode(this->elements[nowstack].nodes[0], tmpelement.nodes[neighbornode], this->elements[nowstack].nodes[2]);
-					this->elements[neighbortri].setneighbor(tmpelement.neighbors[(neighbornode + 2)%3], this->elements[nowstack].neighbors[1], nowstack);
+					this->elements[neighbortri].sides = { tmpelement.sides[(neighbornode + 2)%3], this->elements[nowstack].sides[1], false };
+					this->elements[neighbortri].nodes = { this->elements[nowstack].nodes[0], tmpelement.nodes[neighbornode], this->elements[nowstack].nodes[2] };
+					this->elements[neighbortri].neighbors = { tmpelement.neighbors[(neighbornode + 2)%3], this->elements[nowstack].neighbors[1], nowstack };
 
-					this->elements[nowstack].setside(tmpelement.sides[(neighbornode + 1)%3], false, this->elements[nowstack].sides[2]);
-					this->elements[nowstack].setnode(this->elements[nowstack].nodes[0], this->elements[nowstack].nodes[1], tmpelement.nodes[neighbornode]);
-					this->elements[nowstack].setneighbor(tmpelement.neighbors[(neighbornode + 1)%3], neighbortri, this->elements[nowstack].neighbors[2]);
+					this->elements[nowstack].sides = { tmpelement.sides[(neighbornode + 1)%3], false, this->elements[nowstack].sides[2] };
+					this->elements[nowstack].nodes = { this->elements[nowstack].nodes[0], this->elements[nowstack].nodes[1], tmpelement.nodes[neighbornode] };
+					this->elements[nowstack].neighbors = { tmpelement.neighbors[(neighbornode + 1)%3], neighbortri, this->elements[nowstack].neighbors[2] };
 
 					if (this->elements[nowstack].nodes[2] == _nodenumm1 || this->elements[nowstack].nodes[2] == _nodenump1) {
 						this->elements[nowstack].sides[1] = true;

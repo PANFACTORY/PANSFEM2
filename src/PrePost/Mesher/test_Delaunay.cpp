@@ -11,7 +11,7 @@ using namespace PANSFEM2;
 
 int main(){
     std::vector<Vector<double> > x = { { 0, 0.5 }, { 1, 0.5 }, { 1, 0 }, { 4, 0 }, { 4, 1 }, { 0, 1 } };
-    Delaunay<double> mesher = Delaunay<double>(x, { { { 5, 4, 3, 2, 1, 0 }, true } }, 0.05);
+    Delaunay<double> mesher = Delaunay<double>(x, { { 5, 4, 3, 2, 1, 0 } }, {}, 0.05);
     std::vector<Vector<double> > nodes = mesher.GenerateNodes();
     std::vector<std::vector<int> > elements = mesher.GenerateElements();
     std::ofstream fout("result.vtk");

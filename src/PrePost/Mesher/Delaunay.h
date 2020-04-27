@@ -258,7 +258,7 @@ private:
 	template<class T>
 	class Delaunay {
 public:
-		Delaunay(std::vector<Vector<T> > _x, std::vector<std::pair<std::vector<int>, bool> > _boundaries, T _maxsize);
+		Delaunay(std::vector<Vector<T> > _x, std::vector<std::vector<int> > _outerboundaries, std::vector<std::vector<int> > _innerboundaries, T _maxsize);
 		~Delaunay() {};
 
         std::vector<Vector<T> > GenerateNodes();
@@ -284,7 +284,7 @@ private:
 
 
 	template<class T>
-	Delaunay<T>::Delaunay(std::vector<Vector<T> > _x, std::vector<std::pair<std::vector<int>, bool> > _boundaries, T _maxsize) {
+	Delaunay<T>::Delaunay(std::vector<Vector<T> > _x, std::vector<std::vector<int> > _outerboundaries, std::vector<std::vector<int> > _innerboundaries, T _maxsize) {
 		//----------Generate nodes, elements and boundaries----------
 		this->nodes = std::vector<Node<T> >();
         for(auto xi : _x) {
@@ -296,11 +296,17 @@ private:
 		this->getsupertriangle();
 
 		//----------Generate Boundary----------
-		for (auto boundary : _boundaries) {
-			this->getboundary(boundary.first);
+		for (auto boundary : _outerboundaries) {
+			this->getboundary(boundary);
 		}
-		for (auto boundary : _boundaries) {
-			this->deactivate(boundary.first, boundary.second);
+		for (auto boundary : _innerboundaries) {
+			this->getboundary(boundary);
+		}
+		for (auto boundary : _outerboundaries) {
+			this->deactivate(boundary, true);
+		}
+		for (auto boundary : _innerboundaries) {
+			this->deactivate(boundary, false);
 		}
 
 		//----------Delete needless Elements----------

@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include <array>
+#include <algorithm>
 
 
 #include "../../LinearAlgebra/Models/Vector.h"
@@ -22,47 +23,14 @@
 
 
 namespace PANSFEM2{
-    //********************Delaunay Boundary class********************
-    class Boundary {
-public:
-        Boundary(std::vector<int>& _nodelists, bool _type);
-		~Boundary();
-		
-		std::vector<int> nodelists;		//list of nodes on boundary
-		bool type;						//type of boundary 
-
-		int order(int _nodenum);		//get order id on boundary
-	};
-
-
-	Boundary::Boundary(std::vector<int>& _nodelists, bool _type){
-		this->nodelists = _nodelists;
-		this->type = _type;
-	}
-
-
-	Boundary::~Boundary(){}
-
-
-	int Boundary::order(int _nodenum) {
-		for (int i = 0; i < this->nodelists.size(); i++) {
-			if (this->nodelists[i] == _nodenum) {
-				return i;
-			}
-		}
-		return -1;
-	}
-
-
     //********************Delaunay Node class********************
     template<class T>
 	class Node {
 public:
-		Node();
-		~Node();
-        Node(Vector<T> _x);
+		Node(Vector<T> _x);
 		Node(T _x, T _y);
-
+		~Node() {};
+        
 		Vector<T> x;			//cordinate vallue of Node
 		bool isset;				//is set						
 		bool isonboundary;		//is on boundary
@@ -71,18 +39,6 @@ public:
 		T vecpro(Node<T> _node0, Node<T> _node1);		//get innerproduct
 		T innpro(Node<T> _node0, Node<T> _node1);		//get vectorproduct
 	};
-
-
-	template<class T>
-	Node<T>::Node(){
-		this->x = { T(), T() };
-		this->isset = false;
-		this->isonboundary = false;
-	}
-
-
-	template<class T>
-	Node<T>::~Node(){}
 
 
     template<class T>
@@ -124,7 +80,7 @@ public:
 	class Element {
 public:
 		Element();
-		~Element();
+		~Element() {};
 		Element(int _node0, int _node1, int _node2);
 
 		std::array<int, 3> nodes;								//id of nodes
@@ -166,10 +122,6 @@ private:
 		this->active = true;
 		this->check = false;
 	}
-
-
-	template<class T>
-	Element<T>::~Element(){}
 
 
 	template<class T>
@@ -306,8 +258,8 @@ private:
 	template<class T>
 	class Delaunay {
 public:
-		Delaunay(std::vector<Vector<T> > _x, std::vector<std::vector<int> > _boundaries, T _maxsize);
-		~Delaunay();
+		Delaunay(std::vector<Vector<T> > _x, std::vector<std::pair<std::vector<int>, bool> > _boundaries, T _maxsize);
+		~Delaunay() {};
 
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
@@ -318,8 +270,8 @@ private:
 		std::vector<Element<T> > elements;
 
 		void getsupertriangle();
-		void getboundary(Boundary _boundary);
-		void deactivate(Boundary _boundary);
+		void getboundary(std::vector<int> _nodelists);
+		void deactivate(std::vector<int> _nodelists, bool _type);
 		void deletesupertriangle();
 		void deleteelement();
 		void sortelement();
@@ -332,29 +284,23 @@ private:
 
 
 	template<class T>
-	Delaunay<T>::Delaunay(std::vector<Vector<T> > _x, std::vector<std::vector<int> > _boundaries, T _maxsize) {
+	Delaunay<T>::Delaunay(std::vector<Vector<T> > _x, std::vector<std::pair<std::vector<int>, bool> > _boundaries, T _maxsize) {
 		//----------Generate nodes, elements and boundaries----------
 		this->nodes = std::vector<Node<T> >();
         for(auto xi : _x) {
             this->nodes.push_back(Node<T>(xi));
         }
-
 		this->elements = std::vector<Element<T> >();
 
-        std::vector<Boundary> boundaries = std::vector<Boundary>();
-        for(auto boundary : _boundaries) {
-            boundaries.push_back(Boundary(boundary, true));
-        }
-		
 		//----------Generate SuperTriangle----------
 		this->getsupertriangle();
 
 		//----------Generate Boundary----------
-		for (auto boundary : boundaries) {
-			this->getboundary(boundary);
+		for (auto boundary : _boundaries) {
+			this->getboundary(boundary.first);
 		}
-		for (auto boundary : boundaries) {
-			this->deactivate(boundary);
+		for (auto boundary : _boundaries) {
+			this->deactivate(boundary.first, boundary.second);
 		}
 
 		//----------Delete needless Elements----------
@@ -372,14 +318,10 @@ private:
 
 
 	template<class T>
-	Delaunay<T>::~Delaunay() {}
-
-
-	template<class T>
 	void Delaunay<T>::getsupertriangle() {
 		//Get distance maximam
 		T rmax = T();
-		Node<T> o;
+		Node<T> o = Node<T>(T(), T());
 		for (auto& node : this->nodes) {
 			T tmpr = node.distance(o);
 			if (rmax < tmpr) {
@@ -396,20 +338,20 @@ private:
 
 
 	template<class T>
-	void Delaunay<T>::getboundary(Boundary _boundary) {
-		for (int i = 0; i < _boundary.nodelists.size(); i++) {
+	void Delaunay<T>::getboundary(std::vector<int> _nodelists) {
+		for (int i = 0; i < _nodelists.size(); i++) {
 			//.....Add nodes on boundary into district.....
-			if (this->nodes[_boundary.nodelists[i]].isset == false) {
-				this->nodes[_boundary.nodelists[i]].isset = true;
+			if (this->nodes[_nodelists[i]].isset == false) {
+				this->nodes[_nodelists[i]].isset = true;
 				int nowtri = 0;
 				if (this->elements.size() > 0) {
 					nowtri = this->elements.size() - 1;
 				}
-				this->nodes[_boundary.nodelists[i]].isonboundary = true;
+				this->nodes[_nodelists[i]].isonboundary = true;
 
 				//.....Search element in which node is.....
 				for (int j = 0; j < this->elements.size(); j++) {
-					int pos = this->elements[nowtri].inouton(_boundary.nodelists[i], this->nodes);
+					int pos = this->elements[nowtri].inouton(_nodelists[i], this->nodes);
 					//if not in or out
 					if (pos < 0 || this->elements[nowtri].active == false) {
 						if (this->elements[nowtri].neighbors[abs(pos) - 1] >= 0) {
@@ -421,22 +363,22 @@ private:
 					//if in 
 					else if (pos == 0) {
 						if (i == 0) {
-							getelementin(nowtri, _boundary.nodelists[i + 1], _boundary.nodelists[i], -2);
-						} else if (i == _boundary.nodelists.size() - 1) {
-							getelementin(nowtri, _boundary.nodelists[0], _boundary.nodelists[i], _boundary.nodelists[i - 1]);
+							getelementin(nowtri, _nodelists[i + 1], _nodelists[i], -2);
+						} else if (i == _nodelists.size() - 1) {
+							getelementin(nowtri, _nodelists[0], _nodelists[i], _nodelists[i - 1]);
 						} else {
-							getelementin(nowtri, _boundary.nodelists[i + 1], _boundary.nodelists[i], _boundary.nodelists[i - 1]);
+							getelementin(nowtri, _nodelists[i + 1], _nodelists[i], _nodelists[i - 1]);
 						}
 						break;
 					}
 					//if on
 					else {
 						if (i == 0) {
-							getelementon(nowtri, pos - 1, _boundary.nodelists[i + 1], _boundary.nodelists[i], -2);
-						} else if (i == _boundary.nodelists.size() - 1) {
-							getelementon(nowtri, pos - 1, _boundary.nodelists[0], _boundary.nodelists[i], _boundary.nodelists[i - 1]);
+							getelementon(nowtri, pos - 1, _nodelists[i + 1], _nodelists[i], -2);
+						} else if (i == _nodelists.size() - 1) {
+							getelementon(nowtri, pos - 1, _nodelists[0], _nodelists[i], _nodelists[i - 1]);
 						} else {
-							getelementon(nowtri, pos - 1, _boundary.nodelists[i + 1], _boundary.nodelists[i], _boundary.nodelists[i - 1]);
+							getelementon(nowtri, pos - 1, _nodelists[i + 1], _nodelists[i], _nodelists[i - 1]);
 						}
 						break;
 					}
@@ -447,14 +389,21 @@ private:
 
 
 	template<class T>
-	void Delaunay<T>::deactivate(Boundary _boundary) {
+	void Delaunay<T>::deactivate(std::vector<int> _nodelists, bool _type) {
 		for (auto& element : this->elements) {
 			if(element.check == false){
 				//.....get order of node on boundary.....
-				std::array<int, 3> nodeorders{ _boundary.order(element.nodes[0]), _boundary.order(element.nodes[1]), _boundary.order(element.nodes[2]) };
+				auto order = [&](int _index) {
+					int index = std::distance(_nodelists.begin(), std::find(_nodelists.begin(), _nodelists.end(), _index));
+					if(index == _nodelists.size()){
+						return -1;
+					}
+					return index;
+				};
+				std::array<int, 3> nodeorders{ order(element.nodes[0]), order(element.nodes[1]), order(element.nodes[2]) };
 				
 				//.....external boundary.....
-				if (_boundary.type == true) {
+				if (_type == true) {
 					if (nodeorders[0] >= 0 && nodeorders[1] >= 0 && nodeorders[2] >= 0) {
 						element.check = true;
 						if ((nodeorders[0] < nodeorders[1] && nodeorders[1] < nodeorders[2])

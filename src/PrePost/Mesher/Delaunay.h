@@ -470,9 +470,9 @@ private:
 			tmpelement[i].nodes = { _nodenum, this->elements[_nowtri].nodes[(i+1)%3], this->elements[_nowtri].nodes[(i+2)%3] };
 			tmpelement[i].getangle(this->nodes);
 		}
-		tmpelement[0].neighbors = { this->elements[_nowtri].neighbors[0], this->elements.size(), this->elements.size() + 1 };
-		tmpelement[1].neighbors = { this->elements[_nowtri].neighbors[1], this->elements.size() + 1, _nowtri };
-		tmpelement[2].neighbors = { this->elements[_nowtri].neighbors[2], _nowtri, this->elements.size() };
+		tmpelement[0].neighbors = { this->elements[_nowtri].neighbors[0], (int)this->elements.size(), (int)this->elements.size() + 1 };
+		tmpelement[1].neighbors = { this->elements[_nowtri].neighbors[1], (int)this->elements.size() + 1, _nowtri };
+		tmpelement[2].neighbors = { this->elements[_nowtri].neighbors[2], _nowtri, (int)this->elements.size() };
 
 		for (int k = 0; k < 2; k++) {
 			int neighbor = this->elements[_nowtri].neighbors[1 + k];
@@ -505,19 +505,19 @@ private:
 			std::array<Element<T>, 4> tmptri;			//0:nowtri	1:neitri
 
 			tmptri[0].nodes = { _nodenum, this->elements[_nowtri].nodes[nownode], this->elements[_nowtri].nodes[(nownode + 1)%3] };
-			tmptri[0].neighbors = { this->elements[_nowtri].neighbors[(nownode + 2)%3], neitri, this->elements.size() };
+			tmptri[0].neighbors = { this->elements[_nowtri].neighbors[(nownode + 2)%3], neitri, (int)this->elements.size() };
 			tmptri[0].sides = { this->elements[_nowtri].sides[(nownode + 2)%3], false, false };
 
 			tmptri[1].nodes = { _nodenum, this->elements[_nowtri].nodes[(nownode + 1)%3], this->elements[neitri].nodes[neinode] };
-			tmptri[1].neighbors = { this->elements[neitri].neighbors[(neinode + 1)%3], this->elements.size() + 1, _nowtri };
+			tmptri[1].neighbors = { this->elements[neitri].neighbors[(neinode + 1)%3], (int)this->elements.size() + 1, _nowtri };
 			tmptri[1].sides = { this->elements[neitri].sides[(neinode + 1)%3], false, false };
 
 			tmptri[2].nodes = { _nodenum, this->elements[_nowtri].nodes[(nownode + 2)%3], this->elements[_nowtri].nodes[nownode] };
-			tmptri[2].neighbors = { this->elements[_nowtri].neighbors[(nownode + 1)%3], _nowtri, this->elements.size() + 1 };
+			tmptri[2].neighbors = { this->elements[_nowtri].neighbors[(nownode + 1)%3], _nowtri, (int)this->elements.size() + 1 };
 			tmptri[2].sides[0] = this->elements[_nowtri].sides[(nownode + 1)%3];
 
 			tmptri[3].nodes = { _nodenum, this->elements[neitri].nodes[neinode], this->elements[_nowtri].nodes[(nownode + 2)%3] };
-			tmptri[3].neighbors = { this->elements[neitri].neighbors[(neinode + 2)%3], this->elements.size(), neitri };
+			tmptri[3].neighbors = { this->elements[neitri].neighbors[(neinode + 2)%3], (int)this->elements.size(), neitri };
 			tmptri[3].sides[0] = this->elements[neitri].sides[(neinode + 2)%3];
 
 			int nei1 = this->elements[_nowtri].neighbors[(nownode + 1)%3];
@@ -576,7 +576,7 @@ private:
 			std::array<Element<T>, 2> tmptri;
 
 			tmptri[0].nodes = { _nodenum, this->elements[_nowtri].nodes[nownode], this->elements[_nowtri].nodes[(nownode + 1)%3] };
-			tmptri[0].neighbors = { this->elements[_nowtri].neighbors[(nownode + 2)%3], -1, this->elements.size() };
+			tmptri[0].neighbors = { this->elements[_nowtri].neighbors[(nownode + 2)%3], -1, (int)this->elements.size() };
 			tmptri[0].sides = { this->elements[_nowtri].sides[(nownode + 2)%3], false, false };
 
 			tmptri[1].nodes = { _nodenum, this->elements[_nowtri].nodes[(nownode + 2)%3], this->elements[_nowtri].nodes[nownode] };

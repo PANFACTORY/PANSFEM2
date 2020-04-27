@@ -19,17 +19,13 @@ using namespace PANSFEM2;
 
 
 int main() {
-    std::string model_path = "sample/navierstokes/model1/";
+    std::string model_path = "sample/navierstokes/model3/";
 	std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elementsu;
 	ImportElementsFromCSV(elementsu, model_path + "ElementU.csv");
 	std::vector<std::vector<int> > elementsp;
 	ImportElementsFromCSV(elementsp, model_path + "ElementP.csv");
-	std::vector<std::vector<int> > edgesu;
-	ImportElementsFromCSV(edgesu, model_path + "EdgeU.csv");
-	std::vector<std::vector<int> > edgesp;
-	ImportElementsFromCSV(edgesp, model_path + "EdgeP.csv");
     std::vector<std::pair<std::pair<int, int>, double> > ufixed;
 	ImportDirichletFromCSV(ufixed, model_path + "Dirichlet.csv");
 
@@ -37,7 +33,7 @@ int main() {
 	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(3, 0));
 	
     double rho = 1.0;
-    double mu = 0.02;
+    double mu = 1.0/100.0;
     int kmax = 10;
 	std::vector<std::pair<std::pair<int, int>, double> > ufixed0 = ufixed;
     for(auto& ufixedi : ufixed0) {
@@ -53,7 +49,7 @@ int main() {
     for (int i = 0; i < elementsu.size(); i++) {
         std::vector<std::vector<std::pair<int, int> > > nodetoelementu, nodetoelementp;
         Matrix<double> Ke;
-        Stokes<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, mu);
+        Stokes<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ke, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, mu);
         Assembling(K, F, up, Ke, nodetoglobal, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
     }
 
@@ -81,7 +77,7 @@ int main() {
                 std::vector<std::vector<std::pair<int, int> > > nodetoelementu, nodetoelementp;
                 Matrix<double> Ke;
                 Vector<double> Qe;
-                NavierStokesTangent<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, Qe, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, up, rho, mu);
+                NavierStokesTangent<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ke, Qe, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, up, rho, mu);
                 Assembling(K, R, dup, Ke, nodetoglobal, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
                 Assembling(R, Qe, nodetoglobal, nodetoelementu, elementsu[i]);
                 Assembling(R, Qe, nodetoglobal, nodetoelementp, elementsp[i]);  

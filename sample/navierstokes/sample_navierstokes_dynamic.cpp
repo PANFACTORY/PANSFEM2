@@ -18,7 +18,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-    std::string model_path = "sample/navierstokes/model1/";
+    std::string model_path = "sample/navierstokes/model3/";
 	std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elementsu;
@@ -34,7 +34,7 @@ int main() {
     double rho = 1.0;
     double mu = 0.02;
     int tmax = 100;
-    double dt = 0.001;
+    double dt = 0.1;
     SetDirichlet(up, nodetoglobal, ufixed);
 	int KDEGREE = Renumbering(nodetoglobal);
 
@@ -49,7 +49,7 @@ int main() {
             std::vector<std::vector<std::pair<int, int> > > nodetoelementu, nodetoelementp;
             Matrix<double> Ke;
             Vector<double> Qe;
-            NavierStokesDynamic<double, ShapeFunction6Triangle, ShapeFunction3Triangle, Gauss3Triangle>(Ke, Qe, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, up, rho, mu, dt);
+            NavierStokesDynamic<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ke, Qe, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, up, rho, mu, dt);
             Assembling(K, R, up, Ke, nodetoglobal, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
             Assembling(R, Qe, nodetoglobal, nodetoelementu, elementsu[i]);
             Assembling(R, Qe, nodetoglobal, nodetoelementp, elementsp[i]);

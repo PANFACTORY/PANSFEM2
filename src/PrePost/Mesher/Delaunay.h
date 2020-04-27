@@ -14,16 +14,20 @@
 #include <array>
 
 
+#include "../../LinearAlgebra/Models/Vector.h"
+
+
+#define SELFEPS0 1.0e-10
+#define SELFEPS1 1.0e-10
+
+
 namespace PANSFEM2{
     //********************Delaunay Boundary class********************
-    class Boundary
-	{
+    class Boundary {
 public:
-		Boundary();
+        Boundary(std::vector<int>& _nodelists, bool _type);
 		~Boundary();
-		Boundary(std::vector<int>& _nodelists, bool _type);
-
-
+		
 		std::vector<int> nodelists;		//list of nodes on boundary
 		bool type;						//type of boundary 
 
@@ -31,16 +35,13 @@ public:
 	};
 
 
-	Boundary::Boundary(){}
-
-
-	Boundary::~Boundary(){}
-
-
 	Boundary::Boundary(std::vector<int>& _nodelists, bool _type){
 		this->nodelists = _nodelists;
 		this->type = _type;
 	}
+
+
+	Boundary::~Boundary(){}
 
 
 	int Boundary::order(int _nodenum) {
@@ -53,9 +54,74 @@ public:
 	}
 
 
+    //********************Delaunay Node class********************
+    template<class T>
+	class Node {
+public:
+		Node();
+		~Node();
+        Node(Vector<T> _x);
+		Node(T _x, T _y);
+
+		Vector<T> x;			//cordinate vallue of Node
+		bool isset;				//is set						
+		bool isonboundary;		//is on boundary
+
+		T distance(Node<T> _node);							//get distance between other node
+		T vecpro(Node<T> _node0, Node<T> _node1);		//get innerproduct
+		T innpro(Node<T> _node0, Node<T> _node1);		//get vectorproduct
+	};
+
+
+	template<class T>
+	Node<T>::Node(){
+		this->x = { T(), T() };
+		this->isset = false;
+		this->isonboundary = false;
+	}
+
+
+	template<class T>
+	Node<T>::~Node(){}
+
+
+    template<class T>
+    Node<T>::Node(Vector<T> _x) {
+        this->x = _x;
+        this->isset = false;
+		this->isonboundary = false;
+    }
+
+
+	template<class T>
+	Node<T>::Node(T _x, T _y){
+		this->x = { _x, _y };
+		this->isset = false;
+		this->isonboundary = false;
+	}
+
+
+	template<class T>
+	T Node<T>::distance(Node<T> _node) {
+		return (this->x - _node.x).Norm();
+	}
+
+
+	template<class T>
+	T Node<T>::vecpro(Node<T> _node0, Node<T> _node1) {
+		return (_node0.x(0) - this->x(0))*(_node1.x(1) - this->x(1)) - (_node0.x(1) - this->x(1))*(_node1.x(0) - this->x(0));
+	}
+
+
+	template<class T>
+	T Node<T>::innpro(Node<T> _node0, Node<T> _node1) {
+		return (_node0.x - this->x)*(_node1.x - this->x);
+	}
+
+
     //********************Delaunay Element class********************
     template<class T>
-	class Element{
+	class Element {
 public:
 		Element();
 		~Element();
@@ -79,11 +145,8 @@ public:
 
 		T space(std::vector<Node<T> >& _node);								//get space of element
 		int nodeorder(int _nodenum);										//get node id in element 
+private: 
 	};
-
-
-	#define SELFEPS0 DBL_EPSILON*1.0
-	#define SELFEPS1 DBL_EPSILON*1.0
 
 
 	template<class T>
@@ -239,71 +302,15 @@ public:
 	}
 
 
-    //********************Delaunay Node class********************
-    template<class T>
-	class Node
-	{
-public:
-		Node();
-		~Node();
-		Node(T _x, T _y);
-
-		T x, y;					//cordinate vallue of Node
-		bool isset;				//is set						
-		bool isonboundary;		//is on boundary
-
-		T distance(const Node<T>& _node);							//get distance between other node
-		T vecpro(const Node<T>& _node0, const Node<T>& _node1);		//get innerproduct
-		T innpro(const Node<T>& _node0, const Node<T>& _node1);		//get vectorproduct
-	};
-
-
-	template<class T>
-	Node<T>::Node(){
-		this->x = T();
-		this->y = T();
-		this->isset = false;
-		this->isonboundary = false;
-	}
-
-
-	template<class T>
-	Node<T>::~Node(){}
-
-
-	template<class T>
-	Node<T>::Node(T _x, T _y){
-		this->x = _x;
-		this->y = _y;
-		this->isset = false;
-		this->isonboundary = false;
-	}
-
-
-	template<class T>
-	T Node<T>::distance(const Node<T>& _node) {
-		return sqrt(pow(this->x - _node.x, 2.0) + pow(this->y - _node.y, 2.0));
-	}
-
-
-	template<class T>
-	T Node<T>::vecpro(const Node<T>& _node0, const Node<T>& _node1) {
-		return (_node0.x - this->x)*(_node1.y - this->y) - (_node0.y - this->y)*(_node1.x - this->x);
-	}
-
-
-	template<class T>
-	T Node<T>::innpro(const Node<T>& _node0, const Node<T>& _node1) {
-		return (_node0.x - this->x)*(_node1.x - this->x) + (_node1.y - this->y)*(_node0.y - this->y);
-	}
-
-
 	//********************Delaunay mesher class********************
 	template<class T>
 	class Delaunay {
 public:
-		Delaunay(std::vector<Node<T> > &_nodes, std::vector<Element<T> >& _elements, std::vector<Boundary> &_boundaries, T _maxsize);
+		Delaunay(std::vector<Vector<T> > _x, std::vector<std::vector<int> > _boundaries, T _maxsize);
 		~Delaunay();
+
+        std::vector<Vector<T> > GenerateNodes();
+        std::vector<std::vector<int> > GenerateElements();
 private:
 		const int ADDITIONALNODENUM0 = 100000;
 
@@ -325,19 +332,28 @@ private:
 
 
 	template<class T>
-	Delaunay<T>::Delaunay(std::vector<Node<T> >& _nodes, std::vector<Element<T> >& _elements, std::vector<Boundary>& _boundaries, T _maxsize) {
-		//----------Generate nodes and elements----------
-		this->nodes = _nodes;
+	Delaunay<T>::Delaunay(std::vector<Vector<T> > _x, std::vector<std::vector<int> > _boundaries, T _maxsize) {
+		//----------Generate nodes, elements and boundaries----------
+		this->nodes = std::vector<Node<T> >();
+        for(auto xi : _x) {
+            this->nodes.push_back(Node<T>(xi));
+        }
+
 		this->elements = std::vector<Element<T> >();
+
+        std::vector<Boundary> boundaries = std::vector<Boundary>();
+        for(auto boundary : _boundaries) {
+            boundaries.push_back(Boundary(boundary, true));
+        }
 		
 		//----------Generate SuperTriangle----------
 		this->getsupertriangle();
 
 		//----------Generate Boundary----------
-		for (auto boundary : _boundaries) {
+		for (auto boundary : boundaries) {
 			this->getboundary(boundary);
 		}
-		for (auto boundary : _boundaries) {
+		for (auto boundary : boundaries) {
 			this->deactivate(boundary);
 		}
 
@@ -352,10 +368,6 @@ private:
 		if (_maxsize > 0) {
 			this->getinternalelement(_maxsize);
 		}
-
-		//----------Return nodes and elements----------
-		_nodes = this->nodes;
-		_elements = this->elements;
 	}
 
 
@@ -754,12 +766,29 @@ private:
 				break;
 			}
 
-			this->nodes.push_back(Node<T>(
-				0.5*(this->nodes[this->elements[maxelement].nodes[(maxnode + 1)%3]].x + this->nodes[this->elements[maxelement].nodes[(maxnode + 2)%3]].x),
-				0.5*(this->nodes[this->elements[maxelement].nodes[(maxnode + 1)%3]].y + this->nodes[this->elements[maxelement].nodes[(maxnode + 2)%3]].y)
-			));
+			this->nodes.push_back(Node<T>(0.5*(this->nodes[this->elements[maxelement].nodes[(maxnode + 1)%3]].x + this->nodes[this->elements[maxelement].nodes[(maxnode + 2)%3]].x)));
 
 			this->getelementon(maxelement, maxnode, -2, this->nodes.size() - 1, -2);
 		}
-	}	
+	}
+
+
+    template<class T>
+    std::vector<Vector<T> > Delaunay<T>::GenerateNodes() {
+        std::vector<Vector<T> > x = std::vector<Vector<T> >();
+        for (auto node : this->nodes) {
+            x.push_back(node.x);
+        } 
+        return x;
+    }
+    
+    
+    template<class T>
+    std::vector<std::vector<int> > Delaunay<T>::GenerateElements() {
+        std::vector<std::vector<int> > es = std::vector<std::vector<int> >();
+        for (auto element : this->elements) {
+            es.push_back({ element.nodes[0], element.nodes[1], element.nodes[2] });
+        }
+        return es;
+    }
 }

@@ -206,6 +206,9 @@ public:
 
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
+		std::vector<std::vector<int> > GenerateEdges();
+		template<class F>
+        std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
 private:
 		const int ADDITIONALNODENUM0 = 100000;
 
@@ -712,10 +715,40 @@ private:
     
     template<class T>
     std::vector<std::vector<int> > Delaunay<T>::GenerateElements() {
-        std::vector<std::vector<int> > es = std::vector<std::vector<int> >();
+        std::vector<std::vector<int> > elements = std::vector<std::vector<int> >();
         for (auto element : this->elements) {
-            es.push_back({ element.nodes[0], element.nodes[1], element.nodes[2] });
+            elements.push_back({ element.nodes[0], element.nodes[1], element.nodes[2] });
         }
-        return es;
+        return elements;
     }
+
+
+	template<class T>
+	std::vector<std::vector<int> > Delaunay<T>::GenerateEdges() {
+		std::vector<std::vector<int> > edges = std::vector<std::vector<int> >();
+		for(auto element : this->elements) {
+			for(int i = 0; i < 3; i++) {
+				if(element.sides[i]) {
+					edges.push_back({ element.nodes[(i + 1)%3], element.nodes[(i + 2)%3] });
+				}
+			}
+		}
+		return edges;
+	}
+
+
+	template<class T>
+	template<class F>
+    std::vector<std::pair<std::pair<int, int>, T> > Delaunay<T>::GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond) {
+		assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()));
+        std::vector<std::pair<std::pair<int, int>, T> > ufixed;
+		for (int i = 0; i < this->nodes.size(); i++) {
+			if(_iscorrespond(this->nodes[i].x)) {
+				for(auto ui : _ulist) {
+					ufixed.push_back({ { i, ui }, T() });
+				}
+			}
+        }
+        return ufixed;
+	}
 }

@@ -154,25 +154,15 @@ private:
 
 		if (vecpro2 > T() && (vecpro0 < T() || (fabs(vecpro0) <= SELFEPS0 && vecpro5 > T()))) {
 			return -3;
-		}
-		
-		else if (vecpro0 > T() && (vecpro1 < T() || (fabs(vecpro1) <= SELFEPS0 && vecpro3 > T()))) {
+		} else if (vecpro0 > T() && (vecpro1 < T() || (fabs(vecpro1) <= SELFEPS0 && vecpro3 > T()))) {
 			return -1;
-		}
-		
-		else if (vecpro1 > T() && (vecpro2 < T() || (fabs(vecpro2) <= SELFEPS0 && vecpro4 > T()))) {
+		} else if (vecpro1 > T() && (vecpro2 < T() || (fabs(vecpro2) <= SELFEPS0 && vecpro4 > T()))) {
 			return -2;
-		}
-		
-		else if (fabs(vecpro0) <= SELFEPS1) {
+		} else if (fabs(vecpro0) <= SELFEPS1) {
 			return 3;
-		}
-		
-		else if (fabs(vecpro1) <= SELFEPS1) {
+		} else if (fabs(vecpro1) <= SELFEPS1) {
 			return 1;
-		}
-		
-		else if (fabs(vecpro2) <= SELFEPS1) {
+		} else if (fabs(vecpro2) <= SELFEPS1) {
 			return 2;
 		}
 		return 0;

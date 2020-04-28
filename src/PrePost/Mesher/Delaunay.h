@@ -222,8 +222,6 @@ public:
 		template<class F>
         std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
 private:
-		const int ADDITIONALNODENUM0 = 100000;
-
 		std::vector<Node<T> > nodes;
 		std::vector<Element<T> > elements;
 

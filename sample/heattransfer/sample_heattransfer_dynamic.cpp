@@ -3,7 +3,7 @@
 
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/PrePost/Import/ImportFromCSV.h"
+#include "../../src/PrePost/Mesher/Delaunay.h"
 #include "../../src/FEM/Equation/HeatTransfer.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
@@ -18,22 +18,35 @@ using namespace PANSFEM2;
 
 
 int main() {
-	std::string model_path = "sample/heattransfer/";
-	std::vector<Vector<double> > x;
-	ImportNodesFromCSV(x, model_path + "Node.csv");
-	std::vector<std::vector<int> > elements;
-	ImportElementsFromCSV(elements, model_path + "Element.csv");
-    std::vector<Vector<double> > T = std::vector<Vector<double> >(x.size(), Vector<double>(1));
+	Delaunay<double> mesher = Delaunay<double>({ { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }, { { 3, 2, 1, 0 } }, {}, 0.1);
+    std::vector<Vector<double> > x = mesher.GenerateNodes();
+    std::vector<std::vector<int> > elements = mesher.GenerateElements();
+    std::vector<std::pair<std::pair<int, int>, double> > ufixed0 = mesher.GenerateFixedlist({ 0 }, [](Vector<double> _x) {
+        if(fabs(_x(0)) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+	for(auto& ufixedi : ufixed0) {
+		ufixedi.second = 300.0;
+	}
+	std::vector<std::pair<std::pair<int, int>, double> > ufixed1 = mesher.GenerateFixedlist({ 0 }, [](Vector<double> _x) {
+        if(fabs(_x(0) - 1.0) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+	std::vector<Vector<double> > T = std::vector<Vector<double> >(x.size(), Vector<double>(1));
 
     std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(1, 0));
-    std::vector<std::pair<std::pair<int, int>, double> > Tfixed = { { { 0, 0 }, 100 }, { { 1, 0 }, 100 }, { { 2, 0 }, 100 }, { { 3, 0 }, 100 }, { { 4, 0 }, 100 }, { { 20, 0 }, 0 }, { { 21, 0 }, 0 }, { { 22, 0 }, 0 }, { { 23, 0 }, 0 }, { { 24, 0 }, 0 } };
-    SetDirichlet(T, nodetoglobal, Tfixed);
+    SetDirichlet(T, nodetoglobal, ufixed0);
+	SetDirichlet(T, nodetoglobal, ufixed1);
 	int KDEGREE = Renumbering(nodetoglobal);
 
-	double dt = 0.1;
+	double dt = 0.001;
 	double theta = 0.5;
 
-	for(int t = 0; t < 100; t++){
+	for(int t = 0; t < 500; t++){
 		std::cout << "t = " << t << std::endl;
 
 		LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
@@ -42,9 +55,9 @@ int main() {
         for (auto element : elements) {
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 			Matrix<double> Ke;
-			HeatTransfer<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, element, { 0 }, x, 1.0, 1.0);
+			HeatTransfer<double, ShapeFunction3Triangle, Gauss1Triangle>(Ke, nodetoelement, element, { 0 }, x, 1.0, 1.0);
 			Matrix<double> Ce;
-			HeatCapacity<double, ShapeFunction4Square, Gauss4Square>(Ce, nodetoelement, element, { 0 }, x, 1.0, 1.0, 1.0);
+			HeatCapacity<double, ShapeFunction3Triangle, Gauss1Triangle>(Ce, nodetoelement, element, { 0 }, x, 1.0, 1.0, 1.0);
 			Vector<double> Te = ElementVector(T, nodetoelement, element);
 			Matrix<double> Ae = Ce/dt + Ke*theta;
 			Vector<double> be = (Ce/dt - Ke*(1.0 - theta))*Te; 
@@ -56,7 +69,7 @@ int main() {
 		std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
         Disassembling(T, result, nodetoglobal);
 	
-		std::ofstream fout(model_path + "result" + std::to_string(t) + ".vtk");
+		std::ofstream fout("sample/heattransfer/result" + std::to_string(t) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(x, fout);
 		AddElementToVTK(elements, fout);

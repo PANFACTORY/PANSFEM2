@@ -278,11 +278,9 @@ private:
 		this->sortnode();
 
 		//----------subdivide----------
-		if (_maxsize > 0) {
-			this->makefinemesh(_maxsize);
-			for(int k = 0; k < 10; k++) {
-				this->laplacesmoothing();
-			}
+		this->makefinemesh(_maxsize);
+		for(int k = 0; k < 10; k++) {
+			this->laplacesmoothing();
 		}
 	}
 
@@ -694,8 +692,10 @@ private:
 
 	template<class T>
 	void Delaunay<T>::makefinemesh(T _maxside) {
-		for (int i = 0; i < this->ADDITIONALNODENUM0; i++) {
-			T maxside = this->nodes[this->elements[0].nodes[0]].distance(this->nodes[this->elements[0].nodes[1]]);
+		T maxside;
+		do {
+			//----------Search maxside----------
+			maxside = T();
 			int maxelement = 0, maxnode = 0;
 			for (int j = 0; j < this->elements.size(); j++) {
 				for (int k = 0; k < 3; k++) {
@@ -707,14 +707,11 @@ private:
 				}
 			}
 
-			if (maxside < _maxside) {
-				break;
-			}
-
+			//----------Remeshing and smoothing----------
 			this->nodes.push_back(Node<T>(0.5*(this->nodes[this->elements[maxelement].nodes[(maxnode + 1)%3]].x + this->nodes[this->elements[maxelement].nodes[(maxnode + 2)%3]].x)));
-
 			this->getelementon(maxelement, maxnode, -2, this->nodes.size() - 1, -2);
-		}
+			this->laplacesmoothing();
+		} while (maxside > _maxside);
 	}
 
 
@@ -761,7 +758,9 @@ private:
     std::vector<std::vector<int> > Delaunay<T>::GenerateElements() {
         std::vector<std::vector<int> > elements = std::vector<std::vector<int> >();
         for (auto element : this->elements) {
-            elements.push_back({ element.nodes[0], element.nodes[1], element.nodes[2] });
+			if(element.active) {
+				elements.push_back({ element.nodes[0], element.nodes[1], element.nodes[2] });
+			}
         }
         return elements;
     }
@@ -771,9 +770,11 @@ private:
 	std::vector<std::vector<int> > Delaunay<T>::GenerateEdges() {
 		std::vector<std::vector<int> > edges = std::vector<std::vector<int> >();
 		for(auto element : this->elements) {
-			for(int i = 0; i < 3; i++) {
-				if(element.sides[i]) {
-					edges.push_back({ element.nodes[(i + 1)%3], element.nodes[(i + 2)%3] });
+			if(element.active) {
+				for(int i = 0; i < 3; i++) {
+					if(element.sides[i]) {
+						edges.push_back({ element.nodes[(i + 1)%3], element.nodes[(i + 2)%3] });
+					}
 				}
 			}
 		}

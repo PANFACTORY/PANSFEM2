@@ -35,7 +35,7 @@ public:
 		bool isset;				//is set						
 		bool isonboundary;		//is on boundary
 
-		T distance(Node<T> _node);							//get distance between other node
+		T distance(Node<T> _node);						//get distance between other node
 		T vecpro(Node<T> _node0, Node<T> _node1);		//get innerproduct
 		T innpro(Node<T> _node0, Node<T> _node1);		//get vectorproduct
 	};
@@ -94,6 +94,7 @@ public:
 
 		int inouton(int _nodenum, std::vector<Node<T> >& _nodes);			//get location of node
 		int oppositenode(int _elementname);									//get id of opposite node 
+		int nodeorder(int _nodenum);
 private: 
 	};
 
@@ -192,8 +193,19 @@ private:
 	template<class T>
 	void Element<T>::getangle(std::vector<Node<T> >& _nodes) {
 		for (int i = 0; i < 3; i++) {
-			this->angles[i] = 180.0*acos(_nodes[this->nodes[i]].innpro(_nodes[this->nodes[(i + 1) % 3]], _nodes[this->nodes[(i + 2) % 3]]) / (_nodes[this->nodes[i]].distance(_nodes[this->nodes[(i + 1) % 3]]) * _nodes[this->nodes[i]].distance(_nodes[this->nodes[(i + 2) % 3]]))) / M_PI;
+			this->angles[i] = 180.0*acos(_nodes[this->nodes[i]].innpro(_nodes[this->nodes[(i + 1)%3]], _nodes[this->nodes[(i + 2)%3]])/(_nodes[this->nodes[i]].distance(_nodes[this->nodes[(i + 1)%3]])*_nodes[this->nodes[i]].distance(_nodes[this->nodes[(i + 2)%3]])))/M_PI;
 		}
+	}
+
+
+	template<class T>
+	int Element<T>::nodeorder(int _nodenum) {
+		for (int i = 0; i < 3; i++) {
+			if (this->nodes[i] == _nodenum) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 
@@ -216,13 +228,14 @@ private:
 		std::vector<Element<T> > elements;
 
 		void getsupertriangle();
-		void getboundary(std::vector<int> _nodelists);
-		void deactivate(std::vector<int> _nodelists, bool _type);
-		void deletesupertriangle();
+		void makeroughmesh(std::vector<int> _nodelists);
+		void deactivateelements(std::vector<int> _nodelists, bool _type);
+		void deactivatesupertriangle();
 		void deleteelement();
 		void sortelement();
 		void sortnode();
-		void getinternalelement(T _maxside);
+		void makefinemesh(T _maxside);
+		void laplacesmoothing();
 
 		void getelementin(int _nowtri, int _nodenump1, int _nodenum, int _nodenumm1);
 		void getelementon(int _nowtri, int _pos, int _nodenump1, int _nodenum, int _nodenumm1);
@@ -244,30 +257,32 @@ private:
 
 		//----------Generate Boundary----------
 		for (auto boundary : _outerboundaries) {
-			this->getboundary(boundary);
+			this->makeroughmesh(boundary);
 		}
 		for (auto boundary : _innerboundaries) {
-			this->getboundary(boundary);
+			this->makeroughmesh(boundary);
 		}
 		for (auto boundary : _outerboundaries) {
-			this->deactivate(boundary, true);
+			this->deactivateelements(boundary, true);
 		}
 		for (auto boundary : _innerboundaries) {
-			this->deactivate(boundary, false);
+			this->deactivateelements(boundary, false);
 		}
 
 		//----------Delete needless Elements----------
-		this->deletesupertriangle();
+		this->deactivatesupertriangle();
 		this->deleteelement();
 
 		//----------Sort needless Elements and Nodes----------
 		this->sortelement();
 		this->sortnode();
 
-
 		//----------subdivide----------
 		if (_maxsize > 0) {
-			this->getinternalelement(_maxsize);
+			this->makefinemesh(_maxsize);
+			for(int k = 0; k < 10; k++) {
+				this->laplacesmoothing();
+			}
 		}
 	}
 
@@ -293,7 +308,7 @@ private:
 
 
 	template<class T>
-	void Delaunay<T>::getboundary(std::vector<int> _nodelists) {
+	void Delaunay<T>::makeroughmesh(std::vector<int> _nodelists) {
 		for (int i = 0; i < _nodelists.size(); i++) {
 			//.....Add nodes on boundary into district.....
 			if (this->nodes[_nodelists[i]].isset == false) {
@@ -344,7 +359,7 @@ private:
 
 
 	template<class T>
-	void Delaunay<T>::deactivate(std::vector<int> _nodelists, bool _type) {
+	void Delaunay<T>::deactivateelements(std::vector<int> _nodelists, bool _type) {
 		for (auto& element : this->elements) {
 			if(element.check == false){
 				//.....get order of node on boundary.....
@@ -393,7 +408,7 @@ private:
 
 
 	template<class T>
-	void Delaunay<T>::deletesupertriangle() {
+	void Delaunay<T>::deactivatesupertriangle() {
 		for (int i = this->elements.size() - 1; i >= 0; i--) {
 			for (const auto& node : this->elements[i].nodes) {
 				if (node == this->nodes.size() - 1 || node == this->nodes.size() - 2 || node == this->nodes.size() - 3) {
@@ -678,7 +693,7 @@ private:
 
 
 	template<class T>
-	void Delaunay<T>::getinternalelement(T _maxside) {
+	void Delaunay<T>::makefinemesh(T _maxside) {
 		for (int i = 0; i < this->ADDITIONALNODENUM0; i++) {
 			T maxside = this->nodes[this->elements[0].nodes[0]].distance(this->nodes[this->elements[0].nodes[1]]);
 			int maxelement = 0, maxnode = 0;
@@ -699,6 +714,35 @@ private:
 			this->nodes.push_back(Node<T>(0.5*(this->nodes[this->elements[maxelement].nodes[(maxnode + 1)%3]].x + this->nodes[this->elements[maxelement].nodes[(maxnode + 2)%3]].x)));
 
 			this->getelementon(maxelement, maxnode, -2, this->nodes.size() - 1, -2);
+		}
+	}
+
+
+	template<class T>
+	void Delaunay<T>::laplacesmoothing() {
+		for(int i = 0; i < this->nodes.size(); i++) {
+			if(!this->nodes[i].isonboundary) {
+				int startelement = 0;
+				for (int j = 0; j < this->elements.size(); j++) {
+					if(this->elements[j].nodes[0] == i || this->elements[j].nodes[1] == i || this->elements[j].nodes[2] == i) {
+						startelement = j;
+						break;
+					}
+				}
+
+				int nowelement = startelement;
+				std::vector<int> stack;
+				do{
+					stack.push_back(nowelement);
+					nowelement = this->elements[nowelement].neighbors[(this->elements[nowelement].nodeorder(i) + 1)%3];
+				} while (nowelement != startelement);
+
+				this->nodes[i].x = Vector<T>(2); 
+				for (auto j : stack) {
+					this->nodes[i].x += this->nodes[this->elements[j].nodes[(this->elements[j].nodeorder(i) + 1)%3]].x;
+				}
+				this->nodes[i].x /= (T)stack.size();
+			}
 		}
 	}
 

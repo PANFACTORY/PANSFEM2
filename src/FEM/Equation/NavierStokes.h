@@ -215,12 +215,22 @@ namespace PANSFEM2 {
 				for(int j = 0; j < n; j++) {
 					K(i, j + 2*m) = dMdX(0, i)*dNdX(0, j)*U(0) + dMdX(1, i)*dNdX(0, j)*U(1);
 					K(i + m, j + 2*m) = dMdX(0, i)*dNdX(1, j)*U(0) + dMdX(1, i)*dNdX(1, j)*U(1);
-					K(j + 2*m, i) = //p*u
-					K(j + 2*m, i + m) = //p*v
-					K(i + 2*m, j + 2*m) = //p*p
+					K(j + 2*m, i) = dNdX(0, i)*dMdX(0, j)*U(0) + dNdX(0, i)*M(j)*dUdX(0, 0) + dNdX(0, i)*dMdX(1, j)*U(1) + dNdX(1, i)*M(j)*dUdX(0, 1);
+					K(j + 2*m, i + m) = dNdX(0, i)*M(j)*dUdX(1, 0) + dNdX(1, i)*dMdX(0, j)*U(0) + dNdX(1, i)*dMdX(1, j)*U(1) + dNdX(1, i)*M(j)*dUdX(1, 1);
+					K(i + 2*m, j + 2*m) = dNdX(0, i)*dNdX(0, j) + dNdX(1, i)*dNdX(1, j);
 				}
 			}
-			
+			_Ke += Ks*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+
+			Vector<T> Fs = Vector<T>(2*m + n);
+			for(int i = 0; i < m; i++) {
+				Fs(i) = dMdX(0, i)*U(0)*U(0)*dUdX(0, 0) + dMdX(0, i)*U(0)*U(1)*dUdX(1, 0) + dMdX(1, i)*U(1)*U(0)*dUdX(0, 0) + dMdX(1, i)*U(1)*U(1)*dUdX(1, 0) + dMdX(0, i)*U(0)*dPdX(0) + dMdX(1, i)*U(1)*dPdX(0);
+				Fs(i + m) = dMdX(0, i)*U(0)*U(0)*dUdX(0, 1) + dMdX(0, i)*U(0)*U(1)*dUdX(1, 1) + dMdX(1, i)*U(1)*U(0)*dUdX(0, 1) + dMdX(1, i)*U(1)*U(1)*dUdX(1, 1) + dMdX(0, i)*U(0)*dPdX(1) + dMdX(1, i)*U(1)*dPdX(1);
+			}
+			for(int i = 0; i < n; i++) {
+				Fs(i + 2*m) = dNdX(0, i)*U(0)*dUdX(0, 0) + dNdX(0, i)*U(1)*dUdX(1, 0) + dNdX(0, i)*dPdX(0) + dNdX(1, i)*U(0)*dUdX(0, 1) + dNdX(1, i)*U(1)*dUdX(1, 1) + dNdX(1, i)*dPdX(1);
+			}
+			_Fe -= Fs*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 

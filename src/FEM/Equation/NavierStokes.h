@@ -143,6 +143,14 @@ namespace PANSFEM2 {
 			p(i) = _up[_elementp[i]](2);
 		}
 
+		T area = T();
+		for (int g = 0; g < IC<T>::N; g++) {
+			Matrix<T> dNdr = SFP<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*Xp;
+			T J = dXdr.Determinant();
+			area += J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+
 		for (int g = 0; g < IC<T>::N; g++) {
 			Vector<T> N = SFP<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SFP<T>::dNdr(IC<T>::Points[g]);
@@ -189,20 +197,18 @@ namespace PANSFEM2 {
 			_Fe -= F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 
 			//----------Stabilizing parameter----------
-			Vector<T> dMdXU = dMdX.Transpose()*U;
-			T UNorm = std::max(U.Norm(), 1.0e-10);
-			T sum = T();
-			for(int i = 0; i < m; i++){
-				sum += fabs(dMdXU(i))/UNorm;
-			}
-			T he = 2.0/sum;
-			T alpha = 0.5*UNorm*he*_rho/_mu;
-			T tau = 0.5*he/UNorm;
-			if(alpha <= 3.0){
-				tau *= alpha/3.0;
-			} else{
-				tau *= 1.0;
-			}
+			T UNorm = U.Norm();
+			T he = T();
+			/*if(UNorm > 1.0e-3) {
+				Vector<T> dMdXU = dMdX.Transpose()*U;
+				for(int i = 0; i < m; i++) {
+					he += fabs(dMdXU(i));
+				}
+				he = 2.0*UNorm/he;
+			} else {
+			*/	he = sqrt(area);
+			//}
+			T tau = 1.0/sqrt(pow(2.0*UNorm/he, 2.0) + pow(4.0*_mu/(_rho*pow(he, 2.0)), 2.0));
 
 			//----------PSPG/SUPG term----------
 			Matrix<T> Ks = Matrix<T>(2*m + n, 2*m + n);
@@ -211,7 +217,7 @@ namespace PANSFEM2 {
 					K(i, j) = _rho*(2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 0) + dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 0) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 0) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1)) + dMdX(0, i)*M(j)*dPdX(0);
 					K(i, j + m) = _rho*(dMdX(0, i)*M(j)*U(0)*dUdX(1, 0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 0) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 0)) + dMdX(1, i)*M(j)*dPdX(0);
 					K(i + m, j) = _rho*(2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 1) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 1)) + dMdX(0, i)*M(j)*dPdX(1);
-					K(i + m, j + m) = _rho*(dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(0)*dUdX(1, 1) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 0)) + dMdX(1, i)*M(j)*dPdX(1);
+					K(i + m, j + m) = _rho*(dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(0)*dUdX(1, 1) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 1)) + dMdX(1, i)*M(j)*dPdX(1);
 				}
 				for(int j = 0; j < n; j++) {
 					K(i, j + 2*m) = dMdX(0, i)*dNdX(0, j)*U(0) + dMdX(1, i)*dNdX(0, j)*U(1);

@@ -189,14 +189,15 @@ namespace PANSFEM2 {
 			_Fe -= F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 
 			//----------Stabilizing parameter----------
-			Vector<T> dMdXU = dMdX.Transpose()*U; 
+			Vector<T> dMdXU = dMdX.Transpose()*U;
+			T UNorm = std::max(U.Norm(), 1.0e-10);
 			T sum = T();
 			for(int i = 0; i < m; i++){
-				sum += fabs(dMdXU(i))/U.Norm();
+				sum += fabs(dMdXU(i))/UNorm;
 			}
 			T he = 2.0/sum;
-			T alpha = 0.5*U.Norm()*he*_rho/_mu;
-			T tau = 0.5*he/U.Norm();
+			T alpha = 0.5*UNorm*he*_rho/_mu;
+			T tau = 0.5*he/UNorm;
 			if(alpha <= 3.0){
 				tau *= alpha/3.0;
 			} else{
@@ -207,10 +208,10 @@ namespace PANSFEM2 {
 			Matrix<T> Ks = Matrix<T>(2*m + n, 2*m + n);
 			for(int i = 0; i < m; i++) {
 				for(int j = 0; j < m; j++) {
-					K(i, j) = 2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 0) + dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 0) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 0) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1) + dMdX(0, i)*M(j)*dPdX(0);
-					K(i, j + m) = dMdX(0, i)*M(j)*U(0)*dUdX(1, 0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 0) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 0) + dMdX(1, i)*M(j)*dPdX(0);
-					K(i + m, j) = 2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 1) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 1) + dMdX(0, i)*M(j)*dPdX(1);
-					K(i + m, j + m) = dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(0)*dUdX(1, 1) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 0) + dMdX(1, i)*M(j)*dPdX(1);
+					K(i, j) = _rho*(2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 0) + dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 0) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 0) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1)) + dMdX(0, i)*M(j)*dPdX(0);
+					K(i, j + m) = _rho*(dMdX(0, i)*M(j)*U(0)*dUdX(1, 0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 0) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 0)) + dMdX(1, i)*M(j)*dPdX(0);
+					K(i + m, j) = _rho*(2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 1) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 1)) + dMdX(0, i)*M(j)*dPdX(1);
+					K(i + m, j + m) = _rho*(dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(0)*dUdX(1, 1) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 0)) + dMdX(1, i)*M(j)*dPdX(1);
 				}
 				for(int j = 0; j < n; j++) {
 					K(i, j + 2*m) = dMdX(0, i)*dNdX(0, j)*U(0) + dMdX(1, i)*dNdX(0, j)*U(1);
@@ -220,17 +221,17 @@ namespace PANSFEM2 {
 					K(i + 2*m, j + 2*m) = dNdX(0, i)*dNdX(0, j) + dNdX(1, i)*dNdX(1, j);
 				}
 			}
-			_Ke += Ks*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Ke += tau*Ks*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 
 			Vector<T> Fs = Vector<T>(2*m + n);
 			for(int i = 0; i < m; i++) {
-				Fs(i) = dMdX(0, i)*U(0)*U(0)*dUdX(0, 0) + dMdX(0, i)*U(0)*U(1)*dUdX(1, 0) + dMdX(1, i)*U(1)*U(0)*dUdX(0, 0) + dMdX(1, i)*U(1)*U(1)*dUdX(1, 0) + dMdX(0, i)*U(0)*dPdX(0) + dMdX(1, i)*U(1)*dPdX(0);
-				Fs(i + m) = dMdX(0, i)*U(0)*U(0)*dUdX(0, 1) + dMdX(0, i)*U(0)*U(1)*dUdX(1, 1) + dMdX(1, i)*U(1)*U(0)*dUdX(0, 1) + dMdX(1, i)*U(1)*U(1)*dUdX(1, 1) + dMdX(0, i)*U(0)*dPdX(1) + dMdX(1, i)*U(1)*dPdX(1);
+				Fs(i) = _rho*(dMdX(0, i)*U(0)*U(0)*dUdX(0, 0) + dMdX(0, i)*U(0)*U(1)*dUdX(1, 0) + dMdX(1, i)*U(1)*U(0)*dUdX(0, 0) + dMdX(1, i)*U(1)*U(1)*dUdX(1, 0)) + dMdX(0, i)*U(0)*dPdX(0) + dMdX(1, i)*U(1)*dPdX(0);
+				Fs(i + m) = _rho*(dMdX(0, i)*U(0)*U(0)*dUdX(0, 1) + dMdX(0, i)*U(0)*U(1)*dUdX(1, 1) + dMdX(1, i)*U(1)*U(0)*dUdX(0, 1) + dMdX(1, i)*U(1)*U(1)*dUdX(1, 1)) + dMdX(0, i)*U(0)*dPdX(1) + dMdX(1, i)*U(1)*dPdX(1);
 			}
 			for(int i = 0; i < n; i++) {
 				Fs(i + 2*m) = dNdX(0, i)*U(0)*dUdX(0, 0) + dNdX(0, i)*U(1)*dUdX(1, 0) + dNdX(0, i)*dPdX(0) + dNdX(1, i)*U(0)*dUdX(0, 1) + dNdX(1, i)*U(1)*dUdX(1, 1) + dNdX(1, i)*dPdX(1);
 			}
-			_Fe -= Fs*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			_Fe -= tau*Fs*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 

@@ -214,17 +214,17 @@ namespace PANSFEM2 {
 			Matrix<T> Ks = Matrix<T>(2*m + n, 2*m + n);
 			for(int i = 0; i < m; i++) {
 				for(int j = 0; j < m; j++) {
-					K(i, j) = _rho*(2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 0) + dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 0) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 0) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1)) + dMdX(0, i)*M(j)*dPdX(0);
-					K(i, j + m) = _rho*(dMdX(0, i)*M(j)*U(0)*dUdX(1, 0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 0) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 0)) + dMdX(1, i)*M(j)*dPdX(0);
-					K(i + m, j) = _rho*(2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 1) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 1)) + dMdX(0, i)*M(j)*dPdX(1);
-					K(i + m, j + m) = _rho*(dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(0)*dUdX(1, 1) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 1)) + dMdX(1, i)*M(j)*dPdX(1);
+					Ks(i, j) = _rho*(2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 0) + dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 0) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 0) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1)) + dMdX(0, i)*M(j)*dPdX(0);
+					Ks(i, j + m) = _rho*(dMdX(0, i)*M(j)*U(0)*dUdX(1, 0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 0) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 0)) + dMdX(1, i)*M(j)*dPdX(0);
+					Ks(i + m, j) = _rho*(2.0*dMdX(0, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(0, i)*M(j)*U(1)*dUdX(1, 1) + dMdX(1, i)*M(j)*U(1)*dUdX(0, 1)) + dMdX(0, i)*M(j)*dPdX(1);
+					Ks(i + m, j + m) = _rho*(dMdX(0, i)*dMdX(0, j)*U(0)*U(0) + dMdX(0, i)*dMdX(1, j)*U(0)*U(1) + dMdX(0, i)*M(j)*U(0)*dUdX(1, 1) + dMdX(1, i)*dMdX(0, j)*U(1)*U(0) + dMdX(1, i)*M(j)*U(0)*dUdX(0, 1) + dMdX(1, i)*dMdX(1, j)*U(1)*U(1) + 2.0*dMdX(1, i)*M(j)*U(1)*dUdX(1, 1)) + dMdX(1, i)*M(j)*dPdX(1);
 				}
 				for(int j = 0; j < n; j++) {
-					K(i, j + 2*m) = dMdX(0, i)*dNdX(0, j)*U(0) + dMdX(1, i)*dNdX(0, j)*U(1);
-					K(i + m, j + 2*m) = dMdX(0, i)*dNdX(1, j)*U(0) + dMdX(1, i)*dNdX(1, j)*U(1);
-					K(j + 2*m, i) = dNdX(0, i)*dMdX(0, j)*U(0) + dNdX(0, i)*M(j)*dUdX(0, 0) + dNdX(0, i)*dMdX(1, j)*U(1) + dNdX(1, i)*M(j)*dUdX(0, 1);
-					K(j + 2*m, i + m) = dNdX(0, i)*M(j)*dUdX(1, 0) + dNdX(1, i)*dMdX(0, j)*U(0) + dNdX(1, i)*dMdX(1, j)*U(1) + dNdX(1, i)*M(j)*dUdX(1, 1);
-					K(i + 2*m, j + 2*m) = dNdX(0, i)*dNdX(0, j) + dNdX(1, i)*dNdX(1, j);
+					Ks(i, j + 2*m) = dMdX(0, i)*dNdX(0, j)*U(0) + dMdX(1, i)*dNdX(0, j)*U(1);
+					Ks(i + m, j + 2*m) = dMdX(0, i)*dNdX(1, j)*U(0) + dMdX(1, i)*dNdX(1, j)*U(1);
+					Ks(j + 2*m, i) = dNdX(0, i)*dMdX(0, j)*U(0) + dNdX(0, i)*M(j)*dUdX(0, 0) + dNdX(0, i)*dMdX(1, j)*U(1) + dNdX(1, i)*M(j)*dUdX(0, 1);
+					Ks(j + 2*m, i + m) = dNdX(0, i)*M(j)*dUdX(1, 0) + dNdX(1, i)*dMdX(0, j)*U(0) + dNdX(1, i)*dMdX(1, j)*U(1) + dNdX(1, i)*M(j)*dUdX(1, 1);
+					Ks(i + 2*m, j + 2*m) = dNdX(0, i)*dNdX(0, j) + dNdX(1, i)*dNdX(1, j);
 				}
 			}
 			_Ke += tau*Ks*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];

@@ -20,7 +20,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-    double E0 = 1000;
+    double E0 = 0;
     double E1 = 100.0;
     double Poisson = 0.3;
 

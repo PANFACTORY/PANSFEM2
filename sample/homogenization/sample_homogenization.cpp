@@ -4,6 +4,7 @@
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
 #include "../../src/PrePost/Import/ImportFromCSV.h"
+#include "../../src/PrePost/Mesher/SquareAnnulusMesh.h"
 #include "../../src/FEM/Equation/PlaneStrain.h"
 #include "../../src/FEM/Equation/Homogenization.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
@@ -19,7 +20,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-	std::string model_path = "sample/homogenization/model2/";
+	std::string model_path = "sample/homogenization/model4/";
 	std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elements;
@@ -39,8 +40,8 @@ int main() {
 	std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);
 	
     for (int i = 0; i < elements.size(); i++) {
-		double E = 68.894;//10.0;
-		double Poisson = 0.33;
+		double E = 100.0;//68.894;//10.0;
+		double Poisson = 0.3;
 		if(i%2 == 1) {
 			//E *= 10.0;
 		}
@@ -82,8 +83,8 @@ int main() {
 	Matrix<double> I = Matrix<double>(3, 3);
 	double volume = 0.0;
 	for (int i = 0; i < elements.size(); i++) {
-		double E = 68.894;//10.0;
-		double Poisson = 0.33;
+		double E = 100.0;//68.894;//10.0;
+		double Poisson = 0.3;
 		if(i%2 == 1) {
 			//E *= 10.0;
 		}

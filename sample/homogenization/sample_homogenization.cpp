@@ -21,11 +21,16 @@ using namespace PANSFEM2;
 
 int main() {
 	std::string model_path = "sample/homogenization/model4/";
-	std::vector<Vector<double> > x;
+
+	SquareAnnulusMesh<double> mesh = SquareAnnulusMesh<double>(1.0, 1.0, 0.7, 0.7, 20, 20, 5);
+    std::vector<Vector<double> > x = mesh.GenerateNodes();
+    std::vector<std::vector<int> > elements = mesh.GenerateElements();
+
+	/*std::vector<Vector<double> > x;
 	ImportNodesFromCSV(x, model_path + "Node.csv");
 	std::vector<std::vector<int> > elements;
 	ImportElementsFromCSV(elements, model_path + "Element.csv");
-    std::vector<std::pair<int, int> > ufixed;
+*/    std::vector<std::pair<int, int> > ufixed;
 	ImportPeriodicFromCSV(ufixed, model_path + "Periodic.csv");
 
     std::vector<Vector<double> > chi0 = std::vector<Vector<double> >(x.size(), Vector<double>(2));

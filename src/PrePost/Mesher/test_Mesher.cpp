@@ -2,34 +2,33 @@
 #include <vector>
 
 
-#include "SquareMesh.h"
+#include "SquareAnnulusMesh.h"
 #include "../Export/ExportToVTK.h"
+#include "../../FEM/Equation/General.h"
+#include "../../FEM/Controller/GaussIntegration.h"
+#include "../../FEM/Controller/ShapeFunction.h"
 
 
 using namespace PANSFEM2;
 
 
 int main(){
-    SquareMesh<double> mesh = SquareMesh<double>(5.0, 4.0, 5, 4);
+    SquareAnnulusMesh<double> mesh = SquareAnnulusMesh<double>(5.0, 4.0, 2.0, 3.0, 5, 4, 3);
     std::vector<Vector<double> > nodes = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::vector<int> > edges = mesh.GenerateEdges();
-    /*std::vector<int> isufixed = mesh.GenerateFixedlist(2, { 0, 1 }, [](Vector<double> _x){
-        if(_x.Norm() < 1.0 + 1.0e-5) {
-            return true;
-        }
-        return false;
-    });*/
-    std::vector<int> elements0 = mesh.GenerateElementIdsSelected([](Vector<double> _x){
-        double eps = 1.0e-5;
-        if(2.0 - eps < _x(0) && _x(0) < 4.0 + eps && 1.0 - eps < _x(1) && _x(1) < 3.0 + eps) {
-            return true;
-        }
-        return false;
-    });
 
-    for(auto i : elements0) {
-        std::cout << i << std::endl;    
+    double area = 0.0;
+    for(auto element : elements) {
+        area += Area<double, ShapeFunction4Square, Gauss4Square>(nodes, element);
+    }
+    std::cout << area << std::endl;
+
+    for(auto element : elements) {
+        for(auto nodeid : element) {
+            std::cout << nodeid << "\t";
+        }
+        std::cout << std::endl;
     }
 
     std::ofstream fout("result.vtk");

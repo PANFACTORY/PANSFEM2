@@ -59,12 +59,12 @@ private:
         for(int i = 0; i < this->nt + 1; i++){
             T t = i/(T)this->nt;
             for(int j = 0; j < this->ny; j++){
-                nodes[this->nxy*i + j] = { (1 - t)*0.5*this->a + t*0.5*this->c, (1 - t)*this->b*(j/(T)this->ny - 0.5) + t*this->d*(j/(T)this->ny - 0.5) };
-                nodes[this->nxy*i + j + this->ny + this->nx] = { -(1 - t)*0.5*this->a - t*0.5*this->c, (1 - t)*this->b*(0.5 - j/(T)this->ny) + t*this->d*(0.5 - j/(T)this->ny) };
+                nodes[this->nxy*i + j] = { t*0.5*this->a + (1 - t)*0.5*this->c, t*this->b*(j/(T)this->ny - 0.5) + (1 - t)*this->d*(j/(T)this->ny - 0.5) };
+                nodes[this->nxy*i + j + this->ny + this->nx] = { -t*0.5*this->a - (1 - t)*0.5*this->c, t*this->b*(0.5 - j/(T)this->ny) + (1 - t)*this->d*(0.5 - j/(T)this->ny) };
             }
             for(int j = 0; j < this->nx; j++){
-                nodes[this->nxy*i + j + this->ny] = { (1 - t)*this->a*(0.5 - j/(T)this->nx) + t*this->c*(0.5 - j/(T)this->nx), (1 - t)*0.5*this->b + t*0.5*this->d };
-                nodes[this->nxy*i + j + 2*this->ny + this->nx] = { (1 - t)*this->a*(j/(T)this->nx - 0.5) + t*this->c*(j/(T)this->nx - 0.5), -(1 - t)*0.5*this->b - t*0.5*this->d };
+                nodes[this->nxy*i + j + this->ny] = { t*this->a*(0.5 - j/(T)this->nx) + (1 - t)*this->c*(0.5 - j/(T)this->nx), t*0.5*this->b + (1 - t)*0.5*this->d };
+                nodes[this->nxy*i + j + 2*this->ny + this->nx] = { t*this->a*(j/(T)this->nx - 0.5) + (1 - t)*this->c*(j/(T)this->nx - 0.5), -t*0.5*this->b - (1 - t)*0.5*this->d };
             }
         }
         return nodes;

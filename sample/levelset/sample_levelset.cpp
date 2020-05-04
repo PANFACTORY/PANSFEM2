@@ -49,8 +49,31 @@ int main() {
     //----------最適化ループ----------
     for(int t = 0; t < 200; t++) {
         //----------ステップ2：固定設計領域の有限要素離散化と数値解析----------
+        std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(2));
+        std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
+        
+        SetDirichlet(u, nodetoglobal, ufixed);
+        int KDEGREE = Renumbering(nodetoglobal);
+
+        LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+        std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
+
+		for (int i = 0; i < elements.size(); i++) {
+			double E = E1*pow(rho[i], p) + E0*(1.0 - pow(rho[i], p));
+			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+            Matrix<double> Ke;
+            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, E, 0.3, 1.0);
+            Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, elements[i]);
+		}
+
+        Assembling(F, qfixed, nodetoglobal);
+
+        CSR<double> Kmod = CSR<double>(K);	
+        std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
+        Disassembling(u, result, nodetoglobal);
 
         //----------ステップ3：目的汎関数と制約汎関数の計算----------
+        double objective = 
 
         //----------ステップ4：収束条件の判定----------
 

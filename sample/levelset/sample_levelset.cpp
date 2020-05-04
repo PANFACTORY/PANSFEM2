@@ -28,6 +28,10 @@ int main() {
     double d = -0.02;
     double p = 4.0;
 
+    double A1 = -1.5*(1.0 - nu)*(1.0 - 14.0*nu + 15.0*pow(nu, 2.0))*E0/((1.0 + nu)*(7.0 - 5.0*nu)*pow(1.0 - 2.0*nu, 2.0));
+    double A2 = 7.5*(1.0 - nu)*E0/((1.0 + nu)*(7.0 - 5.0*nu));
+    double c = A1/(A1 + 2.0*A2);
+
 
     //----------ステップ1：固定設計領域と境界条件の設定----------
     SquareMesh<double> mesh = SquareMesh<double>(80.0, 60.0, 160, 120);
@@ -100,8 +104,20 @@ int main() {
         //----------ステップ4：収束条件の判定----------
 
         //----------ステップ5：目的汎関数と制約汎関数の設計感度の計算----------
+        std::vector<double> TD = std::vector<double>(elements.size());
+        for (int i = 0; i < elements.size(); i++) {
+			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+            Matrix<double> Ke;
+            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*pow(1.0 - c, 2.0), c, 1.0);
+            Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
+            SED[i] = (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
+        }
+        std::vector<double> TDN = std::vector<double>(x.size());
+
 
         //----------ステップ6：レベルセット関数の更新，ステップ2に戻る----------
+        double ex = Vmax + (volInit - Vmax)*std::max(0.0, 1.0 - t/(double)nvol);
+        
     }
     
     

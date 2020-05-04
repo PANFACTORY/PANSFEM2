@@ -23,7 +23,7 @@ using namespace PANSFEM2;
 int main() {
     //----------ステップ0：設計変数の設定----------
     double Vmax = 0.4;
-    double tau = 0.07;
+    double tau = 2.0e-4;
     double E0 = 1.0;
     double Emin = 1.0e-4;
     double nu = 0.3;
@@ -64,7 +64,7 @@ int main() {
     
 
     //----------最適化ループ----------
-    for(int t = 0; t < 100; t++) {
+    for(int t = 0; t < 400; t++) {
         //----------ステップ2：固定設計領域の有限要素離散化と数値解析----------
         std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(2));
         std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
@@ -117,7 +117,7 @@ int main() {
 
 
         //----------ステップ5：目的汎関数と制約汎関数の設計感度の計算----------
-        std::vector<double> TD = std::vector<double>(elements.size());
+        std::vector<double> TD = std::vector<double>(elements.size(), 0.0);
         for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
@@ -131,7 +131,7 @@ int main() {
         double ex = Vmax + (volInit - Vmax)*std::max(0.0, 1.0 - t/(double)nvol);
         double lambda = std::accumulate(TD.begin(), TD.end(), 0.0)/(double)x.size()*exp(p*((vol - ex)/ex + d));
         double C = 0.0;
-        for(int i = 0; i < x.size(); i++) {
+        for(int i = 0; i < elements.size(); i++) {
             C += fabs(TD[i]);
         }
         C = 1.0/C*elements.size();
@@ -146,7 +146,7 @@ int main() {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Te;
             Vector<double> Ye;
-            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau, C*(TD[i] - lambda), phi);
+            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau*elements.size(), C*(TD[i] - lambda), phi);
             Assembling(T, Y, phi, Te, Ye, nodetoglobal2, nodetoelement, elements[i]);
 		}
 

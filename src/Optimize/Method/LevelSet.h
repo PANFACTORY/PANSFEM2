@@ -19,7 +19,6 @@ namespace PANSFEM2 {
     //********************Make LevelSet method equation********************
     template<class T, template<class>class SF, template<class>class IC>
     void LevelSet(Matrix<T>& _Te, Vector<T>& _Ye, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _dt, T _tau, T _F, std::vector<Vector<T> >& _phi) {
-
         assert(_doulist.size() == 1);
 
 		_Te = Matrix<T>(_element.size(), _element.size());

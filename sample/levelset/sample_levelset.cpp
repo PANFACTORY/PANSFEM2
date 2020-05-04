@@ -1,8 +1,16 @@
 #include <iostream>
 #include <vector>
+#include <numeric>
 
 
+#include "../../src/LinearAlgebra/Models/Vector.h"
 #include "../../src/PrePost/Mesher/SquareMesh.h"
+#include "../../src/FEM/Equation/PlaneStrain.h"
+#include "../../src/FEM/Controller/ShapeFunction.h"
+#include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/BoundaryCondition.h"
+#include "../../src/FEM/Controller/Assembling.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
 
 
 using namespace PANSFEM2;
@@ -44,6 +52,7 @@ int main() {
 
     std::vector<Vector<double> > phi = std::vector<Vector<double> >(x.size(), { 1.0 });     //  φ
     std::vector<double> str = std::vector<double>(elements.size(), 1.0);                    //  χ(φ)
+    double volInit = std::accumulate(str.begin(), str.end(), 0.0)/(double)elements.size();
     
 
     //----------最適化ループ----------
@@ -59,10 +68,9 @@ int main() {
         std::vector<double> F = std::vector<double>(KDEGREE, 0.0);
 
 		for (int i = 0; i < elements.size(); i++) {
-			double E = E1*pow(rho[i], p) + E0*(1.0 - pow(rho[i], p));
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, E, 0.3, 1.0);
+            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, Emin + str[i]*(E0 - Emin), nu, 1.0);
             Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, elements[i]);
 		}
 
@@ -72,8 +80,22 @@ int main() {
         std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
         Disassembling(u, result, nodetoglobal);
 
+
         //----------ステップ3：目的汎関数と制約汎関数の計算----------
-        double objective = 
+        std::vector<double> SED = std::vector<double>(elements.size());
+        for (int i = 0; i < elements.size(); i++) {
+			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+            Matrix<double> Ke;
+            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, Emin + str[i]*(E0 - Emin), nu, 1.0);
+            Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
+            SED[i] = ue*(Ke*ue);
+        }
+
+        double objective = std::accumulate(SED.begin(), SED.end(), 0.0);
+        double vol = std::accumulate(str.begin(), str.end(), 0.0)/(double)elements.size();
+
+        std::cout << "t = " << t << "\tCompliance = " << objective << "\tVolume = " << vol << std::endl;
+
 
         //----------ステップ4：収束条件の判定----------
 

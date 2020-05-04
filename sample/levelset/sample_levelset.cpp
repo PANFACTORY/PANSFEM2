@@ -13,6 +13,8 @@
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/Optimize/Method/LevelSet.h"
 #include "../../src/FEM/Equation/General.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
 
 
 using namespace PANSFEM2;
@@ -36,7 +38,7 @@ int main() {
 
 
     //----------ステップ1：固定設計領域と境界条件の設定----------
-    SquareMesh<double> mesh = SquareMesh<double>(80.0, 60.0, 160, 120);
+    SquareMesh<double> mesh = SquareMesh<double>(80.0, 60.0, 80, 60);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x){
@@ -62,7 +64,7 @@ int main() {
     
 
     //----------最適化ループ----------
-    for(int t = 0; t < 200; t++) {
+    for(int t = 0; t < 100; t++) {
         //----------ステップ2：固定設計領域の有限要素離散化と数値解析----------
         std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(2));
         std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
@@ -104,6 +106,15 @@ int main() {
 
 
         //----------ステップ4：収束条件の判定----------
+        std::ofstream fout("sample/levelset/result" + std::to_string(t) + ".vtk");
+		MakeHeadderToVTK(fout);
+		AddPointsToVTK(x, fout);
+		AddElementToVTK(elements, fout);
+		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
+		AddPointVectors(u, "u", fout, true);
+		AddElementScalers(str, "str", fout, true);
+		fout.close();
+
 
         //----------ステップ5：目的汎関数と制約汎関数の設計感度の計算----------
         std::vector<double> TD = std::vector<double>(elements.size());
@@ -147,7 +158,18 @@ int main() {
             phi[i](0) = std::max(std::min(1.0, phi[i](0)), -1.0);
         }
 
-
+        for(int i = 0; i < elements.size(); i++) {
+            double phie = 0.0;
+            for(int j = 0; j < elements[i].size(); j++) {
+                phie += phi[elements[i][j]](0);
+            }
+            phie /= (double)elements[i].size();
+            if(phie > 0.0) {
+                str[i] = 1.0;
+            } else {
+                str[i] = 0.0;
+            }
+        }
     }
     
     

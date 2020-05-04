@@ -12,6 +12,7 @@
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/Optimize/Method/LevelSet.h"
+#include "../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -111,7 +112,7 @@ int main() {
             Matrix<double> Ke;
             PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*pow(1.0 - c, 2.0), c, 1.0);
             Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
-            SED[i] = (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
+            TD[i] = (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
         }
 
 
@@ -124,7 +125,7 @@ int main() {
         }
         C = 1.0/C*elements.size();
 
-        std::vector<std::vector<int> > nodetoglobal2 = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
+        std::vector<std::vector<int> > nodetoglobal2 = std::vector<std::vector<int> >(x.size(), std::vector<int>(1, 0));
         int TDEGREE = Renumbering(nodetoglobal2);
 
         LILCSR<double> T = LILCSR<double>(TDEGREE, TDEGREE);
@@ -134,7 +135,7 @@ int main() {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Te;
             Vector<double> Ye;
-            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau, TD[i], phi);
+            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau, C*(TD[i] - lambda), phi);
             Assembling(T, Y, phi, Te, Ye, nodetoglobal2, nodetoelement, elements[i]);
 		}
 
@@ -142,7 +143,11 @@ int main() {
         std::vector<double> result2 = ScalingCG(Tmod, Y, 100000, 1.0e-10);
         Disassembling(phi, result2, nodetoglobal2);
 
-        
+        for(int i = 0; i < x.size(); i++) {
+            phi[i](0) = std::max(std::min(1.0, phi[i](0)), -1.0);
+        }
+
+
     }
     
     

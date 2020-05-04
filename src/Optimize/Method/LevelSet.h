@@ -47,8 +47,8 @@ namespace PANSFEM2 {
 			T J = dXdr.Determinant();
 			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
             T phi = N*Phi;
-            Te += (N*N.transpose()/_dt + _tau*dNdX.Transpose()*dNdX)*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
-            Ye += (-_F + phi/dt)*N*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+            _Te += (N*N.Transpose()/_dt + _tau*dNdX.Transpose()*dNdX)*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+            _Ye += (-_F + phi/_dt)*N*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
         }
     }
 }

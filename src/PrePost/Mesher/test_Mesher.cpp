@@ -13,10 +13,10 @@ using namespace PANSFEM2;
 
 
 int main(){
-    SquareAnnulusMesh<double> mesh = SquareAnnulusMesh<double>(5.0, 4.0, 2.0, 3.0, 5, 4, 3);
+    SquareAnnulusMesh2<double> mesh = SquareAnnulusMesh2<double>(10.0, 7.0, 10, 7, 4, 3);
     std::vector<Vector<double> > nodes = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
-    std::vector<std::vector<int> > edges = mesh.GenerateEdges();
+    //std::vector<std::vector<int> > edges = mesh.GenerateEdges();
 
     double area = 0.0;
     for(auto element : elements) {
@@ -24,12 +24,12 @@ int main(){
     }
     std::cout << area << std::endl;
 
-    for(auto element : elements) {
+    /*for(auto element : elements) {
         for(auto nodeid : element) {
             std::cout << nodeid << "\t";
         }
         std::cout << std::endl;
-    }
+    }*/
 
     std::ofstream fout("result.vtk");
     MakeHeadderToVTK(fout);

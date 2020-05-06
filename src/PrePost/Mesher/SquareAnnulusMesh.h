@@ -132,4 +132,127 @@ private:
         }
         return ufixed;
     }
+
+
+    //********************SquareAnnulusMesh2*******************
+    template<class T>
+    class SquareAnnulusMesh2 {
+public:
+        SquareAnnulusMesh2(T _a, T _b, int _nx, int _ny, int _na, int _nb);
+        ~SquareAnnulusMesh2();
+
+
+        std::vector<Vector<T> > GenerateNodes();
+        std::vector<std::vector<int> > GenerateElements();
+private:
+        T a, b;
+        int nx, ny, nv, nw, nxv, nyw; 
+    };
+
+
+    template<class T>
+    SquareAnnulusMesh2<T>::SquareAnnulusMesh2(T _a, T _b, int _nx, int _ny, int _nv, int _nw) {
+        assert((_nx - _nv)%2 == 0 && (_ny - _nw)%2 == 0);
+        this->a = _a;
+        this->b = _b;
+        this->nx = _nx;
+        this->ny = _ny;
+        this->nv = _nv;
+        this->nw = _nw;
+
+        this->nxv = (this->nx - this->nv)/2;
+        this->nyw = (this->ny - this->nw)/2;
+    }
+
+
+    template<class T>
+    SquareAnnulusMesh2<T>::~SquareAnnulusMesh2() {}
+
+
+    template<class T>
+    std::vector<Vector<T> > SquareAnnulusMesh2<T>::GenerateNodes() {
+        std::vector<Vector<T> > nodes = std::vector<Vector<T> >((this->nx + 1)*(this->ny + 1) - (this->nv - 1)*(this->nw - 1));
+        int nodeid = 0;
+        for(int i = 0; i < this->nxv + 1; i++) {
+            for(int j = 0; j < this->ny + 1; j++) {
+                nodes[nodeid] = { this->a*i/(T)this->nx, this->b*j/(T)this->ny };
+                nodeid++;
+            }
+        }
+        for(int i = 0; i < this->nv - 1; i++) {
+            for(int j = 0; j < this->nyw + 1; j++) {
+                nodes[nodeid] = { this->a*(this->nxv + 1 + i)/(T)this->nx, this->b*j/(T)this->ny };
+                nodeid++;
+            }
+            for(int j = 0; j < this->nyw + 1; j++) {
+                nodes[nodeid] = { this->a*(this->nxv + 1 + i)/(T)this->nx, this->b*(j + this->nyw + this->nw)/(T)this->ny };
+                nodeid++;
+            }
+        }
+        for(int i = 0; i < this->nxv + 1; i++) {
+            for(int j = 0; j < this->ny + 1; j++) {
+                nodes[nodeid] = { this->a*(this->nxv + this->nv + i)/(T)this->nx, this->b*j/(T)this->ny };
+                nodeid++;
+            }
+        }
+        return nodes;
+    }
+
+
+    template<class T>
+    std::vector<std::vector<int> > SquareAnnulusMesh2<T>::GenerateElements() {
+        std::vector<std::vector<int> > elements = std::vector<std::vector<int> >(this->nx*this->ny - this->nv*this->nw);
+        int elementid = 0;
+        for(int i = 0; i < this->nxv; i++) {
+            for(int j = 0; j < this->ny; j++) {
+                elements[elementid] = { (this->ny + 1)*i + j, (this->ny + 1)*(i + 1) + j, (this->ny + 1)*(i + 1) + (j + 1), (this->ny + 1)*i + (j + 1) };
+                elementid++;
+            }
+        }
+
+        for(int j = 0; j < this->nyw; j++) {
+            elements[elementid] = { (this->ny + 1)*this->nxv + j, (this->ny + 1)*(this->nxv + 1) + j, (this->ny + 1)*(this->nxv + 1) + (j + 1), (this->ny + 1)*this->nxv + (j + 1) };
+            elementid++;
+        }
+
+        for(int i = 0; i < this->nv - 1; i++) {
+            for(int j = 0; j < this->nyw; j++) {
+                elements[elementid] = { (this->ny + 1)*this->nxv + this->nw - 1 + (this->nyw + 1)*(2*i + 1) + j,
+                    (this->ny + 1)*this->nxv + this->nw - 1 + (this->nyw + 1)*(2*i + 3) + j,
+                    (this->ny + 1)*this->nxv + this->nw - 1 + (this->nyw + 1)*(2*i + 3) + (j + 1),
+                    (this->ny + 1)*this->nxv + this->nw - 1 + (this->nyw + 1)*(2*i + 1) + (j + 1)
+                };
+                elementid++;
+            }
+            for(int j = 0; j < this->nyw; j++) {
+                elements[elementid] = { (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*i + j,
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(i + 1) + j,
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(i + 1) + (j + 1),
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*i + (j + 1),
+                };
+                elementid++;
+            }
+        }
+
+        for(int j = 0; j < this->nyw; j++) {
+            elements[elementid] = { (this->ny + 1)*(this->nxv + 1) + (this->nyw + 1)*(2*this->nv - 3) + j,
+                (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + this->nyw + this->nw + j, 
+                (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + this->nyw + this->nw + (j + 1),
+                (this->ny + 1)*(this->nxv + 1) + (this->nyw + 1)*(2*this->nv - 3) + (j + 1)
+            };
+            elementid++;
+        }
+
+        for(int i = 0; i < this->nxv; i++) {
+            for(int j = 0; j < this->ny; j++) {
+                elements[elementid] = { (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*this->nxv + (this->ny + 1)*i + j, 
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*this->nxv + (this->ny + 1)*(i + 1) + j, 
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*this->nxv + (this->ny + 1)*(i + 1) + (j + 1), 
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*this->nxv + (this->ny + 1)*i + (j + 1) };
+                elementid++;
+            }
+        }
+
+        return elements;
+    }
 }

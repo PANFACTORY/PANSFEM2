@@ -5,7 +5,7 @@
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
 #include "../../src/PrePost/Mesher/SquareMesh.h"
-#include "../../src/FEM/Equation/PlaneStrain.h"
+#include "../../src/FEM/Equation/PlaneStress.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
 #include "../../src/FEM/Controller/BoundaryCondition.h"
@@ -21,9 +21,9 @@ using namespace PANSFEM2;
 
 
 int main() {
-    //----------ステップ0：設計変数の設定----------
+    //----------ステップ0：パラメータの設定----------
     double Vmax = 0.5;
-    double tau = 2.0e-4;
+    double tau = 1.0e-2;
     double E0 = 1.0;
     double Emin = 1.0e-4;
     double nu = 0.3;
@@ -38,7 +38,7 @@ int main() {
 
 
     //----------ステップ1：固定設計領域と境界条件の設定----------
-    SquareMesh<double> mesh = SquareMesh<double>(160.0, 120.0, 160, 120);
+    SquareMesh<double> mesh = SquareMesh<double>(320.0, 240.0, 320, 240);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x){
@@ -48,7 +48,7 @@ int main() {
         return false;
     });
     std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 1 }, [](Vector<double> _x){
-        if(abs(_x(0) - 160.0) < 1.0e-5 && abs(_x(1) - 60.0) < 2.0 +  1.0e-5) {
+        if(abs(_x(0) - 320.0) < 1.0e-5 && abs(_x(1) - 120.0) < 5.0 +  1.0e-5) {
             return true;
         }
         return false;
@@ -64,7 +64,7 @@ int main() {
     
 
     //----------最適化ループ----------
-    for(int t = 1; t <= 400; t++) {
+    for(int t = 1; t <= 200; t++) {
         //----------ステップ2：固定設計領域の有限要素離散化と数値解析----------
         std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(2));
         std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
@@ -78,7 +78,7 @@ int main() {
 		for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, Emin + str[i]*(E0 - Emin), nu, 1.0);
+            PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, Emin + str[i]*(E0 - Emin), nu, 1.0);
             Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, elements[i]);
 		}
 
@@ -94,7 +94,7 @@ int main() {
         for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, Emin + str[i]*(E0 - Emin), nu, 1.0);
+            PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, Emin + str[i]*(E0 - Emin), nu, 1.0);
             Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             SED[i] = ue*(Ke*ue);
         }
@@ -121,15 +121,16 @@ int main() {
         for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*pow(1.0 - c, 2.0), c, 1.0);
+            PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*pow(1.0 - c, 2.0), c, 1.0);
             Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             TD[i] = (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
         }
 
-
-        //----------ステップ6：レベルセット関数の更新，ステップ2に戻る----------
         double ex = Vmax + (volInit - Vmax)*std::max(0.0, 1.0 - t/(double)nvol);
         double lambda = std::accumulate(TD.begin(), TD.end(), 0.0)/(double)elements.size()*exp(p*((vol - ex)/ex + d));
+
+
+        //----------ステップ6：レベルセット関数の更新，ステップ2に戻る----------
         double C = 0.0;
         for(int i = 0; i < elements.size(); i++) {
             C += fabs(TD[i]);
@@ -146,7 +147,7 @@ int main() {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Te;
             Vector<double> Ye;
-            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau*elements.size(), C*(- SED[i] - lambda), phi);
+            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau*elements.size(), C*(- TD[i] + lambda), phi);
             Assembling(T, Y, phi, Te, Ye, nodetoglobal2, nodetoelement, elements[i]);
 		}
 

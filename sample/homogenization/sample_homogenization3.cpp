@@ -22,11 +22,11 @@ using namespace PANSFEM2;
 int main() {
 	std::string model_path = "sample/homogenization/model5/";
 
-	SquareAnnulusMesh2<double> mesh = SquareAnnulusMesh2<double>(1.0, 1.0, 20, 20, 10, 10);
+	SquareAnnulusMesh2<double> mesh = SquareAnnulusMesh2<double>(1.0, 1.0, 100, 100, 50, 50);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
 
-	/*std::vector<std::pair<int, int> > ufixed;
+	std::vector<std::pair<int, int> > ufixed;
 	ImportPeriodicFromCSV(ufixed, model_path + "Periodic.csv");
 
     std::vector<Vector<double> > chi0 = std::vector<Vector<double> >(x.size(), Vector<double>(2));
@@ -70,11 +70,11 @@ int main() {
 	}
 
 	CSR<double> Kmod = CSR<double>(K);
-	std::vector<double> result0 = ScalingCG(Kmod, F0, 1, 1.0e-10);
+	std::vector<double> result0 = ScalingCG(Kmod, F0, 100000, 1.0e-10);
     Disassembling(chi0, result0, nodetoglobal);
-	std::vector<double> result1 = ScalingCG(Kmod, F1, 1, 1.0e-10);
+	std::vector<double> result1 = ScalingCG(Kmod, F1, 100000, 1.0e-10);
     Disassembling(chi1, result1, nodetoglobal);
-	std::vector<double> result2 = ScalingCG(Kmod, F2, 1, 1.0e-10);
+	std::vector<double> result2 = ScalingCG(Kmod, F2, 100000, 1.0e-10);
     Disassembling(chi2, result2, nodetoglobal);
 
 	Matrix<double> CH = Matrix<double>(3, 3);
@@ -88,16 +88,16 @@ int main() {
 		volume += Area<double, ShapeFunction4Square, Gauss4Square>(x, elements[i]);
 	}
 	std::cout << I/volume << std::endl << CH/volume << std::endl;;
-*/
+
 	std::ofstream fout(model_path + "result.vtk");
 	MakeHeadderToVTK(fout);
 	AddPointsToVTK(x, fout);
 	AddElementToVTK(elements, fout);
 	AddElementTypes(std::vector<int>(elements.size(), 9), fout);
-	/*AddPointVectors(chi0, "chi0", fout, true);
+	AddPointVectors(chi0, "chi0", fout, true);
 	AddPointVectors(chi1, "chi1", fout, false);
 	AddPointVectors(chi2, "chi2", fout, false);
-*/	fout.close();
+	fout.close();
 
 	return 0;
 }

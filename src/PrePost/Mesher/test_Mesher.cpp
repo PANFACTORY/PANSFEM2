@@ -16,20 +16,21 @@ int main(){
     SquareAnnulusMesh2<double> mesh = SquareAnnulusMesh2<double>(10.0, 7.0, 10, 7, 4, 3);
     std::vector<Vector<double> > nodes = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
-    //std::vector<std::vector<int> > edges = mesh.GenerateEdges();
+    std::vector<std::vector<int> > edges = mesh.GenerateEdges();
 
-    double area = 0.0;
+    /*double area = 0.0;
     for(auto element : elements) {
         area += Area<double, ShapeFunction4Square, Gauss4Square>(nodes, element);
     }
     std::cout << area << std::endl;
+    */
 
-    /*for(auto element : elements) {
-        for(auto nodeid : element) {
+    for(auto edge : edges) {
+        for(auto nodeid : edge) {
             std::cout << nodeid << "\t";
         }
         std::cout << std::endl;
-    }*/
+    }
 
     std::ofstream fout("result.vtk");
     MakeHeadderToVTK(fout);

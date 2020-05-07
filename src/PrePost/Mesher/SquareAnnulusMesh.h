@@ -144,6 +144,7 @@ public:
 
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
+        std::vector<std::vector<int> > GenerateEdges();
 private:
         T a, b;
         int nx, ny, nv, nw, nxv, nyw; 
@@ -254,5 +255,55 @@ private:
         }
 
         return elements;
+    }
+
+
+    template<class T>
+    std::vector<std::vector<int> > SquareAnnulusMesh2<T>::GenerateEdges() {
+        std::vector<std::vector<int> > edges = std::vector<std::vector<int> >(2*(this->nx + this->ny));
+        int edgeid = 0;
+        for(int i = 0; i < this->nxv + 1; i++) {
+            edges[edgeid] = { (this->ny + 1)*i, (this->ny + 1)*(i + 1) };
+            edgeid++;
+        }
+        for(int i = 0; i < this->nv - 1; i++) {
+            edges[edgeid] = { (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*i, (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(i + 1) };
+            edgeid++;
+        }
+        for(int i = 0; i < this->nxv; i++) {
+            edges[edgeid] = { (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + (this->ny + 1)*i, 
+                (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + (this->ny + 1)*(i + 1) 
+            };
+            edgeid++;
+        }
+        for(int j = 0; j < this->ny; j++) {
+            edges[edgeid] = { (this->ny + 1)*(2*this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + j, 
+                (this->ny + 1)*(2*this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + (j + 1) 
+            };
+            edgeid++;
+        }
+        for(int i = 0; i < this->nxv + 1; i++) {
+            edges[edgeid] = { 2*(this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) - (this->ny + 1)*i - 1, 
+                2*(this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) - (this->ny + 1)*(i + 1) - 1 
+            };
+            edgeid++;
+        }
+        for(int i = 0; i < this->nv - 1; i++) {
+            edges[edgeid] = { (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - i - 1) - 1, 
+                (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - (i + 1) - 1) - 1
+            };
+            edgeid++;
+        }
+
+        for(int i = 0; i < this->nxv; i++) {
+            edges[edgeid] = { (this->ny + 1)*(this->nxv + 1 - i) - 1, (this->ny + 1)*(this->nxv + 1 - (i + 1)) - 1 };
+            edgeid++;
+        }
+
+        for(int j = 0; j < this->ny; j++) {
+            edges[edgeid] = { this->ny - j, this->ny - (j + 1) };
+            edgeid++;
+        }
+        return edges;
     }
 }

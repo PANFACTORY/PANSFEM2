@@ -138,13 +138,15 @@ private:
     template<class T>
     class SquareAnnulusMesh2 {
 public:
-        SquareAnnulusMesh2(T _a, T _b, int _nx, int _ny, int _na, int _nb);
+        SquareAnnulusMesh2(T _a, T _b, int _nx, int _ny, int _nv, int _nw);
         ~SquareAnnulusMesh2();
 
 
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
         std::vector<std::vector<int> > GenerateEdges();
+        template<class F>
+        std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
 private:
         T a, b;
         int nx, ny, nv, nw, nxv, nyw; 
@@ -246,10 +248,10 @@ private:
 
         for(int i = 0; i < this->nxv; i++) {
             for(int j = 0; j < this->ny; j++) {
-                elements[elementid] = { (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*this->nxv + (this->ny + 1)*i + j, 
-                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*this->nxv + (this->ny + 1)*(i + 1) + j, 
-                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*this->nxv + (this->ny + 1)*(i + 1) + (j + 1), 
-                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*this->nxv + (this->ny + 1)*i + (j + 1) };
+                elements[elementid] = { (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + (this->ny + 1)*i + j, 
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + (this->ny + 1)*(i + 1) + j, 
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + (this->ny + 1)*(i + 1) + (j + 1), 
+                    (this->ny + 1)*(this->nxv + 1) + 2*(this->nyw + 1)*(this->nv - 1) + (this->ny + 1)*i + (j + 1) };
                 elementid++;
             }
         }
@@ -305,5 +307,53 @@ private:
             edgeid++;
         }
         return edges;
+    }
+
+
+    template<class T>
+    template<class F>
+    std::vector<std::pair<std::pair<int, int>, T> > SquareAnnulusMesh2<T>::GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond) {
+        assert(0 <= *std::min_element(_ulist.begin(), _ulist.end()));
+        std::vector<std::pair<std::pair<int, int>, T> > ufixed;
+        int nodeid = 0;
+        for(int i = 0; i < this->nxv + 1; i++) {
+            for(int j = 0; j < this->ny + 1; j++) {
+                if(_iscorrespond(Vector<T>({ this->a*i/(T)this->nx, this->b*j/(T)this->ny }))) {
+                    for(auto ui : _ulist) {
+                        ufixed.push_back({ { nodeid, ui }, T() });
+                    }
+                }
+                nodeid++;
+            }
+        }
+        for(int i = 0; i < this->nv - 1; i++) {
+            for(int j = 0; j < this->nyw + 1; j++) {
+                if(_iscorrespond(Vector<T>({ this->a*(this->nxv + 1 + i)/(T)this->nx, this->b*j/(T)this->ny }))) {
+                    for(auto ui : _ulist) {
+                        ufixed.push_back({ { nodeid, ui }, T() });
+                    }
+                }
+                nodeid++;
+            }
+            for(int j = 0; j < this->nyw + 1; j++) {
+                if(_iscorrespond(Vector<T>({ this->a*(this->nxv + 1 + i)/(T)this->nx, this->b*(j + this->nyw + this->nw)/(T)this->ny }))) {
+                    for(auto ui : _ulist) {
+                        ufixed.push_back({ { nodeid, ui }, T() });
+                    }
+                }
+                nodeid++;
+            }
+        }
+        for(int i = 0; i < this->nxv + 1; i++) {
+            for(int j = 0; j < this->ny + 1; j++) {
+                if(_iscorrespond(Vector<T>({ this->a*(this->nxv + this->nv + i)/(T)this->nx, this->b*j/(T)this->ny }))) {
+                    for(auto ui : _ulist) {
+                        ufixed.push_back({ { nodeid, ui }, T() });
+                    }
+                }
+                nodeid++;
+            }
+        }
+        return ufixed;
     }
 }

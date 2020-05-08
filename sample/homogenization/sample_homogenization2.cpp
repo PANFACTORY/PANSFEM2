@@ -24,7 +24,7 @@ int main() {
     double E1 = 100.0;
     double Poisson = 0.3;
 
-    double ratio = 0.7;
+    double ratio = 0.5;
     double eps = 1.0e-5;
 
     SquareMesh<double> mesh = SquareMesh<double>(1.0, 1.0, 20, 20);
@@ -126,7 +126,7 @@ int main() {
 		I += HomogenizePlaneStrainCheck<double, ShapeFunction4Square, Gauss4Square>(x, elements[id], chi0, chi1, chi2, 1.0);
 		volume += Area<double, ShapeFunction4Square, Gauss4Square>(x, elements[id]);
 	}
-	std::cout << I/volume << std::endl << CH/volume << std::endl;;
+	std::cout << I/volume << std::endl << CH/*volume*/ << std::endl;;
 
 	std::ofstream fout("sample/homogenization/model3/result.vtk");
 	MakeHeadderToVTK(fout);

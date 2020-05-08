@@ -22,7 +22,7 @@ using namespace PANSFEM2;
 int main() {
 	std::string model_path = "sample/homogenization/model5/";
 
-	SquareAnnulusMesh2<double> mesh = SquareAnnulusMesh2<double>(1.0, 1.0, 100, 100, 50, 50);
+	SquareAnnulusMesh2<double> mesh = SquareAnnulusMesh2<double>(1.0, 1.0, 20, 20, 10, 10);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
 
@@ -87,7 +87,7 @@ int main() {
 		I += HomogenizePlaneStrainCheck<double, ShapeFunction4Square, Gauss4Square>(x, elements[i], chi0, chi1, chi2, 1.0);
 		volume += Area<double, ShapeFunction4Square, Gauss4Square>(x, elements[i]);
 	}
-	std::cout << I/volume << std::endl << CH/volume << std::endl;;
+	std::cout << I/volume << std::endl << CH/*volume*/ << std::endl;;
 
 	std::ofstream fout(model_path + "result.vtk");
 	MakeHeadderToVTK(fout);

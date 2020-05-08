@@ -23,7 +23,7 @@ using namespace PANSFEM2;
 int main() {
     //----------ステップ0：パラメータの設定----------
     double Vmax = 0.5;
-    double tau = 1.0e-2;
+    double tau = 2.0e-4;
     double E0 = 1.0;
     double Emin = 1.0e-4;
     double nu = 0.3;
@@ -32,13 +32,15 @@ int main() {
     double d = -0.02;
     double p = 4.0;
 
+    int tmax = 200;
+
     double A1 = -1.5*(1.0 - nu)*(1.0 - 14.0*nu + 15.0*pow(nu, 2.0))*E0/((1.0 + nu)*(7.0 - 5.0*nu)*pow(1.0 - 2.0*nu, 2.0));
     double A2 = 7.5*(1.0 - nu)*E0/((1.0 + nu)*(7.0 - 5.0*nu));
     double c = A1/(A1 + 2.0*A2);
 
 
     //----------ステップ1：固定設計領域と境界条件の設定----------
-    SquareMesh<double> mesh = SquareMesh<double>(320.0, 240.0, 320, 240);
+    SquareMesh<double> mesh = SquareMesh<double>(80.0, 60.0, 80, 60);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x){
@@ -48,7 +50,7 @@ int main() {
         return false;
     });
     std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 1 }, [](Vector<double> _x){
-        if(abs(_x(0) - 320.0) < 1.0e-5 && abs(_x(1) - 120.0) < 5.0 +  1.0e-5) {
+        if(abs(_x(0) - 80.0) < 1.0e-5 && abs(_x(1) - 30.0) < 1.0 +  1.0e-5) {
             return true;
         }
         return false;
@@ -61,10 +63,11 @@ int main() {
     std::vector<Vector<double> > phi = std::vector<Vector<double> >(x.size(), { 1.0 });     //  φ
     std::vector<double> str = std::vector<double>(elements.size(), 1.0);                    //  χ(φ)
     double volInit = std::accumulate(str.begin(), str.end(), 0.0)/(double)elements.size();
+    std::vector<double> objective = std::vector<double>(tmax);
     
 
     //----------最適化ループ----------
-    for(int t = 1; t <= 200; t++) {
+    for(int t = 0; t < tmax; t++) {
         //----------ステップ2：固定設計領域の有限要素離散化と数値解析----------
         std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(2));
         std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
@@ -99,13 +102,24 @@ int main() {
             SED[i] = ue*(Ke*ue);
         }
 
-        double objective = std::accumulate(SED.begin(), SED.end(), 0.0);
+        objective[t] = std::accumulate(SED.begin(), SED.end(), 0.0);
         double vol = std::accumulate(str.begin(), str.end(), 0.0)/(double)elements.size();
 
-        std::cout << "t = " << t << "\tCompliance = " << objective << "\tVolume = " << vol << std::endl;
+        std::cout << "t = " << t << "\tCompliance = " << objective[t] << "\tVolume = " << vol << std::endl;
 
 
         //----------ステップ4：収束条件の判定----------
+        if(t > nvol && fabs(vol - Vmax) < 0.005 && 
+            fabs(objective[t] - objective[t - 5]) < 0.01*fabs(objective[t]) && 
+            fabs(objective[t] - objective[t - 4]) < 0.01*fabs(objective[t]) && 
+            fabs(objective[t] - objective[t - 3]) < 0.01*fabs(objective[t]) &&
+            fabs(objective[t] - objective[t - 2]) < 0.01*fabs(objective[t]) &&
+            fabs(objective[t] - objective[t - 1]) < 0.01*fabs(objective[t])) {
+            
+            //std::cout << "----------Convergence----------" << std::endl;
+            //break;
+        }
+
         std::ofstream fout("sample/levelset/result" + std::to_string(t) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(x, fout);

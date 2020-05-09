@@ -40,7 +40,7 @@ int main() {
 
 
     //----------ステップ1：固定設計領域と境界条件の設定----------
-    SquareMesh<double> mesh = SquareMesh<double>(80.0, 60.0, 80, 60);
+    SquareMesh<double> mesh = SquareMesh<double>(320.0, 256.0, 320, 256);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x){
@@ -50,13 +50,13 @@ int main() {
         return false;
     });
     std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 1 }, [](Vector<double> _x){
-        if(abs(_x(0) - 80.0) < 1.0e-5 && abs(_x(1) - 30.0) < 1.0 +  1.0e-5) {
+        if(abs(_x(0) - 320.0) < 1.0e-5 && abs(_x(1) - 128.0) < 8.0 +  1.0e-5) {
             return true;
         }
         return false;
     });
     for(auto& qfixedi : qfixed) {
-        qfixedi.second = -1.0/(double)qfixed.size();
+        qfixedi.second = -1.0;
     }
 
 
@@ -105,8 +105,6 @@ int main() {
         objective[t] = std::accumulate(SED.begin(), SED.end(), 0.0);
         double vol = std::accumulate(str.begin(), str.end(), 0.0)/(double)elements.size();
 
-        std::cout << "t = " << t << "\tCompliance = " << objective[t] << "\tVolume = " << vol << std::endl;
-
 
         //----------ステップ4：収束条件の判定----------
         if(t > nvol && fabs(vol - Vmax) < 0.005 && 
@@ -135,21 +133,24 @@ int main() {
         for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*pow(1.0 - c, 2.0), c, 1.0);
+            PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*(1.0 - pow(c, 2.0)), c, 1.0);
             Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             TD[i] = (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
         }
 
         double ex = Vmax + (volInit - Vmax)*std::max(0.0, 1.0 - t/(double)nvol);
         double lambda = std::accumulate(TD.begin(), TD.end(), 0.0)/(double)elements.size()*exp(p*((vol - ex)/ex + d));
-
+        
 
         //----------ステップ6：レベルセット関数の更新，ステップ2に戻る----------
         double C = 0.0;
         for(int i = 0; i < elements.size(); i++) {
             C += fabs(TD[i]);
         }
-        C = 1.0/C*elements.size();
+        C = elements.size()/C;
+
+        std::cout << "t = " << t << "\tCompliance = " << objective[t]/(double)elements.size() << "\tVolume = " << vol << "\tLambda = " << lambda << "\t" << 
+            TD[256*100 + 100] << "\t" << C << std::endl;
 
         std::vector<std::vector<int> > nodetoglobal2 = std::vector<std::vector<int> >(x.size(), std::vector<int>(1, 0));
         int TDEGREE = Renumbering(nodetoglobal2);
@@ -179,10 +180,11 @@ int main() {
                 phie += phi[elements[i][j]](0);
             }
             phie /= (double)elements[i].size();
-            if(phie > 0.0) {
-                str[i] = 1.0;
-            } else {
+
+            if(phie < 0.0) {
                 str[i] = 0.0;
+            } else {
+                str[i] = 1.0;
             }
         }
     }

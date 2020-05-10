@@ -40,7 +40,7 @@ int main() {
 
 
     //----------ステップ1：固定設計領域と境界条件の設定----------
-    SquareMesh<double> mesh = SquareMesh<double>(320.0, 256.0, 320, 256);
+    SquareMesh<double> mesh = SquareMesh<double>(80.0, 64.0, 80, 64);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x){
@@ -50,7 +50,7 @@ int main() {
         return false;
     });
     std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 1 }, [](Vector<double> _x){
-        if(abs(_x(0) - 320.0) < 1.0e-5 && abs(_x(1) - 128.0) < 8.0 +  1.0e-5) {
+        if(abs(_x(0) - 80.0) < 1.0e-5 && abs(_x(1) - 32.0) < 2.0 +  1.0e-5) {
             return true;
         }
         return false;
@@ -58,6 +58,12 @@ int main() {
     for(auto& qfixedi : qfixed) {
         qfixedi.second = -1.0;
     }
+    std::vector<std::pair<std::pair<int, int>, double> > phifixed = mesh.GenerateFixedlist({ 0 }, [](Vector<double> _x){
+        if(abs(_x(0) - 0.0) < 1.0e-5 || abs(_x(0) - 80.0) < 1.0e-5 || abs(_x(1) - 0.0) < 1.0e-5 || abs(_x(1) - 64.0) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
 
 
     std::vector<Vector<double> > phi = std::vector<Vector<double> >(x.size(), { 1.0 });     //  φ
@@ -129,30 +135,42 @@ int main() {
 
 
         //----------ステップ5：目的汎関数と制約汎関数の設計感度の計算----------
-        std::vector<double> TD = std::vector<double>(elements.size(), 0.0);
+        std::vector<double> TDN = std::vector<double>(x.size(), 0.0);
+        std::vector<int> NC = std::vector<int>(x.size(), 0);
         for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
             PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*(1.0 - pow(c, 2.0)), c, 1.0);
             Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
-            TD[i] = (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
+            for(int j = 0; j < elements[i].size(); j++) {
+                TDN[elements[i][j]] += (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
+                NC[elements[i][j]]++;
+            }
         }
 
-        double ex = Vmax + (volInit - Vmax)*std::max(0.0, 1.0 - t/(double)nvol);
-        double lambda = std::accumulate(TD.begin(), TD.end(), 0.0)/(double)elements.size()*exp(p*((vol - ex)/ex + d));
-        
+        for(int i = 0; i < x.size(); i++) {
+            TDN[i] /= (double)NC[i];
+        }
 
+        double ex = Vmax + (volInit - Vmax)*std::max(0.0, 1.0 - (t + 1)/(double)nvol);
+        double lambda = std::accumulate(TDN.begin(), TDN.end(), 0.0)/(double)x.size()*exp(p*((vol - ex)/ex + d));
+
+        
         //----------ステップ6：レベルセット関数の更新，ステップ2に戻る----------
         double C = 0.0;
-        for(int i = 0; i < elements.size(); i++) {
-            C += fabs(TD[i]);
+        for(int i = 0; i < x.size(); i++) {
+            C += fabs(TDN[i]);
         }
         C = elements.size()/C;
 
-        std::cout << "t = " << t << "\tCompliance = " << objective[t]/(double)elements.size() << "\tVolume = " << vol << "\tLambda = " << lambda << "\t" << 
-            TD[256*100 + 100] << "\t" << C << std::endl;
+        for(int i = 0; i < x.size(); i++) {
+            TDN[i] = C*(TDN[i] - lambda);
+        }
+
+        std::cout << "t = " << t << "\tCompliance = " << objective[t]/(double)elements.size() << "\tVolume = " << vol << "\tLambda = " << lambda << "\t" << C << std::endl;
 
         std::vector<std::vector<int> > nodetoglobal2 = std::vector<std::vector<int> >(x.size(), std::vector<int>(1, 0));
+        SetDirichlet(phi, nodetoglobal2, phifixed);
         int TDEGREE = Renumbering(nodetoglobal2);
 
         LILCSR<double> T = LILCSR<double>(TDEGREE, TDEGREE);
@@ -162,7 +180,7 @@ int main() {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Te;
             Vector<double> Ye;
-            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau*elements.size(), C*(- TD[i] + lambda), phi);
+            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau*elements.size(), TDN, phi);
             Assembling(T, Y, phi, Te, Ye, nodetoglobal2, nodetoelement, elements[i]);
 		}
 

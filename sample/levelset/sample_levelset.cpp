@@ -40,7 +40,7 @@ int main() {
 
 
     //----------ステップ1：固定設計領域と境界条件の設定----------
-    SquareMesh<double> mesh = SquareMesh<double>(80.0, 64.0, 80, 64);
+    SquareMesh<double> mesh = SquareMesh<double>(320.0, 256.0, 320, 256);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
     std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x){
@@ -50,7 +50,7 @@ int main() {
         return false;
     });
     std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 1 }, [](Vector<double> _x){
-        if(abs(_x(0) - 80.0) < 1.0e-5 && abs(_x(1) - 32.0) < 2.0 +  1.0e-5) {
+        if(abs(_x(0) - 320.0) < 1.0e-5 && abs(_x(1) - 128.0) < 8.0 +  1.0e-5) {
             return true;
         }
         return false;
@@ -59,7 +59,7 @@ int main() {
         qfixedi.second = -1.0;
     }
     std::vector<std::pair<std::pair<int, int>, double> > phifixed = mesh.GenerateFixedlist({ 0 }, [](Vector<double> _x){
-        if(abs(_x(0) - 0.0) < 1.0e-5 || abs(_x(0) - 80.0) < 1.0e-5 || abs(_x(1) - 0.0) < 1.0e-5 || abs(_x(1) - 64.0) < 1.0e-5) {
+        if(abs(_x(0) - 0.0) < 1.0e-5 || abs(_x(0) - 320.0) < 1.0e-5 || abs(_x(1) - 0.0) < 1.0e-5 || abs(_x(1) - 256.0) < 1.0e-5) {
             return true;
         }
         return false;

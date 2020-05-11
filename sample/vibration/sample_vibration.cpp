@@ -45,7 +45,7 @@ int main() {
     CSR<double> Mmod = CSR<double>(M);
     std::vector<double> eigenvalues;
 	std::vector<std::vector<double> > eigenvectors;
-    int m = 5;
+    int m = 10;
 	GeneralShiftedInvertLanczos(Kmod, Mmod, eigenvalues, eigenvectors, m, -100.0);
 
     for(int i = 0; i < m; i++){

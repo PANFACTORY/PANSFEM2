@@ -2,18 +2,18 @@
 #include <vector>
 
 
-#include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/FEM/Equation/PlaneStrain.h"
-#include "../../src/FEM/Controller/ShapeFunction.h"
-#include "../../src/FEM/Controller/GaussIntegration.h"
-#include "../../src/FEM/Controller/BoundaryCondition.h"
-#include "../../src/FEM/Controller/Assembling.h"
-#include "../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../src/PrePost/Export/ExportToVTK.h"
-#include "../../src/Optimize/Solver/OC.h"
-#include "../../src/Optimize/Filter/Heaviside.h"
-#include "../../src/PrePost/Mesher/SquareMesh.h"
-#include "../../src/FEM/Equation/General.h"
+#include "../../../src/LinearAlgebra/Models/Vector.h"
+#include "../../../src/FEM/Equation/PlaneStrain.h"
+#include "../../../src/FEM/Controller/ShapeFunction.h"
+#include "../../../src/FEM/Controller/GaussIntegration.h"
+#include "../../../src/FEM/Controller/BoundaryCondition.h"
+#include "../../../src/FEM/Controller/Assembling.h"
+#include "../../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../../src/PrePost/Export/ExportToVTK.h"
+#include "../../../src/Optimize/Solver/OC.h"
+#include "../../../src/Optimize/Filter/Heaviside.h"
+#include "../../../src/PrePost/Mesher/SquareMesh.h"
+#include "../../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -108,9 +108,8 @@ int main() {
         //*************************************************
         //  Get compliance value and sensitivities
         //*************************************************
-        double f = 0.0;													    //Function value of compliance
-		std::vector<double> dfdrho = std::vector<double>(s.size(), 0.0);    //Sensitivities of compliance
-
+        
+        //--------------------Get displacement--------------------
 		std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(2));
         std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
         
@@ -127,16 +126,32 @@ int main() {
             PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, E, 0.3, 1.0);
             Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, elements[i]);
 		}
-
         Assembling(F, qfixed, nodetoglobal);
 
         CSR<double> Kmod = CSR<double>(K);	
         std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
         Disassembling(u, result, nodetoglobal);
 
-        for(auto qfixedi : qfixed) {
-            f += scale0*qfixedi.second*u[qfixedi.first.first](qfixedi.first.second);        //  Should MODIFY! : Surface force and body force are ignored in this way
+        //--------------------Get reaction force--------------------
+        RemoveBoundaryConditions(nodetoglobal);
+        KDEGREE = Renumbering(nodetoglobal);
+        std::vector<double> RF = std::vector<double>(KDEGREE, 0.0);
+        std::vector<Vector<double> > r = std::vector<Vector<double> >(x.size(), Vector<double>(2));	
+
+        for (int i = 0; i < elements.size(); i++) {
+            double E = E1*pow(rho[i], p) + E0*(1.0 - pow(rho[i], p));
+			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+            Matrix<double> Ke;
+            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, E, 0.3, 1.0);
+            Vector<double> Keue = Ke*ElementVector(u, nodetoelement, elements[i]);
+            Assembling(RF, Keue, nodetoglobal, nodetoelement, elements[i]);
         }
+
+        Disassembling(r, RF, nodetoglobal);
+
+        //--------------------Get compliance and sensitivities--------------------
+        double f = scale0*std::inner_product(u.begin(), u.end(), r.begin(), 0.0);
+		std::vector<double> dfdrho = std::vector<double>(s.size(), 0.0);
       
         for(int i = 0; i < elements.size(); i++){
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
@@ -157,12 +172,13 @@ int main() {
         //*************************************************
         //  Post Process
         //*************************************************
-		std::ofstream fout("sample/optimize/result" + std::to_string(k) + ".vtk");
+		std::ofstream fout("sample/optimize/compliance/result" + std::to_string(k) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(x, fout);
 		AddElementToVTK(elements, fout);
 		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 		AddPointVectors(u, "u", fout, true);
+        AddPointVectors(r, "r", fout, false);
 		AddElementScalers(rho, "s", fout, true);
 		fout.close();
        

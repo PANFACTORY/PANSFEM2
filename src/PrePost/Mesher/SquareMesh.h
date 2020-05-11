@@ -25,6 +25,8 @@ public:
 
         std::vector<Vector<T> > GenerateNodes();
         std::vector<std::vector<int> > GenerateElements();
+        template<class F>
+        std::vector<int> GenerateElementIdsSelected(F _iscorrespond);
         std::vector<std::vector<int> > GenerateEdges();
         template<class F>
         std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
@@ -68,6 +70,22 @@ private:
             }
         }
         return elements;
+    }
+
+
+    template<class T>
+    template<class F>
+    std::vector<int> SquareMesh<T>::GenerateElementIdsSelected(F _iscorrespond) {
+        std::vector<Vector<T> > nodes = this->GenerateNodes();
+        std::vector<int> elementids = std::vector<int>();
+        for(int i = 0; i < this->nx; i++){
+            for(int j = 0; j < this->ny; j++){
+                if(_iscorrespond(nodes[(this->ny + 1)*i + j]) && _iscorrespond(nodes[(this->ny + 1)*(i + 1) + j]) && _iscorrespond(nodes[(this->ny + 1)*(i + 1) + (j + 1)]) && _iscorrespond(nodes[(this->ny + 1)*i + (j + 1)])) {
+                    elementids.push_back(this->ny*i + j);
+                }
+            }
+        }
+        return elementids;
     }
 
 

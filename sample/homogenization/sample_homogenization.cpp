@@ -4,6 +4,7 @@
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
 #include "../../src/PrePost/Import/ImportFromCSV.h"
+#include "../../src/PrePost/Mesher/SquareAnnulusMesh.h"
 #include "../../src/FEM/Equation/PlaneStrain.h"
 #include "../../src/FEM/Equation/Homogenization.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
@@ -19,12 +20,18 @@ using namespace PANSFEM2;
 
 
 int main() {
-	std::string model_path = "sample/homogenization/model2/";
-	std::vector<Vector<double> > x;
-	ImportNodesFromCSV(x, model_path + "Node.csv");
-	std::vector<std::vector<int> > elements;
-	ImportElementsFromCSV(elements, model_path + "Element.csv");
-    std::vector<std::pair<int, int> > ufixed;
+	//----------Set parameter----------
+	double E = 100.0;
+	double Poisson = 0.3;
+	double Volume = 1.0;	//	Volume of an unit cell
+		
+
+	//----------Make model----------
+	std::string model_path = "sample/homogenization/";
+	SquareAnnulusMesh2<double> mesh = SquareAnnulusMesh2<double>(1.0, 1.0, 20, 20, 10, 10);
+    std::vector<Vector<double> > x = mesh.GenerateNodes();
+    std::vector<std::vector<int> > elements = mesh.GenerateElements();
+	std::vector<std::pair<int, int> > ufixed;
 	ImportPeriodicFromCSV(ufixed, model_path + "Periodic.csv");
 
     std::vector<Vector<double> > chi0 = std::vector<Vector<double> >(x.size(), Vector<double>(2));
@@ -33,34 +40,30 @@ int main() {
 	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
 	int KDEGREE = SetPeriodic(nodetoglobal, ufixed);
 
+
+	//----------Get characteristics displacement----------
 	LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
 	std::vector<double> F0 = std::vector<double>(KDEGREE, 0.0);
 	std::vector<double> F1 = std::vector<double>(KDEGREE, 0.0);
 	std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);
 	
-    for (int i = 0; i < elements.size(); i++) {
-		double E = 68.894;//10.0;
-		double Poisson = 0.33;
-		if(i%2 == 1) {
-			//E *= 10.0;
-		}
-
+    for (auto element : elements) {
         std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Matrix<double> Ke;
-		PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, E, Poisson, 1.0);
-		Assembling(K, Ke, nodetoglobal, nodetoelement, elements[i]);
-		Assembling(F0, chi0, Ke, nodetoglobal, nodetoelement, elements[i]);
-		Assembling(F1, chi1, Ke, nodetoglobal, nodetoelement, elements[i]);
-		Assembling(F2, chi2, Ke, nodetoglobal, nodetoelement, elements[i]);
+		PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, element, { 0, 1 }, x, E, Poisson, 1.0);
+		Assembling(K, Ke, nodetoglobal, nodetoelement, element);
+		Assembling(F0, chi0, Ke, nodetoglobal, nodetoelement, element);
+		Assembling(F1, chi1, Ke, nodetoglobal, nodetoelement, element);
+		Assembling(F2, chi2, Ke, nodetoglobal, nodetoelement, element);
 
 		Matrix<double> Fes;
-		HomogenizePlaneStrainBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodetoelement, elements[i], { 0, 1 }, x, E, Poisson, 1.0);
+		HomogenizePlaneStrainBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodetoelement, element, { 0, 1 }, x, E, Poisson, 1.0);
 		Vector<double> Fe0 = Fes.Block(0, 0, Ke.ROW(), 1);
-		Assembling(F0, Fe0, nodetoglobal, nodetoelement, elements[i]);
+		Assembling(F0, Fe0, nodetoglobal, nodetoelement, element);
 		Vector<double> Fe1 = Fes.Block(0, 1, Ke.ROW(), 1);
-		Assembling(F1, Fe1, nodetoglobal, nodetoelement, elements[i]);
+		Assembling(F1, Fe1, nodetoglobal, nodetoelement, element);
 		Vector<double> Fe2 = Fes.Block(0, 2, Ke.ROW(), 1);
-		Assembling(F2, Fe2, nodetoglobal, nodetoelement, elements[i]);
+		Assembling(F2, Fe2, nodetoglobal, nodetoelement, element);
 	}
 
 	for (auto element : elements) {
@@ -78,22 +81,19 @@ int main() {
 	std::vector<double> result2 = ScalingCG(Kmod, F2, 100000, 1.0e-10);
     Disassembling(chi2, result2, nodetoglobal);
 
-	Matrix<double> CH = Matrix<double>(3, 3);
-	Matrix<double> I = Matrix<double>(3, 3);
-	double volume = 0.0;
-	for (int i = 0; i < elements.size(); i++) {
-		double E = 68.894;//10.0;
-		double Poisson = 0.33;
-		if(i%2 == 1) {
-			//E *= 10.0;
-		}
-		CH += HomogenizePlaneStrainConstitutive<double, ShapeFunction4Square, Gauss4Square>(x, elements[i], chi0, chi1, chi2, E, Poisson, 1.0);
-		I += HomogenizePlaneStrainCheck<double, ShapeFunction4Square, Gauss4Square>(x, elements[i], chi0, chi1, chi2, 1.0);
-		volume += Area<double, ShapeFunction4Square, Gauss4Square>(x, elements[i]);
-	}
-	std::cout << I/volume << std::endl << CH/volume << std::endl;;
 
-	std::ofstream fout(model_path + "result.vtk");
+	//----------Get homogenized value----------
+	Matrix<double> CH = Matrix<double>(3, 3);
+	Matrix<double> I = Identity<double>(3);
+	for (auto element : elements) {
+		CH += HomogenizePlaneStrainConstitutive<double, ShapeFunction4Square, Gauss4Square>(x, element, chi0, chi1, chi2, E, Poisson, 1.0);
+		I += HomogenizePlaneStrainCheck<double, ShapeFunction4Square, Gauss4Square>(x, element, chi0, chi1, chi2, 1.0);
+	}
+	std::cout << I/Volume << std::endl << CH/Volume << std::endl;;
+
+
+	//----------Export microscopic result----------
+	std::ofstream fout(model_path + "result_microscopic.vtk");
 	MakeHeadderToVTK(fout);
 	AddPointsToVTK(x, fout);
 	AddElementToVTK(elements, fout);

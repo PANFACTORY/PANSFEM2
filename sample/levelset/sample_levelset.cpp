@@ -21,17 +21,16 @@ using namespace PANSFEM2;
 
 
 int main() {
-    //----------ステップ0：パラメータの設定----------
+    //----------パラメータの設定----------
     double Vmax = 0.5;
     double tau = 2.0e-4;
     double E0 = 1.0;
     double Emin = 1.0e-4;
     double nu = 0.3;
-    double nvol = 100;      //  iteration number for volume constraint
+    double nvol = 100;
     double dt = 0.1;
     double d = -0.02;
     double p = 4.0;
-
     int tmax = 200;
 
     double A1 = -1.5*(1.0 - nu)*(1.0 - 14.0*nu + 15.0*pow(nu, 2.0))*E0/((1.0 + nu)*(7.0 - 5.0*nu)*pow(1.0 - 2.0*nu, 2.0));
@@ -39,7 +38,7 @@ int main() {
     double c = A1/(A1 + 2.0*A2);
 
 
-    //----------ステップ1：固定設計領域と境界条件の設定----------
+    //----------固定設計領域と境界条件の設定----------
     SquareMesh<double> mesh = SquareMesh<double>(320.0, 256.0, 320, 256);
     std::vector<Vector<double> > x = mesh.GenerateNodes();
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
@@ -74,7 +73,7 @@ int main() {
 
     //----------最適化ループ----------
     for(int t = 0; t < tmax; t++) {
-        //----------ステップ2：固定設計領域の有限要素離散化と数値解析----------
+        //----------固定設計領域の有限要素法解析----------
         std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size(), Vector<double>(2));
         std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
         
@@ -113,12 +112,12 @@ int main() {
         Disassembling(r, RF, nodetoglobal);
 
 
-        //----------ステップ3：目的汎関数と制約汎関数の計算----------
+        //----------目的汎関数と制約汎関数の計算----------
         objective[t] = std::inner_product(u.begin(), u.end(), r.begin(), 0.0);
         double vol = std::accumulate(str.begin(), str.end(), 0.0)/(double)elements.size();
 
 
-        //----------ステップ4：収束条件の判定----------
+        //----------収束条件の判定とファイル出力----------
         if(t > nvol && fabs(vol - Vmax) < 0.005 && 
             fabs(objective[t] - objective[t - 5]) < 0.01*fabs(objective[t]) && 
             fabs(objective[t] - objective[t - 4]) < 0.01*fabs(objective[t]) && 
@@ -142,7 +141,7 @@ int main() {
 		fout.close();
 
 
-        //----------ステップ5：目的汎関数と制約汎関数の設計感度の計算----------
+        //----------トポロジカルデリバティブと体積の計算----------
         std::vector<double> TDN = std::vector<double>(x.size(), 0.0);
         std::vector<int> NC = std::vector<int>(x.size(), 0);
         for (int i = 0; i < elements.size(); i++) {
@@ -163,7 +162,7 @@ int main() {
         double lambda = std::accumulate(TDN.begin(), TDN.end(), 0.0)/(double)x.size()*exp(p*((vol - ex)/ex + d));
 
         
-        //----------ステップ6：レベルセット関数の更新，ステップ2に戻る----------
+        //----------レベルセット関数の更新----------
         double C = 0.0;
         for(int i = 0; i < x.size(); i++) {
             C += fabs(TDN[i]);

@@ -97,18 +97,24 @@ int main() {
         std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
         Disassembling(u, result, nodetoglobal);
 
+        RemoveBoundaryConditions(nodetoglobal);
+        KDEGREE = Renumbering(nodetoglobal);
+        std::vector<double> RF = std::vector<double>(KDEGREE, 0.0);
+        std::vector<Vector<double> > r = std::vector<Vector<double> >(x.size(), Vector<double>(2));	
 
-        //----------ステップ3：目的汎関数と制約汎関数の計算----------
-        std::vector<double> SED = std::vector<double>(elements.size());
         for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
             PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, Emin + str[i]*(E0 - Emin), nu, 1.0);
-            Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
-            SED[i] = ue*(Ke*ue);
+            Vector<double> Keue = Ke*ElementVector(u, nodetoelement, elements[i]);
+            Assembling(RF, Keue, nodetoglobal, nodetoelement, elements[i]);
         }
 
-        objective[t] = std::accumulate(SED.begin(), SED.end(), 0.0);
+        Disassembling(r, RF, nodetoglobal);
+
+
+        //----------ステップ3：目的汎関数と制約汎関数の計算----------
+        objective[t] = std::inner_product(u.begin(), u.end(), r.begin(), 0.0);
         double vol = std::accumulate(str.begin(), str.end(), 0.0)/(double)elements.size();
 
 
@@ -120,8 +126,8 @@ int main() {
             fabs(objective[t] - objective[t - 2]) < 0.01*fabs(objective[t]) &&
             fabs(objective[t] - objective[t - 1]) < 0.01*fabs(objective[t])) {
             
-            //std::cout << "----------Convergence----------" << std::endl;
-            //break;
+            std::cout << "----------Convergence----------" << std::endl;
+            break;
         }
 
         std::ofstream fout("sample/levelset/result" + std::to_string(t) + ".vtk");
@@ -130,6 +136,8 @@ int main() {
 		AddElementToVTK(elements, fout);
 		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 		AddPointVectors(u, "u", fout, true);
+        AddPointVectors(r, "r", fout, false);
+        AddPointVectors(phi, "phi", fout, false);
 		AddElementScalers(str, "str", fout, true);
 		fout.close();
 
@@ -147,7 +155,6 @@ int main() {
                 NC[elements[i][j]]++;
             }
         }
-
         for(int i = 0; i < x.size(); i++) {
             TDN[i] /= (double)NC[i];
         }

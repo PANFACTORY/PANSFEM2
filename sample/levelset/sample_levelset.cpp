@@ -6,13 +6,13 @@
 #include "../../src/LinearAlgebra/Models/Vector.h"
 #include "../../src/PrePost/Mesher/SquareMesh.h"
 #include "../../src/FEM/Equation/PlaneStress.h"
+#include "../../src/FEM/Equation/ReactionDiffusion.h"
+#include "../../src/FEM/Equation/General.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
 #include "../../src/FEM/Controller/BoundaryCondition.h"
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../src/Optimize/Method/LevelSet.h"
-#include "../../src/FEM/Equation/General.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
 
@@ -137,7 +137,7 @@ int main() {
 		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 		AddPointVectors(u, "u", fout, true);
         AddPointVectors(r, "r", fout, false);
-        AddPointVectors(phi, "phi", fout, false);
+        AddPointScalers(phi, "phi", fout, false);
 		AddElementScalers(str, "str", fout, true);
 		fout.close();
 

@@ -32,8 +32,8 @@ int main() {
 	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(3, 0));
 	
     double rho = 1.0;
-    double mu = 0.02;
-    int tmax = 100;
+    double mu = 1.0/1000.0;
+    int tmax = 200;
     double dt = 0.1;
     SetDirichlet(up, nodetoglobal, ufixed);
 	int KDEGREE = Renumbering(nodetoglobal);

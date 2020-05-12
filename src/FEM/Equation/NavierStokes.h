@@ -244,7 +244,7 @@ namespace PANSFEM2 {
 
 	//******************************Get element matrix and vector for dynamic Navier-Stokes equation******************************
 	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC>
-	void NavierStokesDynamic(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _up, T _rho, T _mu, T dt) {
+	void NavierStokesDynamic(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _up, T _rho, T _mu, T _dt) {
 		assert(_doulist.size() == 3);
 
 		int m = _elementu.size();   //  Number of shapefunction for velosity u
@@ -302,8 +302,10 @@ namespace PANSFEM2 {
             Matrix<T> K = Matrix<T>(2*m + n, 2*m + n);
             for(int i = 0; i < m; i++){
                 for(int j = 0; j < m; j++){
-                    K(i, j) = _rho*M(i)*M(j)/dt + _rho*M(i)*dMdX(0, j)*U(0) + _rho*M(i)*dMdX(1, j)*U(1) + 2.0*_mu*dMdX(0, i)*dMdX(0, j) + _mu*dMdX(1, i)*dMdX(1, j) + _mu*dMdX(1, i)*dMdX(0, j);															
-					K(i + m, j + m) = _rho*M(i)*M(j)/dt + _rho*M(i)*dMdX(1, j)*U(1) + _rho*M(i)*dMdX(0, j)*U(0) + _mu*dMdX(0, i)*dMdX(1, j) + _mu*dMdX(0, i)*dMdX(0, j) + 2.0*_mu*dMdX(1, i)*dMdX(1, j);	
+                    K(i, j) = _rho*M(i)*M(j)/_dt + 0.5*_rho*(M(i)*dMdX(0, j)*U(0) + M(i)*dMdX(1, j)*U(1)) + 0.5*_mu*(2.0*dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));
+					K(i, j + m) = 0.5*_mu*dMdX(1, i)*dMdX(0, j);
+					K(i + m, j) = 0.5*_mu*dMdX(0, i)*dMdX(1, j);														
+					K(i + m, j + m) = _rho*M(i)*M(j)/_dt + 0.5*_rho*(M(i)*dMdX(1, j)*U(1) + M(i)*dMdX(0, j)*U(0)) + 0.5*_mu*(dMdX(0, i)*dMdX(0, j) + 2.0*dMdX(1, i)*dMdX(1, j));	
                 }
                 for(int j = 0; j < n; j++){
 					K(i, j + 2*m) = -dMdX(0, i)*N(j);
@@ -316,10 +318,8 @@ namespace PANSFEM2 {
 
 			Vector<T> F = Vector<T>(2*m + n);
 			for(int i = 0; i < m; i++) {
-				for(int j = 0; j < m; j++) {
-					F(i) += _rho*M(i)*M(j)/dt*_up[_elementu[j]](0);
-					F(i + m) += _rho*M(i)*M(j)/dt*_up[_elementu[j]](1);
-				}
+				F(i) =     _rho*M(i)*U(0)/_dt - 0.5*_rho*(M(i)*dUdX(0, 0)*U(0) + M(i)*dUdX(1, 0)*U(1)) - 0.5*_mu*(2.0*dMdX(0, i)*dUdX(0, 0) + dMdX(1, i)*dUdX(1, 0)) - 0.5*_mu*dMdX(1, i)*dUdX(0, 1);
+				F(i + m) = _rho*M(i)*U(1)/_dt - 0.5*_rho*(M(i)*dUdX(0, 1)*U(0) + M(i)*dUdX(1, 1)*U(1)) - 0.5*_mu*dMdX(0, i)*dUdX(1, 0) - 0.5*_mu*(dMdX(0, i)*dUdX(0, 1) + 2.0*dMdX(1, i)*dUdX(1, 1));
 			}
 			_Fe += F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}

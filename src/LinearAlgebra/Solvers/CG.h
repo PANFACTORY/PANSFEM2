@@ -181,7 +181,7 @@ std::vector<T> BiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
 
 		//----------Check convergence----------
 		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
-		std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
 		if (rnorm < _eps*bnorm) {
 			//std::cout << "\tConvergence:" << k << std::endl;
 			return xk;
@@ -453,6 +453,48 @@ std::vector<T> ScalingCG(CSR<T>& _A, const std::vector<T>& _b, int _itrmax, T _e
 }
 
 
+//********************Scaling preconditioning BiCGSTAB method********************
+template<class T>
+std::vector<T> ScalingBiCGSTAB(CSR<T>& _A, std::vector<T>& _b, int _itrmax, T _eps) {
+	//----------Initialize----------
+	std::vector<T> D = GetDiagonal(_A);				//Scaling A matrix
+	std::vector<T> xk(_b.size(), T());
+	std::vector<T> rk = subtract(_b, _A*xk);
+	std::vector<T> rdash = rk;
+	std::vector<T> pk = Scaling(D, rk);
+	T rdashrk = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
+	T bnorm = sqrt(std::inner_product(_b.begin(), _b.end(), _b.begin(), T()));
+
+	//----------Iteration----------
+	for (int k = 0; k < _itrmax; ++k) {
+		std::vector<T> Mpk = Scaling(D, pk);		//Preconditioning
+		std::vector<T> AMpk = _A*Mpk;
+		T alpha = rdashrk/std::inner_product(rdash.begin(), rdash.end(), AMpk.begin(), T());
+		std::vector<T> sk = zeaxpby(1.0, rk, -alpha, AMpk);
+		std::vector<T> Msk = Scaling(D, sk);		//Preconditioning
+		std::vector<T> AMsk = _A*Msk;
+		T omega = std::inner_product(AMsk.begin(), AMsk.end(), sk.begin(), T())/std::inner_product(AMsk.begin(), AMsk.end(), AMsk.begin(), T());
+		xeaxpbypcz(1.0, xk, alpha, Mpk, omega, Msk);
+		rk = zeaxpby(1.0, sk, -omega, AMsk);
+		T rdashrkp1 = std::inner_product(rdash.begin(), rdash.end(), rk.begin(), T());
+		T beta = alpha/omega*rdashrkp1/rdashrk;
+		xeaxpbypcz(beta, pk, 1.0, rk, -beta*omega, AMpk);
+		rdashrk = rdashrkp1;
+
+		//----------Check convergence----------
+		T rnorm = sqrt(std::inner_product(rk.begin(), rk.end(), rk.begin(), T()));
+		//std::cout << "k = " << k << "\teps = " << rnorm / bnorm << std::endl;
+		if (rnorm < _eps*bnorm) {
+			//std::cout << "\tConvergence:" << k << std::endl;
+			return xk;
+		}
+	}
+
+	std::cout << "\nConvergence:faild" << std::endl;
+	return xk;
+}
+
+
 //********************Solve with SOR********************
 template<class T>
 std::vector<T> SOR(CSR<T>& _A, std::vector<T>& _b, T _w, int _itrmax, T _eps) {
@@ -477,7 +519,7 @@ std::vector<T> SOR(CSR<T>& _A, std::vector<T>& _b, T _w, int _itrmax, T _eps) {
 
 			error += fabs((tmp - x[i]) / tmp);
 		}
-		//std::cout << error << std::endl;
+		std::cout << error << std::endl;
 		if (error < _eps) {
 			//std::cout << "\tConvergence:" << itr << std::endl;
 			return x;

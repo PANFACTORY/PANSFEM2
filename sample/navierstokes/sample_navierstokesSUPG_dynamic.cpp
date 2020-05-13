@@ -44,7 +44,7 @@ int main() {
 	
     double rho = 1.0;
     double mu = 1.0/1000.0;
-    int tmax = 1000;
+    int tmax = 100;
     double dt = 0.1;
     double theta = 0.5;
     SetDirichlet(up, nodetoglobal, ufixed0);

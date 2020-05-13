@@ -35,28 +35,35 @@ int main() {
     double mu = 1.0/1000.0;
     int tmax = 200;
     double dt = 0.1;
+    double theta = 0.5;
     SetDirichlet(up, nodetoglobal, ufixed);
 	int KDEGREE = Renumbering(nodetoglobal);
+
+    std::vector<Vector<double> > ubar = std::vector<Vector<double> >(x.size(), Vector<double>(2));      //  Advection velocity
+
 
     //----------Time step loop----------
     for(int t = 0; t < tmax; t++) {
         std::cout << "t=" << t << std::endl;
 
-        LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//System stiffness matrix
-        std::vector<double> R = std::vector<double>(KDEGREE, 0.0);		//Residual load vector
+        LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//  System stiffness matrix
+        std::vector<double> F = std::vector<double>(KDEGREE, 0.0);		//  System load vector
         
         for (int i = 0; i < elementsu.size(); i++) {
             std::vector<std::vector<std::pair<int, int> > > nodetoelementu, nodetoelementp;
-            Matrix<double> Ke;
-            Vector<double> Qe;
-            NavierStokesDynamic<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ke, Qe, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, up, rho, mu, dt);
-            Assembling(K, R, up, Ke, nodetoglobal, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
-            Assembling(R, Qe, nodetoglobal, nodetoelementu, elementsu[i]);
-            Assembling(R, Qe, nodetoglobal, nodetoelementp, elementsp[i]);
+            Matrix<double> Ke, Me, Ce;
+            NavierStokesStiffness<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ke, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, ubar, rho, mu);
+            NavierStokesConsistentMass<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Me, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x, rho);
+            ContinuityStiffness<double, ShapeFunction8Square, ShapeFunction4Square, Gauss9Square>(Ce, nodetoelementu, elementsu[i], nodetoelementp, elementsp[i], { 0, 1, 2 }, x);
+            Matrix<double> Ae = Me/dt + theta*Ke + Ce;
+            Vector<double> be = (Me/dt - (1.0 - theta)*Ke)*ElementVector(up, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
+            Assembling(K, F, up, Ae, nodetoglobal, { nodetoelementu, nodetoelementp }, { elementsu[i], elementsp[i] });
+            Assembling(F, be, nodetoglobal, nodetoelementu, elementsu[i]);
+            Assembling(F, be, nodetoglobal, nodetoelementp, elementsp[i]);
         }
 
         CSR<double> Kmod = CSR<double>(K);
-        std::vector<double> result = BiCGSTAB2(Kmod, R, 100000, 1.0e-10);
+        std::vector<double> result = BiCGSTAB2(Kmod, F, 100000, 1.0e-10);
         Disassembling(up, result, nodetoglobal);
 
         std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size());
@@ -65,6 +72,8 @@ int main() {
             u[i] = up[i].Segment(0, 2);
             p[i] = up[i](2);
         }
+
+        ubar = u;
 
         std::ofstream fout(model_path + "result" + std::to_string(t) + ".vtk");
         MakeHeadderToVTK(fout);

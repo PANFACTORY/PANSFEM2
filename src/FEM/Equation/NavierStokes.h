@@ -298,15 +298,15 @@ namespace PANSFEM2 {
 
 			T UNorm = Ubar.Norm();
 			T he = T();
-			/*if(UNorm > 1.0e-3) {
-				Vector<T> dMdXU = dMdX.Transpose()*U;
+			if(UNorm > 1.0e-10) {
+				Vector<T> dMdXU = dMdX.Transpose()*Ubar;
 				for(int i = 0; i < m; i++) {
 					he += fabs(dMdXU(i));
 				}
 				he = 2.0*UNorm/he;
 			} else {
-			*/	he = sqrt(area);
-			//}
+				he = sqrt(area);
+			}
 			T tau = 1.0/sqrt(pow(2.0/_dt, 2.0) + pow(2.0*UNorm/he, 2.0) + pow(4.0*_mu/(_rho*pow(he, 2.0)), 2.0));
 
             Matrix<T> K = Matrix<T>(2*m + n, 2*m + n);
@@ -376,15 +376,15 @@ namespace PANSFEM2 {
 
 			T UNorm = Ubar.Norm();
 			T he = T();
-			/*if(UNorm > 1.0e-3) {
-				Vector<T> dMdXU = dMdX.Transpose()*U;
+			if(UNorm > 1.0e-10) {
+				Vector<T> dMdXU = dMdX.Transpose()*Ubar;
 				for(int i = 0; i < m; i++) {
 					he += fabs(dMdXU(i));
 				}
 				he = 2.0*UNorm/he;
 			} else {
-			*/	he = sqrt(area);
-			//}
+				he = sqrt(area);
+			}
 			T tau = 1.0/sqrt(pow(2.0/_dt, 2.0) + pow(2.0*UNorm/he, 2.0) + pow(4.0*_mu/(_rho*pow(he, 2.0)), 2.0));
 
             Matrix<T> Me = Matrix<T>(2*m + n, 2*m + n);
@@ -455,15 +455,15 @@ namespace PANSFEM2 {
 
 			T UNorm = Ubar.Norm();
 			T he = T();
-			/*if(UNorm > 1.0e-3) {
-				Vector<T> dMdXU = dMdX.Transpose()*U;
+			if(UNorm > 1.0e-10) {
+				Vector<T> dMdXU = dMdX.Transpose()*Ubar;
 				for(int i = 0; i < m; i++) {
 					he += fabs(dMdXU(i));
 				}
 				he = 2.0*UNorm/he;
 			} else {
-			*/	he = sqrt(area);
-			//}
+				he = sqrt(area);
+			}
 			T tau = 1.0/sqrt(pow(2.0/_dt, 2.0) + pow(2.0*UNorm/he, 2.0) + pow(4.0*_mu/(_rho*pow(he, 2.0)), 2.0));
 
             Matrix<T> C = Matrix<T>(2*m + n, 2*m + n);

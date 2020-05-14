@@ -18,7 +18,7 @@ using namespace PANSFEM2;
 
 
 int main() {
-    SquareMesh<double> mesher = SquareMesh<double>(1, 1, 50, 50);
+    SquareMesh<double> mesher = SquareMesh<double>(1, 1, 30, 30);
     std::vector<Vector<double> > x = mesher.GenerateNodes();
     std::vector<std::vector<int> > elements = mesher.GenerateElements();
     std::vector<std::pair<std::pair<int, int>, double> > ufixed0 = mesher.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x) {
@@ -44,8 +44,8 @@ int main() {
 	
     double rho = 1.0;
     double mu = 1.0/1000.0;
-    int tmax = 100;
-    double dt = 0.1;
+    int tmax = 10000;
+    double dt = 0.01;
     double theta = 0.5;
     SetDirichlet(up, nodetoglobal, ufixed0);
     SetDirichlet(up, nodetoglobal, ufixed1);
@@ -55,7 +55,7 @@ int main() {
 
 
     //----------Time step loop----------
-    for(int t = 0; t < tmax; t++) {
+    for(int t = 0; t <= tmax; t++) {
         std::cout << "t=" << t << std::endl;
 
         LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);			//  System stiffness matrix
@@ -90,14 +90,16 @@ int main() {
 
         ubar = u;
 
-        std::ofstream fout("sample/navierstokes/result" + std::to_string(t) + ".vtk");
-        MakeHeadderToVTK(fout);
-        AddPointsToVTK(x, fout);
-        AddElementToVTK(elements, fout);
-        AddElementTypes(std::vector<int>(elements.size(), 5), fout);
-        AddPointVectors(u, "u", fout, true);
-        AddPointScalers(p, "p", fout, false);
-        fout.close();
+        if(t%100 == 0) {
+            std::ofstream fout("sample/navierstokes/result" + std::to_string(t/100) + ".vtk");
+            MakeHeadderToVTK(fout);
+            AddPointsToVTK(x, fout);
+            AddElementToVTK(elements, fout);
+            AddElementTypes(std::vector<int>(elements.size(), 5), fout);
+            AddPointVectors(u, "u", fout, true);
+            AddPointScalers(p, "p", fout, false);
+            fout.close();
+        }
     }
     
 	return 0;

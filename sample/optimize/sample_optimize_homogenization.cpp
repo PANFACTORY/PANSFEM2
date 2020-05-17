@@ -10,7 +10,7 @@
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
-#include "../../src/Optimize/Solver/OC.h"
+#include "../../src/Optimize/Solver/MMA.h"
 #include "../../src/PrePost/Mesher/SquareAnnulusMesh.h"
 #include "../../src/FEM/Equation/General.h"
 #include "../../src/FEM/Equation/Homogenization.h"
@@ -143,8 +143,13 @@ int main() {
 
 	//----------Initialize design variables and solver----------
 	std::vector<double> a = std::vector<double>(elements.size(), 0.5);
-    OC<double> optimizer = OC<double>(a.size(), 1.0, 0.0, 1.0e4, 1.0e-3, 0.05, std::vector<double>(a.size(), 0.01), std::vector<double>(a.size(), 1.0));
-			
+    std::vector<double> t = std::vector<double>(elements.size(), 0.505);
+    MMA<double> optimizer = MMA<double>(a.size() + t.size(), 1, 1.0,
+		std::vector<double>(1, 0.0),
+		std::vector<double>(1, 10000.0),
+		std::vector<double>(1, 0.0), 
+		std::vector<double>(a.size() + t.size(), 0.01), std::vector<double>(a.size() + t.size(), 1.0));
+	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-6);			
 
 	//----------Optimize loop----------
 	for(int k = 0; k < 400; k++){
@@ -156,6 +161,7 @@ int main() {
         //*************************************************
         double g = 0.0;														//Function values of weight
 		std::vector<double> dgda = std::vector<double>(a.size(), 0.0);      //Sensitivities of weight
+        std::vector<double> dgdt = std::vector<double>(t.size(), 0.0);
         for(int i = 0; i < elements.size(); i++){
             g += (1.0 - pow(1.0 - a[i], 2.0))/(weightlimit*elements.size());
             dgda[i] = 2.0*(1.0 - a[i])/(weightlimit*elements.size()); 
@@ -188,6 +194,12 @@ int main() {
                 }
                 CHi += P;
             }
+            double theta = 0.5*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            Matrix<double> R = Matrix<double>(3, 3);
+            R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
+            R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
+            R(2, 0) = -2.0*cos(theta)*sin(theta);   R(2, 1) = 2.0*sin(theta)*cos(theta);    R(2, 2) = cos(theta)*cos(theta) - sin(theta)*sin(theta);
+            CHi = R.Transpose()*CHi*R;
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
             PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
@@ -215,7 +227,13 @@ int main() {
                     }
                 }
                 CHi += P;
-            }      
+            }
+            double theta = 0.5*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            Matrix<double> R = Matrix<double>(3, 3);
+            R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
+            R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
+            R(2, 0) = -2.0*cos(theta)*sin(theta);   R(2, 1) = 2.0*sin(theta)*cos(theta);    R(2, 2) = cos(theta)*cos(theta) - sin(theta)*sin(theta);
+            CHi = R.Transpose()*CHi*R;
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
             PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
@@ -228,8 +246,18 @@ int main() {
         //--------------------Get compliance and sensitivities--------------------
         double f = std::inner_product(u.begin(), u.end(), r.begin(), 0.0);
 		std::vector<double> dfda = std::vector<double>(a.size(), 0.0);
-      
+        std::vector<double> dfdt = std::vector<double>(t.size(), 0.0);
         for(int i = 0; i < elements.size(); i++){
+            Matrix<double> dCHidt = Matrix<double>(3, 3);
+            for(int n = 0; n < as.size(); n++) {
+                Matrix<double> P = CH[n];
+                for(int m = 0; m < as.size(); m++) {
+                    if(m != n) {
+                        P *= (a[i] - as[m])/(as[n] - as[m]);
+                    }
+                }
+                dCHidt += P;
+            }
             Matrix<double> dCHida = Matrix<double>(3, 3);
             for(int n = 0; n < as.size(); n++) {
                 double q = 0.0;
@@ -248,11 +276,24 @@ int main() {
                 }
                 dCHida += q*CH[n];
             }
+            double theta = 0.5*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            Matrix<double> R = Matrix<double>(3, 3);
+            R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
+            R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
+            R(2, 0) = -2.0*cos(theta)*sin(theta);   R(2, 1) = 2.0*sin(theta)*cos(theta);    R(2, 2) = cos(theta)*cos(theta) - sin(theta)*sin(theta);
+            Matrix<double> dR = Matrix<double>(3, 3);
+            dR(0, 0) = -sin(2.0*theta);     dR(0, 1) = sin(2.0*theta);      dR(0, 2) = cos(2.0*theta);
+            dR(1, 0) = sin(2.0*theta);      dR(1, 1) = -sin(2.0*theta);     dR(1, 2) = -cos(2.0*theta);
+            dR(2, 0) = -2.0*cos(2.0*theta); dR(2, 1) = 2.0*cos(2.0*theta);  dR(2, 2) = -2.0*sin(2.0*theta);
+            dCHida = R.Transpose()*dCHida*R;
+            dCHidt = 0.5*M_PI/0.99*(dR.Transpose()*dCHidt*R + R.Transpose()*dCHidt*dR);
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
-            Matrix<double> Ke;
-            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, dCHida, 1.0);
+            Matrix<double> dKeda, dKedt;
+            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKeda, nodetoelement, elements[i], { 0, 1 }, x, dCHida, 1.0);
+            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKedt, nodetoelement, elements[i], { 0, 1 }, x, dCHidt, 1.0);
 			Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
-            dfda[i] = -ue*(Ke*ue);
+            dfda[i] = -ue*(dKeda*ue);
+            dfdt[i] = -ue*(dKedt*ue);
         }
 		
          
@@ -267,6 +308,7 @@ int main() {
 		AddPointVectors(u, "u", fout, true);
         AddPointVectors(r, "r", fout, false);
 		AddElementScalers(a, "a", fout, true);
+        AddElementScalers(t, "t", fout, false);
 		fout.close();
        
 
@@ -282,15 +324,18 @@ int main() {
 		}
 		
 		//----------Get updated design variables with OC----------
-		optimizer.UpdateVariables(a, f, dfda, g, dgda, 
-            [&](std::vector<double> _a) {
-                double g = 0.0;
-                for(int i = 0; i < _a.size(); i++){
-                    g += (1.0 - pow(1.0 - _a[i], 2.0))/(weightlimit*elements.size());
-                }
-                return g - 1.0; 
-            }
-        );	
+        std::vector<double> s = std::vector<double>(a.size() + t.size());
+        std::vector<double> dfds = std::vector<double>(a.size() + t.size());
+        std::vector<double> dgds = std::vector<double>(a.size() + t.size());
+        for(int i = 0; i < elements.size(); i++) {
+            s[2*i] = a[i];          s[2*i + 1] = t[i];
+            dfds[2*i] = dfda[i];    dfds[2*i + 1] = dfdt[i];
+            dgds[2*i] = dgda[i];    dgds[2*i + 1] = dgdt[i];
+        }
+		optimizer.UpdateVariables(s, f, dfds, { g }, { dgds });	
+        for(int i = 0; i < elements.size(); i++) {
+            a[i] = s[2*i];  t[i] = s[2*i + 1];
+        }
 	}
 	
 	return 0;

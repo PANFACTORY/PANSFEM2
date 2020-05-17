@@ -1,5 +1,5 @@
 //*****************************************************************************
-//  Title       :   src/Optimize/Filter/Heaviside.h
+//  Title       :   src/Optimize/Filter/HeavisideFilter.h
 //  Author      :   Tanabe Yuta
 //  Date        :   2020/01/31
 //  Copyright   :   (C)2020 TanabeYuta

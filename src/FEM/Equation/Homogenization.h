@@ -140,7 +140,7 @@ namespace PANSFEM2 {
 	//********************Make element stiffness matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
 	void PlaneStiffness(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, Matrix<T> _D, T _t) {
-		assert(_doulist.size() == 2 && _D.row() == 3 && _D.col() == 3);
+		assert(_doulist.size() == 2 && _D.ROW() == 3 && _D.COL() == 3);
 
 		_Ke = Matrix<T>(2*_element.size(), 2*_element.size());
 		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(2));

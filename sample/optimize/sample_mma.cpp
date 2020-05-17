@@ -11,7 +11,7 @@
 #include "../../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../../src/PrePost/Export/ExportToVTK.h"
 #include "../../../src/Optimize/Solver/MMA.h"
-#include "../../../src/Optimize/Filter/Heaviside.h"
+#include "../../../src/Optimize/Filter/HeavisideFilter.h"
 #include "../../../src/PrePost/Mesher/SquareMesh.h"
 #include "../../../src/FEM/Equation/General.h"
 

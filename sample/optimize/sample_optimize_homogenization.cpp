@@ -16,6 +16,7 @@
 #include "../../src/FEM/Equation/Homogenization.h"
 #include "../../src/PrePost/Import/ImportFromCSV.h"
 #include "../../src/PrePost/Mesher/SquareMesh.h"
+#include "../../src/FEM/Controller/ShapeFunction2.h"
 
 
 using namespace PANSFEM2;
@@ -32,6 +33,7 @@ int main() {
     std::string model_path = "sample/optimize/";
 
     std::vector<double> as = { 1.0e-3, 0.2, 0.4, 0.6, 0.8, 0.999 };
+    std::vector<double> bs = { 1.0e-3, 0.2, 0.4, 0.6, 0.8, 0.999 };
 
     double weightlimit = 0.5;
 	
@@ -39,80 +41,82 @@ int main() {
     //*****************************************************
     //  Numerical Material Experiment
     //*****************************************************
-    std::vector<Matrix<double> > CH = std::vector<Matrix<double> > (as.size()); 
+    std::vector<std::vector<Matrix<double> > > CH = std::vector<std::vector<Matrix<double> > > (as.size(), std::vector<Matrix<double> >(bs.size())); 
     for(int i = 0; i < as.size(); i++) {
-        //----------Make model of an unit cell----------
-        SquareAnnulusMesh<double> mesh = SquareAnnulusMesh<double>(1.0, 1.0, 1.0 - as[i], 1.0 - as[i], 10, 10, 10);
-        std::vector<Vector<double> > x = mesh.GenerateNodes();
-        std::vector<std::vector<int> > elements = mesh.GenerateElements();
-        std::vector<std::pair<int, int> > ufixed;
-        ImportPeriodicFromCSV(ufixed, model_path + "Periodic.csv");
+        for(int j = 0; j < bs.size(); j++) {
+            //----------Make model of an unit cell----------
+            SquareAnnulusMesh<double> mesh = SquareAnnulusMesh<double>(1.0, 1.0, 1.0 - as[i], 1.0 - bs[j], 10, 10, 10);
+            std::vector<Vector<double> > x = mesh.GenerateNodes();
+            std::vector<std::vector<int> > elements = mesh.GenerateElements();
+            std::vector<std::pair<int, int> > ufixed;
+            ImportPeriodicFromCSV(ufixed, model_path + "Periodic.csv");
 
-        std::vector<Vector<double> > chi0 = std::vector<Vector<double> >(x.size(), Vector<double>(2));
-        std::vector<Vector<double> > chi1 = std::vector<Vector<double> >(x.size(), Vector<double>(2));
-        std::vector<Vector<double> > chi2 = std::vector<Vector<double> >(x.size(), Vector<double>(2));
-        std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
-        int KDEGREE = SetPeriodic(nodetoglobal, ufixed);
+            std::vector<Vector<double> > chi0 = std::vector<Vector<double> >(x.size(), Vector<double>(2));
+            std::vector<Vector<double> > chi1 = std::vector<Vector<double> >(x.size(), Vector<double>(2));
+            std::vector<Vector<double> > chi2 = std::vector<Vector<double> >(x.size(), Vector<double>(2));
+            std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(2, 0));
+            int KDEGREE = SetPeriodic(nodetoglobal, ufixed);
 
 
-        //----------Get characteristics displacement----------
-        LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
-        std::vector<double> F0 = std::vector<double>(KDEGREE, 0.0);
-        std::vector<double> F1 = std::vector<double>(KDEGREE, 0.0);
-        std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);
-        
-        for (auto element : elements) {
-            std::vector<std::vector<std::pair<int, int> > > nodetoelement;
-            Matrix<double> Ke;
-            PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, element, { 0, 1 }, x, E0, Poisson0, 1.0);
-            Assembling(K, Ke, nodetoglobal, nodetoelement, element);
-            Assembling(F0, chi0, Ke, nodetoglobal, nodetoelement, element);
-            Assembling(F1, chi1, Ke, nodetoglobal, nodetoelement, element);
-            Assembling(F2, chi2, Ke, nodetoglobal, nodetoelement, element);
+            //----------Get characteristics displacement----------
+            LILCSR<double> K = LILCSR<double>(KDEGREE, KDEGREE);
+            std::vector<double> F0 = std::vector<double>(KDEGREE, 0.0);
+            std::vector<double> F1 = std::vector<double>(KDEGREE, 0.0);
+            std::vector<double> F2 = std::vector<double>(KDEGREE, 0.0);
+            
+            for (auto element : elements) {
+                std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+                Matrix<double> Ke;
+                PlaneStrainStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, element, { 0, 1 }, x, E0, Poisson0, 1.0);
+                Assembling(K, Ke, nodetoglobal, nodetoelement, element);
+                Assembling(F0, chi0, Ke, nodetoglobal, nodetoelement, element);
+                Assembling(F1, chi1, Ke, nodetoglobal, nodetoelement, element);
+                Assembling(F2, chi2, Ke, nodetoglobal, nodetoelement, element);
 
-            Matrix<double> Fes;
-            HomogenizePlaneStrainBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodetoelement, element, { 0, 1 }, x, E0, Poisson0, 1.0);
-            Vector<double> Fe0 = Fes.Block(0, 0, Ke.ROW(), 1);
-            Assembling(F0, Fe0, nodetoglobal, nodetoelement, element);
-            Vector<double> Fe1 = Fes.Block(0, 1, Ke.ROW(), 1);
-            Assembling(F1, Fe1, nodetoglobal, nodetoelement, element);
-            Vector<double> Fe2 = Fes.Block(0, 2, Ke.ROW(), 1);
-            Assembling(F2, Fe2, nodetoglobal, nodetoelement, element);
+                Matrix<double> Fes;
+                HomogenizePlaneStrainBodyForce<double, ShapeFunction4Square, Gauss4Square>(Fes, nodetoelement, element, { 0, 1 }, x, E0, Poisson0, 1.0);
+                Vector<double> Fe0 = Fes.Block(0, 0, Ke.ROW(), 1);
+                Assembling(F0, Fe0, nodetoglobal, nodetoelement, element);
+                Vector<double> Fe1 = Fes.Block(0, 1, Ke.ROW(), 1);
+                Assembling(F1, Fe1, nodetoglobal, nodetoelement, element);
+                Vector<double> Fe2 = Fes.Block(0, 2, Ke.ROW(), 1);
+                Assembling(F2, Fe2, nodetoglobal, nodetoelement, element);
+            }
+
+            for (auto element : elements) {
+                std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+                Matrix<double> Ke;
+                WeakSpring<double>(Ke, nodetoelement, element, { 0, 1 }, x, 1.0e-9);
+                Assembling(K, Ke, nodetoglobal, nodetoelement, element);
+            }
+
+            CSR<double> Kmod = CSR<double>(K);
+            std::vector<double> result0 = ScalingCG(Kmod, F0, 100000, 1.0e-10);
+            Disassembling(chi0, result0, nodetoglobal);
+            std::vector<double> result1 = ScalingCG(Kmod, F1, 100000, 1.0e-10);
+            Disassembling(chi1, result1, nodetoglobal);
+            std::vector<double> result2 = ScalingCG(Kmod, F2, 100000, 1.0e-10);
+            Disassembling(chi2, result2, nodetoglobal);
+
+
+            //----------Get homogenized value----------
+            CH[i][j] = Matrix<double>(3, 3);
+            for (auto element : elements) {
+                CH[i][j] += HomogenizePlaneStrainConstitutive<double, ShapeFunction4Square, Gauss4Square>(x, element, chi0, chi1, chi2, E0, Poisson0, 1.0);
+            }
+            CH[i][j] /= Volume0;
+
+            //----------Export result of Numerical Material Experiment----------
+            std::ofstream fout(model_path + "result_microscopic_a" + std::to_string(i) + "b_" + std::to_string(j) + ".vtk");
+            MakeHeadderToVTK(fout);
+            AddPointsToVTK(x, fout);
+            AddElementToVTK(elements, fout);
+            AddElementTypes(std::vector<int>(elements.size(), 9), fout);
+            AddPointVectors(chi0, "chi0", fout, true);
+            AddPointVectors(chi1, "chi1", fout, false);
+            AddPointVectors(chi2, "chi2", fout, false);
+            fout.close();
         }
-
-        for (auto element : elements) {
-            std::vector<std::vector<std::pair<int, int> > > nodetoelement;
-            Matrix<double> Ke;
-            WeakSpring<double>(Ke, nodetoelement, element, { 0, 1 }, x, 1.0e-9);
-            Assembling(K, Ke, nodetoglobal, nodetoelement, element);
-        }
-
-        CSR<double> Kmod = CSR<double>(K);
-        std::vector<double> result0 = ScalingCG(Kmod, F0, 100000, 1.0e-10);
-        Disassembling(chi0, result0, nodetoglobal);
-        std::vector<double> result1 = ScalingCG(Kmod, F1, 100000, 1.0e-10);
-        Disassembling(chi1, result1, nodetoglobal);
-        std::vector<double> result2 = ScalingCG(Kmod, F2, 100000, 1.0e-10);
-        Disassembling(chi2, result2, nodetoglobal);
-
-
-        //----------Get homogenized value----------
-        CH[i] = Matrix<double>(3, 3);
-        for (auto element : elements) {
-            CH[i] += HomogenizePlaneStrainConstitutive<double, ShapeFunction4Square, Gauss4Square>(x, element, chi0, chi1, chi2, E0, Poisson0, 1.0);
-        }
-        CH[i] /= Volume0;
-
-        //----------Export result of Numerical Material Experiment----------
-        std::ofstream fout(model_path + "result_microscopic_a" + std::to_string(i) + ".vtk");
-        MakeHeadderToVTK(fout);
-        AddPointsToVTK(x, fout);
-        AddElementToVTK(elements, fout);
-        AddElementTypes(std::vector<int>(elements.size(), 9), fout);
-        AddPointVectors(chi0, "chi0", fout, true);
-        AddPointVectors(chi1, "chi1", fout, false);
-        AddPointVectors(chi2, "chi2", fout, false);
-        fout.close();
     }
 
     
@@ -143,13 +147,14 @@ int main() {
 
 	//----------Initialize design variables and solver----------
 	std::vector<double> a = std::vector<double>(elements.size(), 0.5);
+    std::vector<double> b = std::vector<double>(elements.size(), 0.5);
     std::vector<double> t = std::vector<double>(elements.size(), 0.505);
-    MMA<double> optimizer = MMA<double>(a.size() + t.size(), 1, 1.0,
+    MMA<double> optimizer = MMA<double>(a.size() + b.size() + t.size(), 1, 1.0,
 		std::vector<double>(1, 0.0),
 		std::vector<double>(1, 10000.0),
 		std::vector<double>(1, 0.0), 
-		std::vector<double>(a.size() + t.size(), 0.01), std::vector<double>(a.size() + t.size(), 1.0));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-6);			
+		std::vector<double>(a.size() + b.size() + t.size(), 0.01), std::vector<double>(a.size() + b.size() + t.size(), 1.0));
+	optimizer.SetParameters(1.0e-5, 0.1, 0.05, 0.5, 0.7, 1.2, 1.0e-6);			
 
 	//----------Optimize loop----------
 	for(int k = 0; k < 400; k++){
@@ -161,10 +166,12 @@ int main() {
         //*************************************************
         double g = 0.0;														//Function values of weight
 		std::vector<double> dgda = std::vector<double>(a.size(), 0.0);      //Sensitivities of weight
+        std::vector<double> dgdb = std::vector<double>(b.size(), 0.0);
         std::vector<double> dgdt = std::vector<double>(t.size(), 0.0);
         for(int i = 0; i < elements.size(); i++){
-            g += (1.0 - pow(1.0 - a[i], 2.0))/(weightlimit*elements.size());
-            dgda[i] = 2.0*(1.0 - a[i])/(weightlimit*elements.size()); 
+            g += (1.0 - (1.0 - a[i])*(1.0 - b[i]))/(weightlimit*elements.size());
+            dgda[i] = (1.0 - b[i])/(weightlimit*elements.size()); 
+            dgdb[i] = (1.0 - a[i])/(weightlimit*elements.size()); 
         }
         g -= 1.0;
 
@@ -185,16 +192,14 @@ int main() {
 
 		for (int i = 0; i < elements.size(); i++) {
 			Matrix<double> CHi = Matrix<double>(3, 3);  
+            std::vector<double> N = LagrangeInterpolation(as, a[i]);
+            std::vector<double> M = LagrangeInterpolation(bs, b[i]);
             for(int n = 0; n < as.size(); n++) {
-                Matrix<double> P = CH[n];
-                for(int m = 0; m < as.size(); m++) {
-                    if(m != n) {
-                        P *= (a[i] - as[m])/(as[n] - as[m]);
-                    }
-                }
-                CHi += P;
+                for(int m = 0; m < bs.size(); m++) {
+                    CHi += N[n]*M[m]*CH[n][m];
+                } 
             }
-            double theta = 0.5*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            double theta = 2.0*M_PI*((t[i] - 0.01)/0.99 - 0.5);
             Matrix<double> R = Matrix<double>(3, 3);
             R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
             R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
@@ -218,17 +223,15 @@ int main() {
         std::vector<Vector<double> > r = std::vector<Vector<double> >(x.size(), Vector<double>(2));	
 
         for (int i = 0; i < elements.size(); i++) {
-            Matrix<double> CHi = Matrix<double>(3, 3);
+            Matrix<double> CHi = Matrix<double>(3, 3);  
+            std::vector<double> N = LagrangeInterpolation(as, a[i]);
+            std::vector<double> M = LagrangeInterpolation(bs, b[i]);
             for(int n = 0; n < as.size(); n++) {
-                Matrix<double> P = CH[n];
-                for(int m = 0; m < as.size(); m++) {
-                    if(m != n) {
-                        P *= (a[i] - as[m])/(as[n] - as[m]);
-                    }
-                }
-                CHi += P;
+                for(int m = 0; m < bs.size(); m++) {
+                    CHi += N[n]*M[m]*CH[n][m];
+                } 
             }
-            double theta = 0.5*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            double theta = 2.0*M_PI*((t[i] - 0.01)/0.99 - 0.5);
             Matrix<double> R = Matrix<double>(3, 3);
             R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
             R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
@@ -246,37 +249,24 @@ int main() {
         //--------------------Get compliance and sensitivities--------------------
         double f = std::inner_product(u.begin(), u.end(), r.begin(), 0.0);
 		std::vector<double> dfda = std::vector<double>(a.size(), 0.0);
+        std::vector<double> dfdb = std::vector<double>(b.size(), 0.0);
         std::vector<double> dfdt = std::vector<double>(t.size(), 0.0);
         for(int i = 0; i < elements.size(); i++){
-            Matrix<double> dCHidt = Matrix<double>(3, 3);
-            for(int n = 0; n < as.size(); n++) {
-                Matrix<double> P = CH[n];
-                for(int m = 0; m < as.size(); m++) {
-                    if(m != n) {
-                        P *= (a[i] - as[m])/(as[n] - as[m]);
-                    }
-                }
-                dCHidt += P;
-            }
             Matrix<double> dCHida = Matrix<double>(3, 3);
+            Matrix<double> dCHidb = Matrix<double>(3, 3);
+            Matrix<double> dCHidt = Matrix<double>(3, 3);
+            std::vector<double> N = LagrangeInterpolation(as, a[i]);
+            std::vector<double> dNdr = LagrangeInterpolationDerivative(as, a[i]);
+            std::vector<double> M = LagrangeInterpolation(bs, b[i]);
+            std::vector<double> dMdr = LagrangeInterpolationDerivative(bs, b[i]);
             for(int n = 0; n < as.size(); n++) {
-                double q = 0.0;
-                for(int m = 0; m < as.size(); m++) {
-                    if(m != n ) {
-                        double p = 1.0;
-                        for(int l = 0; l < as.size(); l++) {
-                            if(l != m && l != n) {
-                                p *= (a[i] - as[l])/(as[n] - as[l]);
-                            } else if(l != n) {
-                                p *= 1.0/(as[n] - as[l]); 
-                            }
-                        }
-                        q += p;
-                    }
-                }
-                dCHida += q*CH[n];
+                for(int m = 0; m < bs.size(); m++) {
+                    dCHida += dNdr[n]*M[m]*CH[n][m];
+                    dCHidb += N[n]*dMdr[m]*CH[n][m];
+                    dCHidt += N[n]*M[m]*CH[n][m];
+                } 
             }
-            double theta = 0.5*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            double theta = 2.0*M_PI*((t[i] - 0.01)/0.99 - 0.5);
             Matrix<double> R = Matrix<double>(3, 3);
             R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
             R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
@@ -286,13 +276,16 @@ int main() {
             dR(1, 0) = sin(2.0*theta);      dR(1, 1) = -sin(2.0*theta);     dR(1, 2) = -cos(2.0*theta);
             dR(2, 0) = -2.0*cos(2.0*theta); dR(2, 1) = 2.0*cos(2.0*theta);  dR(2, 2) = -2.0*sin(2.0*theta);
             dCHida = R.Transpose()*dCHida*R;
-            dCHidt = 0.5*M_PI/0.99*(dR.Transpose()*dCHidt*R + R.Transpose()*dCHidt*dR);
+            dCHidb = R.Transpose()*dCHidb*R;
+            dCHidt = 2.0*M_PI/0.99*(dR.Transpose()*dCHidt*R + R.Transpose()*dCHidt*dR);
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
-            Matrix<double> dKeda, dKedt;
+            Matrix<double> dKeda, dKedb, dKedt;
             PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKeda, nodetoelement, elements[i], { 0, 1 }, x, dCHida, 1.0);
+            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKedb, nodetoelement, elements[i], { 0, 1 }, x, dCHidb, 1.0);
             PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKedt, nodetoelement, elements[i], { 0, 1 }, x, dCHidt, 1.0);
 			Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             dfda[i] = -ue*(dKeda*ue);
+            dfdb[i] = -ue*(dKedb*ue);
             dfdt[i] = -ue*(dKedt*ue);
         }
 		
@@ -308,6 +301,7 @@ int main() {
 		AddPointVectors(u, "u", fout, true);
         AddPointVectors(r, "r", fout, false);
 		AddElementScalers(a, "a", fout, true);
+        AddElementScalers(b, "b", fout, false);
         AddElementScalers(t, "t", fout, false);
 		fout.close();
        
@@ -324,17 +318,17 @@ int main() {
 		}
 		
 		//----------Get updated design variables with OC----------
-        std::vector<double> s = std::vector<double>(a.size() + t.size());
-        std::vector<double> dfds = std::vector<double>(a.size() + t.size());
-        std::vector<double> dgds = std::vector<double>(a.size() + t.size());
+        std::vector<double> s = std::vector<double>(a.size() + b.size() + t.size());
+        std::vector<double> dfds = std::vector<double>(a.size() + b.size() + t.size());
+        std::vector<double> dgds = std::vector<double>(a.size() + b.size() + t.size());
         for(int i = 0; i < elements.size(); i++) {
-            s[2*i] = a[i];          s[2*i + 1] = t[i];
-            dfds[2*i] = dfda[i];    dfds[2*i + 1] = dfdt[i];
-            dgds[2*i] = dgda[i];    dgds[2*i + 1] = dgdt[i];
+            s[3*i] = a[i];          s[3*i + 1] = b[i];          s[3*i + 2] = t[i];
+            dfds[3*i] = dfda[i];    dfds[3*i + 1] = dfdb[i];    dfds[3*i + 2] = dfdt[i];
+            dgds[3*i] = dgda[i];    dgds[3*i + 1] = dgdb[i];    dgds[3*i + 2] = dgdt[i];
         }
 		optimizer.UpdateVariables(s, f, dfds, { g }, { dgds });	
         for(int i = 0; i < elements.size(); i++) {
-            a[i] = s[2*i];  t[i] = s[2*i + 1];
+            a[i] = s[3*i];  b[i] = s[3*i + 1];  t[i] = s[3*i + 2];
         }
 	}
 	

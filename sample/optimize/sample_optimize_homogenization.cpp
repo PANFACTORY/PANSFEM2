@@ -107,7 +107,7 @@ int main() {
             CH[i][j] /= Volume0;
 
             //----------Export result of Numerical Material Experiment----------
-            std::ofstream fout(model_path + "result_microscopic_a" + std::to_string(i) + "b_" + std::to_string(j) + ".vtk");
+            /*std::ofstream fout(model_path + "result_microscopic_a" + std::to_string(i) + "b_" + std::to_string(j) + ".vtk");
             MakeHeadderToVTK(fout);
             AddPointsToVTK(x, fout);
             AddElementToVTK(elements, fout);
@@ -115,7 +115,7 @@ int main() {
             AddPointVectors(chi0, "chi0", fout, true);
             AddPointVectors(chi1, "chi1", fout, false);
             AddPointVectors(chi2, "chi2", fout, false);
-            fout.close();
+            fout.close();*/
         }
     }
 
@@ -135,7 +135,7 @@ int main() {
         return false;
     });
     std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 1 }, [](Vector<double> _x){
-        if(abs(_x(0) - 60.0) < 1.0e-5 && abs(_x(1) - 20.0) < 2.0 + 1.0e-5) {
+        if(abs(_x(0) - 60.0) < 1.0e-5 && abs(_x(1) - 20.0) < 1.0 + 1.0e-5) {
             return true;
         }
         return false;
@@ -148,13 +148,13 @@ int main() {
 	//----------Initialize design variables and solver----------
 	std::vector<double> a = std::vector<double>(elements.size(), 0.5);
     std::vector<double> b = std::vector<double>(elements.size(), 0.5);
-    std::vector<double> t = std::vector<double>(elements.size(), 0.505);
+    std::vector<double> t = std::vector<double>(elements.size(), 0.499);
     MMA<double> optimizer = MMA<double>(a.size() + b.size() + t.size(), 1, 1.0,
 		std::vector<double>(1, 0.0),
 		std::vector<double>(1, 10000.0),
 		std::vector<double>(1, 0.0), 
-		std::vector<double>(a.size() + b.size() + t.size(), 0.01), std::vector<double>(a.size() + b.size() + t.size(), 1.0));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.05, 0.5, 0.7, 1.2, 1.0e-6);			
+		std::vector<double>(a.size() + b.size() + t.size(), 1.0e-3), std::vector<double>(a.size() + b.size() + t.size(), 0.999));
+	optimizer.SetParameters(1.0e-5, 0.1, 0.1, 0.5, 0.7, 1.2, 1.0e-6);			
 
 	//----------Optimize loop----------
 	for(int k = 0; k < 400; k++){
@@ -199,7 +199,7 @@ int main() {
                     CHi += N[n]*M[m]*CH[n][m];
                 } 
             }
-            double theta = 2.0*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            double theta = 0.5*M_PI*((t[i] - 0.001)/0.998 - 0.5);
             Matrix<double> R = Matrix<double>(3, 3);
             R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
             R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
@@ -231,7 +231,7 @@ int main() {
                     CHi += N[n]*M[m]*CH[n][m];
                 } 
             }
-            double theta = 2.0*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            double theta = 0.5*M_PI*((t[i] - 0.001)/0.998 - 0.5);
             Matrix<double> R = Matrix<double>(3, 3);
             R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
             R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
@@ -266,7 +266,7 @@ int main() {
                     dCHidt += N[n]*M[m]*CH[n][m];
                 } 
             }
-            double theta = 2.0*M_PI*((t[i] - 0.01)/0.99 - 0.5);
+            double theta = 0.5*M_PI*((t[i] - 0.001)/0.998 - 0.5);
             Matrix<double> R = Matrix<double>(3, 3);
             R(0, 0) = cos(theta)*cos(theta);        R(0, 1) = sin(theta)*sin(theta);        R(0, 2) = cos(theta)*sin(theta);
             R(1, 0) = sin(theta)*sin(theta);        R(1, 1) = cos(theta)*cos(theta);        R(1, 2) = -sin(theta)*cos(theta);
@@ -277,7 +277,7 @@ int main() {
             dR(2, 0) = -2.0*cos(2.0*theta); dR(2, 1) = 2.0*cos(2.0*theta);  dR(2, 2) = -2.0*sin(2.0*theta);
             dCHida = R.Transpose()*dCHida*R;
             dCHidb = R.Transpose()*dCHidb*R;
-            dCHidt = 2.0*M_PI/0.99*(dR.Transpose()*dCHidt*R + R.Transpose()*dCHidt*dR);
+            dCHidt = 0.5*M_PI/0.998*(dR.Transpose()*dCHidt*R + R.Transpose()*dCHidt*dR);
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> dKeda, dKedb, dKedt;
             PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKeda, nodetoelement, elements[i], { 0, 1 }, x, dCHida, 1.0);
@@ -300,7 +300,15 @@ int main() {
 		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 		AddPointVectors(u, "u", fout, true);
         AddPointVectors(r, "r", fout, false);
-		AddElementScalers(a, "a", fout, true);
+        std::vector<double> v = std::vector<double>(elements.size());
+        std::vector<double> theta = std::vector<double>(elements.size());
+        for(int i = 0; i < elements.size(); i++) {
+            v[i] = 1.0 - (1.0 - a[i])*(1.0 - b[i]);
+            theta[i] = 90.0*((t[i] - 0.01)/0.99 - 0.5);
+        }
+        AddElementScalers(v, "v", fout, true);
+        AddElementScalers(theta, "theta", fout, false);
+        AddElementScalers(a, "a", fout, false);
         AddElementScalers(b, "b", fout, false);
         AddElementScalers(t, "t", fout, false);
 		fout.close();

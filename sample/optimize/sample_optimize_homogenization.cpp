@@ -16,7 +16,6 @@
 #include "../../src/FEM/Equation/Homogenization.h"
 #include "../../src/PrePost/Import/ImportFromCSV.h"
 #include "../../src/PrePost/Mesher/SquareMesh.h"
-#include "../../src/FEM/Controller/ShapeFunction2.h"
 
 
 using namespace PANSFEM2;
@@ -36,6 +35,7 @@ int main() {
     std::vector<double> bs = { 1.0e-3, 0.2, 0.4, 0.6, 0.8, 0.999 };
 
     double weightlimit = 0.5;
+    double R = 3.0;
 	
 
     //*****************************************************
@@ -144,7 +144,7 @@ int main() {
         qfixedi.second = -1.0;
     }
 
-
+        
 	//----------Initialize design variables and solver----------
 	std::vector<double> a = std::vector<double>(elements.size(), 0.5);
     std::vector<double> b = std::vector<double>(elements.size(), 0.5);
@@ -154,7 +154,7 @@ int main() {
 		std::vector<double>(1, 10000.0),
 		std::vector<double>(1, 0.0), 
 		std::vector<double>(a.size() + b.size() + t.size(), 1.0e-3), std::vector<double>(a.size() + b.size() + t.size(), 0.999));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.1, 0.5, 0.7, 1.2, 1.0e-6);			
+	optimizer.SetParameters(1.0e-5, 0.1, 0.01, 0.5, 0.7, 1.2, 1.0e-6);			
 
 	//----------Optimize loop----------
 	for(int k = 0; k < 400; k++){
@@ -174,7 +174,7 @@ int main() {
             dgdb[i] = (1.0 - a[i])/(weightlimit*elements.size()); 
         }
         g -= 1.0;
-
+        
      
         //*************************************************
         //  Get compliance value and sensitivities
@@ -288,7 +288,7 @@ int main() {
             dfdb[i] = -ue*(dKedb*ue);
             dfdt[i] = -ue*(dKedt*ue);
         }
-		
+        		
          
         //*************************************************
         //  Export result of Macroscopic optimization

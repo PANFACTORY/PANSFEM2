@@ -321,7 +321,7 @@ int main() {
         //*************************************************
         //  Export result of Macroscopic optimization
         //*************************************************
-		std::ofstream fout(model_path + "result_macroscopic_k" + std::to_string(k) + ".vtk");
+		std::ofstream fout(model_path + "result" + std::to_string(k) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(x, fout);
 		AddElementToVTK(elements, fout);

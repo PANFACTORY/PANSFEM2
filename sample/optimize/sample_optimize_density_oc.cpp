@@ -2,18 +2,18 @@
 #include <vector>
 
 
-#include "../../../src/LinearAlgebra/Models/Vector.h"
-#include "../../../src/FEM/Equation/PlaneStrain.h"
-#include "../../../src/FEM/Controller/ShapeFunction.h"
-#include "../../../src/FEM/Controller/GaussIntegration.h"
-#include "../../../src/FEM/Controller/BoundaryCondition.h"
-#include "../../../src/FEM/Controller/Assembling.h"
-#include "../../../src/LinearAlgebra/Solvers/CG.h"
-#include "../../../src/PrePost/Export/ExportToVTK.h"
-#include "../../../src/Optimize/Solver/MMA.h"
-#include "../../../src/Optimize/Filter/HeavisideFilter.h"
-#include "../../../src/PrePost/Mesher/SquareMesh.h"
-#include "../../../src/FEM/Equation/General.h"
+#include "../../src/LinearAlgebra/Models/Vector.h"
+#include "../../src/FEM/Equation/PlaneStrain.h"
+#include "../../src/FEM/Controller/ShapeFunction.h"
+#include "../../src/FEM/Controller/GaussIntegration.h"
+#include "../../src/FEM/Controller/BoundaryCondition.h"
+#include "../../src/FEM/Controller/Assembling.h"
+#include "../../src/LinearAlgebra/Solvers/CG.h"
+#include "../../src/PrePost/Export/ExportToVTK.h"
+#include "../../src/Optimize/Solver/OC.h"
+#include "../../src/Optimize/Filter/HeavisideFilter.h"
+#include "../../src/PrePost/Mesher/SquareMesh.h"
+#include "../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -77,12 +77,7 @@ int main() {
 
     double beta = 0.5;
 
-    MMA<double> optimizer = MMA<double>(s.size(), 1, 1.0,
-		std::vector<double>(1, 0.0),
-		std::vector<double>(1, 10000.0),
-		std::vector<double>(1, 0.0), 
-		std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
-	optimizer.SetParameters(1.0e-5, 0.1, 0.2, 0.5, 0.7, 1.2, 1.0e-6);
+    OC<double> optimizer = OC<double>(s.size(), 0.5, 0.0, 1.0e4, 1.0e-3, 0.15, std::vector<double>(s.size(), 0.01), std::vector<double>(s.size(), 1.0));
 			
 	//----------Optimize loop----------
 	for(int k = 0; k < 500; k++){
@@ -177,7 +172,7 @@ int main() {
         //*************************************************
         //  Post Process
         //*************************************************
-		std::ofstream fout("sample/optimize/compliance/result" + std::to_string(k) + ".vtk");
+		std::ofstream fout("sample/optimize/result" + std::to_string(k) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(x, fout);
 		AddElementToVTK(elements, fout);
@@ -189,7 +184,7 @@ int main() {
        
 
         //*************************************************
-        //  Update design variables with MMA
+        //  Update design variables with OC
         //*************************************************
 
 		//----------Check convergence----------
@@ -199,8 +194,17 @@ int main() {
 			break;
 		}
 		
-		//----------Get updated design variables with MMA----------
-		optimizer.UpdateVariables(s, f, dfds, { g }, { dgds });	
+		//----------Get updated design variables with OC----------
+		optimizer.UpdateVariables(s, f, dfds, g, dgds, 
+            [&](std::vector<double> _xkp1) {
+                double g = 0.0;
+                std::vector<double> rho = filter.GetFilteredVariables(_xkp1);
+                for(int i = 0; i < elements.size(); i++){
+                    g += scale1*rho[i]/(weightlimit*elements.size());
+                }
+                return g - 1.0*scale1; 
+            }
+        );	
 	}
 	
 	return 0;

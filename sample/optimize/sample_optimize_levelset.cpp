@@ -129,7 +129,7 @@ int main() {
             break;
         }
 
-        std::ofstream fout("sample/levelset/result" + std::to_string(t) + ".vtk");
+        std::ofstream fout("sample/optimize/result" + std::to_string(t) + ".vtk");
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(x, fout);
 		AddElementToVTK(elements, fout);

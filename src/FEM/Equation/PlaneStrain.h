@@ -58,6 +58,72 @@ namespace PANSFEM2 {
 	}
 
 
+	//******************************Make element stiffness matrix with Selective Reduced Integration******************************
+	template<class T, template<class>class SF, template<class>class ICV, template<class>class ICD>
+	void PlaneStrainStiffnessSRI(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _E, T _V, T _t) {
+		assert(_doulist.size() == 2);
+
+		_Ke = Matrix<T>(2*_element.size(), 2*_element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], 2*i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], 2*i + 1);
+		}
+
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);
+			X(i, 1) = _x[_element[i]](1);
+		}
+
+		//----------Integraion volume strain term----------
+		Matrix<T> Dvol = Matrix<T>(3, 3);
+		Dvol(0, 0) = 1.0;	Dvol(0, 1) = 1.0;	Dvol(0, 2) = T();
+		Dvol(1, 0) = 1.0;	Dvol(1, 1) = 1.0;	Dvol(1, 2) = T();
+		Dvol(2, 0) = T();	Dvol(2, 1) = T();	Dvol(2, 2) = T();
+		Dvol *= _E/(3.0*(1.0 - 2.0*_V));
+
+		for (int g = 0; g < ICV<T>::N; g++) {
+			Matrix<T> dNdr = SF<T>::dNdr(ICV<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			Matrix<T> B = Matrix<T>(3, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2 * n) = dNdX(0, n);	B(0, 2 * n + 1) = T();			
+				B(1, 2 * n) = T();			B(1, 2 * n + 1) = dNdX(1, n);	
+				B(2, 2 * n) = dNdX(1, n);	B(2, 2 * n + 1) = dNdX(0, n);	
+			}
+
+			_Ke += B.Transpose()*Dvol*B*J*_t*ICV<T>::Weights[g][0]*ICV<T>::Weights[g][1];
+		}
+
+		//----------Integraion deviation strain term----------
+		Matrix<T> Ddev = Matrix<T>(3, 3);
+		Ddev(0, 0) = 4.0;	Ddev(0, 1) = -2.0;	Ddev(0, 2) = T();
+		Ddev(1, 0) = -2.0;	Ddev(1, 1) = 4.0;	Ddev(1, 2) = T();
+		Ddev(2, 0) = T();	Ddev(2, 1) = T();	Ddev(2, 2) = 3.0;
+		Ddev *= _E/(6.0*(1.0 + _V));
+
+		for (int g = 0; g < ICD<T>::N; g++) {
+			Matrix<T> dNdr = SF<T>::dNdr(ICD<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			Matrix<T> B = Matrix<T>(3, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2 * n) = dNdX(0, n);	B(0, 2 * n + 1) = T();			
+				B(1, 2 * n) = T();			B(1, 2 * n + 1) = dNdX(1, n);	
+				B(2, 2 * n) = dNdX(1, n);	B(2, 2 * n + 1) = dNdX(0, n);	
+			}
+
+			_Ke += B.Transpose()*Ddev*B*J*_t*ICD<T>::Weights[g][0]*ICD<T>::Weights[g][1];
+		}
+	}
+
+
 	//******************************Make element mass matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
 	void PlaneStrainMass(Matrix<T>& _Me, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _rho, T _t) {

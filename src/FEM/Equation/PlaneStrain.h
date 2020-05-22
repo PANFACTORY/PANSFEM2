@@ -184,6 +184,65 @@ namespace PANSFEM2 {
 	}
 
 
+	//******************************Make element stiffness matrix with Wilson-Taylor******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void PlaneStrainStiffnessWilsonTaylor(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _E, T _V, T _t) {
+		assert(_doulist.size() == 2);
+
+		_Ke = Matrix<T>(2*_element.size(), 2*_element.size());
+		Matrix<T> Keaa = Matrix<T>(4, 4);
+		Matrix<T> Kead = Matrix<T>(4, 2*_element.size());
+ 		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], 2*i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], 2*i + 1);
+		}
+
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);
+			X(i, 1) = _x[_element[i]](1);
+		}
+
+		Matrix<T> D = Matrix<T>(3, 3);
+		D(0, 0) = 1.0 - _V;	D(0, 1) = _V;		D(0, 2) = T();
+		D(1, 0) = D(0, 1);	D(1, 1) = 1.0 - _V;	D(1, 2) = T();
+		D(2, 0) = D(0, 2);	D(2, 1) = D(1, 2);	D(2, 2) = 0.5*(1.0 - 2.0*_V);
+		D *= _E/((1.0 - 2.0*_V)*(1.0 + _V));
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+			
+			Matrix<T> B = Matrix<T>(3, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				B(0, 2*n) = dNdX(0, n);	B(0, 2*n + 1) = T();			
+				B(1, 2*n) = T();		B(1, 2*n + 1) = dNdX(1, n);	
+				B(2, 2*n) = dNdX(1, n);	B(2, 2*n + 1) = dNdX(0, n);	
+			}
+
+			Vector<T> r = IC<T>::Points[g];
+			Matrix<T> dPdr = Matrix<T>(2, 2);
+			dPdr(0, 0) = -2.0*r(0);		dPdr(0, 1) = T();
+			dPdr(1, 0) =T();			dPdr(1, 1) = -2.0*r(1);
+			Matrix<T> dPdX = dXdr.Inverse()*dPdr;
+
+			Matrix<T> G = Matrix<T>(3, 4);
+			G(0, 0) = dPdX(0, 0);	G(0, 1) = T();			G(0, 2) = dPdX(0, 1);	G(0, 3) = T();
+			G(1, 0) = T();			G(1, 1) = dPdX(1, 0);	G(1, 2) = T();			G(1, 3) = dPdX(1, 1);
+			G(2, 0) = dPdX(1, 0);	G(2, 1) = dPdX(0, 0);	G(2, 2) = dPdX(1, 1);	G(2, 3) = dPdX(0, 1);
+
+			_Ke += B.Transpose()*D*B*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			Keaa += G.Transpose()*D*G*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+			Kead += G.Transpose()*D*B*J*_t*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+
+		_Ke -= Kead.Transpose()*Keaa.Inverse()*Kead;
+	}
+
+
 	//******************************Make element mass matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
 	void PlaneStrainMass(Matrix<T>& _Me, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _rho, T _t) {

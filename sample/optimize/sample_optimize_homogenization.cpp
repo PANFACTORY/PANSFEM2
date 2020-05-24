@@ -36,7 +36,6 @@ int main() {
     std::vector<double> bs = { 1.0e-3, 0.2, 0.4, 0.6, 0.8, 0.999 };
 
     double weightlimit = 0.5;
-    double R = 1.5;
 	
 
     //*****************************************************
@@ -145,27 +144,11 @@ int main() {
         qfixedi.second = -1.0;
     }
 
-    std::vector<Vector<double> > cg = std::vector<Vector<double> >(elements.size());
-    for(int i = 0; i < elements.size(); i++){
-        cg[i] = CenterOfGravity(x, elements[i]);
-    }
-    std::vector<std::vector<int> > neighbors = std::vector<std::vector<int> >(elements.size(), std::vector<int>());
-    std::vector<std::vector<double> > w = std::vector<std::vector<double> >(elements.size(), std::vector<double>());
-    for(int i = 0; i < elements.size(); i++){
-        for(int j = 0; j < elements.size(); j++){
-            if((cg[i] - cg[j]).Norm() <= R){
-                neighbors[i].push_back(j);
-                w[i].push_back((R - (cg[i] - cg[j]).Norm())/R);
-            }
-        }
-    }
-
         
 	//----------Initialize design variables and solver----------
 	std::vector<double> a = std::vector<double>(elements.size(), 0.5);
     std::vector<double> b = std::vector<double>(elements.size(), 0.5);
     std::vector<double> t = std::vector<double>(elements.size(), 0.5);
-    DensityFilter<double> filter = DensityFilter<double>(elements.size(), neighbors, w);
     MMA<double> optimizer = MMA<double>(a.size() + b.size() + t.size(), 1, 1.0,
 		std::vector<double>(1, 0.0),
 		std::vector<double>(1, 10000.0),
@@ -176,13 +159,6 @@ int main() {
 	//----------Optimize loop----------
 	for(int k = 0; k < 600; k++){
 		std::cout << "\nk = " << k << "\t";
-        
-        //*************************************************
-        //  Get filterd design variables
-        //*************************************************
-        std::vector<double> a2 = filter.GetFilteredVariables(a);
-        std::vector<double> b2 = filter.GetFilteredVariables(b);
-
 
         //*************************************************
         //  Get weight value and sensitivities
@@ -192,14 +168,11 @@ int main() {
         std::vector<double> dgdb = std::vector<double>(b.size(), 0.0);
         std::vector<double> dgdt = std::vector<double>(t.size(), 0.0);
         for(int i = 0; i < elements.size(); i++){
-            g += (1.0 - (1.0 - a2[i])*(1.0 - b2[i]))/(weightlimit*elements.size());
-            dgda[i] = (1.0 - b2[i])/(weightlimit*elements.size()); 
-            dgdb[i] = (1.0 - a2[i])/(weightlimit*elements.size()); 
+            g += (1.0 - (1.0 - a[i])*(1.0 - b[i]))/(weightlimit*elements.size());
+            dgda[i] = (1.0 - b[i])/(weightlimit*elements.size()); 
+            dgdb[i] = (1.0 - a[i])/(weightlimit*elements.size()); 
         }
         g -= 1.0;
-        dgda = filter.GetFilteredSensitivitis(a2, dgda);
-        dgdb = filter.GetFilteredSensitivitis(b2, dgdb);
-        
      
         //*************************************************
         //  Get compliance value and sensitivities
@@ -217,8 +190,8 @@ int main() {
 
 		for (int i = 0; i < elements.size(); i++) {
 			Matrix<double> CHi = Matrix<double>(3, 3);  
-            std::vector<double> N = LagrangeInterpolation(as, a2[i]);
-            std::vector<double> M = LagrangeInterpolation(bs, b2[i]);
+            std::vector<double> N = LagrangeInterpolation(as, a[i]);
+            std::vector<double> M = LagrangeInterpolation(bs, b[i]);
             for(int n = 0; n < as.size(); n++) {
                 for(int m = 0; m < bs.size(); m++) {
                     CHi += N[n]*M[m]*CH[n][m];
@@ -232,7 +205,7 @@ int main() {
             CHi = R.Transpose()*CHi*R;
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
+            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
             Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, elements[i]);
 		}
         Assembling(F, qfixed, nodetoglobal);
@@ -249,8 +222,8 @@ int main() {
 
         for (int i = 0; i < elements.size(); i++) {
             Matrix<double> CHi = Matrix<double>(3, 3);  
-            std::vector<double> N = LagrangeInterpolation(as, a2[i]);
-            std::vector<double> M = LagrangeInterpolation(bs, b2[i]);
+            std::vector<double> N = LagrangeInterpolation(as, a[i]);
+            std::vector<double> M = LagrangeInterpolation(bs, b[i]);
             for(int n = 0; n < as.size(); n++) {
                 for(int m = 0; m < bs.size(); m++) {
                     CHi += N[n]*M[m]*CH[n][m];
@@ -264,7 +237,7 @@ int main() {
             CHi = R.Transpose()*CHi*R;
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
+            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
             Vector<double> Keue = Ke*ElementVector(u, nodetoelement, elements[i]);
             Assembling(RF, Keue, nodetoglobal, nodetoelement, elements[i]);
         }
@@ -280,10 +253,10 @@ int main() {
             Matrix<double> dCHida = Matrix<double>(3, 3);
             Matrix<double> dCHidb = Matrix<double>(3, 3);
             Matrix<double> dCHidt = Matrix<double>(3, 3);
-            std::vector<double> N = LagrangeInterpolation(as, a2[i]);
-            std::vector<double> dNdr = LagrangeInterpolationDerivative(as, a2[i]);
-            std::vector<double> M = LagrangeInterpolation(bs, b2[i]);
-            std::vector<double> dMdr = LagrangeInterpolationDerivative(bs, b2[i]);
+            std::vector<double> N = LagrangeInterpolation(as, a[i]);
+            std::vector<double> dNdr = LagrangeInterpolationDerivative(as, a[i]);
+            std::vector<double> M = LagrangeInterpolation(bs, b[i]);
+            std::vector<double> dMdr = LagrangeInterpolationDerivative(bs, b[i]);
             for(int n = 0; n < as.size(); n++) {
                 for(int m = 0; m < bs.size(); m++) {
                     dCHida += dNdr[n]*M[m]*CH[n][m];
@@ -305,18 +278,14 @@ int main() {
             dCHidt = 0.5*M_PI/0.998*(dR.Transpose()*dCHidt*R + R.Transpose()*dCHidt*dR);
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> dKeda, dKedb, dKedt;
-            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKeda, nodetoelement, elements[i], { 0, 1 }, x, dCHida, 1.0);
-            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKedb, nodetoelement, elements[i], { 0, 1 }, x, dCHidb, 1.0);
-            PlaneStiffness<double, ShapeFunction4Square, Gauss4Square>(dKedt, nodetoelement, elements[i], { 0, 1 }, x, dCHidt, 1.0);
+            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(dKeda, nodetoelement, elements[i], { 0, 1 }, x, dCHida, 1.0);
+            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(dKedb, nodetoelement, elements[i], { 0, 1 }, x, dCHidb, 1.0);
+            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(dKedt, nodetoelement, elements[i], { 0, 1 }, x, dCHidt, 1.0);
 			Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             dfda[i] = -ue*(dKeda*ue);
             dfdb[i] = -ue*(dKedb*ue);
             dfdt[i] = -ue*(dKedt*ue);
         }
-
-        dfda = filter.GetFilteredSensitivitis(a2, dfda);
-        dfdb = filter.GetFilteredSensitivitis(b2, dfdb);
-        		
          
         //*************************************************
         //  Export result of Macroscopic optimization
@@ -331,13 +300,13 @@ int main() {
         std::vector<double> v = std::vector<double>(elements.size());
         std::vector<double> theta = std::vector<double>(elements.size());
         for(int i = 0; i < elements.size(); i++) {
-            v[i] = 1.0 - (1.0 - a2[i])*(1.0 - b2[i]);
+            v[i] = 1.0 - (1.0 - a[i])*(1.0 - b[i]);
             theta[i] = 90.0*((t[i] - 0.001)/0.998 - 0.5);
         }
         AddElementScalers(v, "v", fout, true);
         AddElementScalers(theta, "theta", fout, false);
-        AddElementScalers(a2, "a", fout, false);
-        AddElementScalers(b2, "b", fout, false);
+        AddElementScalers(a, "a", fout, false);
+        AddElementScalers(b, "b", fout, false);
         AddElementScalers(t, "t", fout, false);
 		fout.close();
        

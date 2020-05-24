@@ -312,6 +312,75 @@ namespace PANSFEM2 {
 	}
 
 
+	//******************************Make element tangent stiffness matrix and residual vector with UpdatedLagrange******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void PlaneStrainStiffnessUpdatedLagrange(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, T _E, T _V, T _t) {
+		assert(_doulist.size() == 2);
+
+		_Ke = Matrix<T>(2*_element.size(), 2*_element.size());
+		_Fe = Vector<T>(2*_element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], 2*i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], 2*i + 1);
+		}
+
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);
+		}
+
+		Matrix<T> U = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			U(i, 0) = _u[_element[i]](0);	U(i, 1) = _u[_element[i]](1);
+		}
+
+		Matrix<T> x = X + U;
+
+		T mu0 = 0.5*_E/(1.0 + _V);
+		T lambda0 = 2.0*mu0*_V/(1.0 - 2.0*_V);
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dxdr = dNdr*x;
+			T J = dxdr.Determinant();
+			Matrix<T> dNdx = dxdr.Inverse()*dNdr;
+			Matrix<T> F = ((dNdr*X).Inverse()*dNdr*x).Transpose();
+
+			T detF = F.Determinant();
+			T mu = (mu0 - lambda0*log(detF))/detF;
+			T lambda = lambda0/detF;
+			Matrix<T> C = Matrix<T>(3, 3);
+			C(0, 0) = lambda + 2.0*mu;	C(0, 1) = lambda;			C(0, 2) = T();
+			C(1, 0) = lambda;			C(1, 1) = lambda + 2.0*mu;	C(1, 2) = T();
+			C(2, 0) = T();				C(2, 1) = T();				C(2, 2) = mu;
+			Matrix<T> BL = Matrix<T>(3, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				BL(0, 2*n) = dNdx(0, n);	BL(0, 2*n + 1) = T();
+				BL(1, 2*n) = T();			BL(1, 2*n + 1) = dNdx(1, n);
+				BL(2, 2*n) = dNdx(1, n);	BL(2, 2*n + 1) = dNdx(0, n);
+			}
+			_Ke += BL.Transpose()*C*BL*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+
+			Matrix<T> S = (mu0/detF)*(F*F.Transpose() - Identity<T>(2)) + (lambda0*log(detF)/detF)*Identity<T>(2);
+			Matrix<T> BNL = Matrix<T>(4, 2*_element.size());
+			for (int n = 0; n < _element.size(); n++) {
+				BNL(0, 2*n) = dNdx(0, n);	BNL(0, 2*n + 1) = T();
+				BNL(1, 2*n) = T();			BNL(1, 2*n + 1) = dNdx(0, n);
+				BNL(2, 2*n) = dNdx(1, n);	BNL(2, 2*n + 1) = T();
+				BNL(3, 2*n) = T();			BNL(3, 2*n + 1) = dNdx(1, n);
+			}
+			Matrix<T> S00 = S(0, 0)*Identity<T>(2);	Matrix<T> S01 = S(0, 1)*Identity<T>(2);
+			Matrix<T> S10 = S(1, 0)*Identity<T>(2);	Matrix<T> S11 = S(1, 1)*Identity<T>(2);
+			Matrix<T> Sm = (S00.Hstack(S01)).Vstack((S10.Hstack(S11)));
+			_Ke += BNL.Transpose()*Sm*BNL*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+
+			Vector<T> Sv = { S(0, 0), S(1, 1), S(0, 1) };
+			_Fe -= BL.Transpose()*Sv*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
+
+
 	//******************************Make element mass matrix******************************
 	template<class T, template<class>class SF, template<class>class IC>
 	void PlaneStrainMass(Matrix<T>& _Me, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _rho, T _t) {

@@ -452,6 +452,52 @@ namespace PANSFEM2 {
 	}
 
 
+	//******************************Make surface pressure tangent stiffness matrix with UpdatedLagrange****************************** 
+	template<class T, template<class>class SF, template<class>class IC>
+	void PlaneStrainSurfacePressureUpdatedLagrange(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, T _P, T _t) {
+		assert(_doulist.size() == 2);
+
+		_Ke = Matrix<T>(2*_element.size(), 2*_element.size());
+		_Fe = Vector<T>(2*_element.size());
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(_element.size(), std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < _element.size(); i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], 2*i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], 2*i + 1);
+		}
+
+		Matrix<T> X = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			X(i, 0) = _x[_element[i]](0);	X(i, 1) = _x[_element[i]](1);
+		}
+
+		Matrix<T> U = Matrix<T>(_element.size(), 2);
+		for(int i = 0; i < _element.size(); i++){
+			U(i, 0) = _u[_element[i]](0);	U(i, 1) = _u[_element[i]](1);
+		}
+
+		Matrix<T> x = X + U;
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dxdr = dNdr*x;
+			
+			Matrix<T> K = Matrix<T>(2*_element.size(), 2*_element.size());
+			Vector<T> F = Vector<T>(2*_element.size());
+			for(int i = 0; i < _element.size(); i++) {
+				for(int j = 0; j < _element.size(); j++) {
+					K(2*i, 2*j) = T();										K(2*i, 2*j + 1) = dNdr(0, i)*N(j) - N(i)*dNdr(0, j);
+					K(2*i + 1, 2*j) = -dNdr(0, i)*N(j) + N(i)*dNdr(0, j);	K(2*i + 1, 2*j + 1) = T();
+				}
+				F(2*i) = -N(i)*dxdr(0, 1);
+				F(2*i + 1) = N(i)*dxdr(0, 0);
+			}
+			_Ke -= 0.5*_P*K*_t*IC<T>::Weights[g][0];
+			_Fe += _P*F*_t*IC<T>::Weights[g][0];
+		}
+	}
+
+
 	//******************************Make body force vector******************************
 	template<class T, template<class>class SF, template<class>class IC, class F>
 	void PlaneStrainBodyForce(Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, F _f, T _t){

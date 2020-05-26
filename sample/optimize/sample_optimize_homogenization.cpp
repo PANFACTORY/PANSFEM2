@@ -126,15 +126,15 @@ int main() {
     
     //----------Generate design region----------
 	SquareMesh<double> mesh = SquareMesh<double>(60.0, 40.0, 60, 40);
-    std::vector<Vector<double> > x = mesh.GenerateNodes();
-    std::vector<std::vector<int> > elements = mesh.GenerateElements();
-    std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1 }, [](Vector<double> _x){
+    std::vector<Vector<double> > x = mesh.GenerateNodes2();
+    std::vector<std::vector<int> > elements = mesh.GenerateElements2();
+    std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist2({ 0, 1 }, [](Vector<double> _x){
         if(abs(_x(0)) < 1.0e-5) {
             return true;
         }
         return false;
     });
-    std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 1 }, [](Vector<double> _x){
+    std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist2({ 1 }, [](Vector<double> _x){
         if(abs(_x(0) - 60.0) < 1.0e-5 && abs(_x(1) - 20.0) < 1.0 + 1.0e-5) {
             return true;
         }
@@ -205,7 +205,7 @@ int main() {
             CHi = R.Transpose()*CHi*R;
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
+            PlaneStiffness<double, ShapeFunction8Square, Gauss9Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
             Assembling(K, F, u, Ke, nodetoglobal, nodetoelement, elements[i]);
 		}
         Assembling(F, qfixed, nodetoglobal);
@@ -237,7 +237,7 @@ int main() {
             CHi = R.Transpose()*CHi*R;
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> Ke;
-            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
+            PlaneStiffness<double, ShapeFunction8Square, Gauss9Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, CHi, 1.0);
             Vector<double> Keue = Ke*ElementVector(u, nodetoelement, elements[i]);
             Assembling(RF, Keue, nodetoglobal, nodetoelement, elements[i]);
         }
@@ -278,9 +278,9 @@ int main() {
             dCHidt = 0.5*M_PI/0.998*(dR.Transpose()*dCHidt*R + R.Transpose()*dCHidt*dR);
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
             Matrix<double> dKeda, dKedb, dKedt;
-            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(dKeda, nodetoelement, elements[i], { 0, 1 }, x, dCHida, 1.0);
-            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(dKedb, nodetoelement, elements[i], { 0, 1 }, x, dCHidb, 1.0);
-            PlaneStiffnessBbar<double, ShapeFunction4Square, Gauss1Square, Gauss4Square>(dKedt, nodetoelement, elements[i], { 0, 1 }, x, dCHidt, 1.0);
+            PlaneStiffness<double, ShapeFunction8Square, Gauss9Square>(dKeda, nodetoelement, elements[i], { 0, 1 }, x, dCHida, 1.0);
+            PlaneStiffness<double, ShapeFunction8Square, Gauss9Square>(dKedb, nodetoelement, elements[i], { 0, 1 }, x, dCHidb, 1.0);
+            PlaneStiffness<double, ShapeFunction8Square, Gauss9Square>(dKedt, nodetoelement, elements[i], { 0, 1 }, x, dCHidt, 1.0);
 			Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             dfda[i] = -ue*(dKeda*ue);
             dfdb[i] = -ue*(dKedb*ue);
@@ -294,7 +294,7 @@ int main() {
 		MakeHeadderToVTK(fout);
 		AddPointsToVTK(x, fout);
 		AddElementToVTK(elements, fout);
-		AddElementTypes(std::vector<int>(elements.size(), 9), fout);
+		AddElementTypes(std::vector<int>(elements.size(), 23), fout);
 		AddPointVectors(u, "u", fout, true);
         AddPointVectors(r, "r", fout, false);
         std::vector<double> v = std::vector<double>(elements.size());

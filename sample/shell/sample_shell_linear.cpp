@@ -3,7 +3,7 @@
 
 
 #include "../../src/LinearAlgebra/Models/Vector.h"
-#include "../../src/PrePost/Import/ImportFromCSV.h"
+#include "../../src/PrePost/Mesher/SquareMesh.h"
 #include "../../src/FEM/Equation/Shell.h"
 #include "../../src/FEM/Controller/ShapeFunction.h"
 #include "../../src/FEM/Controller/GaussIntegration.h"
@@ -17,15 +17,27 @@ using namespace PANSFEM2;
 
 
 int main() {
-	std::string model_path = "sample/shell/";
-	std::vector<Vector<double> > x;
-	ImportNodesFromCSV(x, model_path + "Node.csv");
-	std::vector<std::vector<int> > elements;
-	ImportElementsFromCSV(elements, model_path + "Element.csv");
-    std::vector<std::pair<std::pair<int, int>, double> > ufixed;
-	ImportDirichletFromCSV(ufixed, model_path + "Dirichlet.csv");
-    std::vector<std::pair<std::pair<int, int>, double> > qfixed;
-	ImportNeumannFromCSV(qfixed, model_path + "Neumann.csv");
+	SquareMesh<double> mesh = SquareMesh<double>(15.0, 5.0, 3, 1);
+    std::vector<Vector<double> > x = mesh.GenerateNodes();
+	for(auto& xi : x) {
+		xi = { xi(0), xi(1), 0.0 };
+	}
+    std::vector<std::vector<int> > elements = mesh.GenerateElements();
+    std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1, 2, 3, 4 }, [](Vector<double> _x){
+        if(abs(_x(0)) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+    std::vector<std::pair<std::pair<int, int>, double> > qfixed = mesh.GenerateFixedlist({ 2 }, [](Vector<double> _x){
+        if(abs(_x(0) - 15.0) < 1.0e-5) {
+            return true;
+        }
+        return false;
+    });
+    for(auto& qfixedi : qfixed) {
+        qfixedi.second = -10.0;
+    }
 
     std::vector<Vector<double> > v3 = std::vector<Vector<double> >(x.size(), { 0.0, 0.0, 1.0 });    //  Director vector
 
@@ -55,7 +67,7 @@ int main() {
         u[i] = ur[i].Segment(0, 3);
     }
 	
-	std::ofstream fout(model_path + "result.vtk");
+	std::ofstream fout("sample/shell/result.vtk");
 	MakeHeadderToVTK(fout);
 	AddPointsToVTK(x, fout);
 	AddElementToVTK(elements, fout);

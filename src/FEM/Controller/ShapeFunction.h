@@ -342,7 +342,7 @@ public:
 
 
 	template<class T>
-	const std::vector<Vector<T> > ShapeFunction8Cubic<T>::Points = { { -1.0, -1.0, -1.0 }, 
+	const std::vector<Vector<T> > ShapeFunction20Cubic<T>::Points = { { -1.0, -1.0, -1.0 }, 
 																	{ 1.0, -1.0, -1.0 }, 
 																	{ 1.0, 1.0, -1.0 }, 
 																	{ -1.0, 1.0, -1.0 }, 

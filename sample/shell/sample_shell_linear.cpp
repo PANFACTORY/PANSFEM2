@@ -39,8 +39,6 @@ int main() {
         qfixedi.second = -10.0;
     }
 
-    std::vector<Vector<double> > v3 = std::vector<Vector<double> >(x.size(), { 0.0, 0.0, 1.0 });    //  Director vector
-
 	std::vector<Vector<double> > ur = std::vector<Vector<double> >(x.size(), Vector<double>(5));
 	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(5, 0));
 	
@@ -53,7 +51,7 @@ int main() {
 	for (auto element : elements) {
         std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Matrix<double> Ke;
-		ShellLinearIsotropicElastic<double, ShapeFunction4Square, Gauss1Square, Gauss2Line>(Ke, nodetoelement, element, { 0, 1, 2, 3, 4 }, x, v3, 210000.0, 0.3, 1.0);
+		ShellLinearIsotropicElastic<double, ShapeFunction4Square, Gauss1Square, Gauss2Line>(Ke, nodetoelement, element, { 0, 1, 2, 3, 4 }, x, 210000.0, 0.3, 1.0);
         Assembling(K, F, ur, Ke, nodetoglobal, nodetoelement, element);
 	}
     Assembling(F, qfixed, nodetoglobal);

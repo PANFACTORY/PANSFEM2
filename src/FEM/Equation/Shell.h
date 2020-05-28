@@ -18,7 +18,7 @@
 namespace PANSFEM2 {
     //********************Linear Isotropic Elastic Shell********************
 	template<class T, template<class>class SF, template<class>class IC01, template<class>class IC2>
-	void ShellLinearIsotropicElastic(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _v, T _E, T _V, T _t) {
+	void ShellLinearIsotropicElastic(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _E, T _V, T _t) {
 		assert(_doulist.size() == 5);
         
         _Ke = Matrix<T>(5*_element.size(), 5*_element.size());
@@ -43,7 +43,6 @@ namespace PANSFEM2 {
         for(int i = 0; i < _element.size(); i++) {
             Matrix<T> dXdr = (SF<T>::dNdr(SF<T>::Points[i])*X).Transpose();
             Vector<T> v3i = VectorProduct(Vector<T>(dXdr.Block(0, 0, 3, 1)), Vector<T>(dXdr.Block(0, 1, 3, 1))).Normal();
-            //Vector<T> v3i = _v[i].Normal();
             v3 = v3.Vstack(v3i.Transpose());
             Vector<T> v1i = VectorProduct(l, v3i).Normal();
             v1 = v1.Vstack(v1i.Transpose());

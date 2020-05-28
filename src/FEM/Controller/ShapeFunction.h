@@ -19,11 +19,16 @@ namespace PANSFEM2 {
 	template<class T>
 	class ShapeFunction2Line{
 public:
-		static const int d = 1;					//	Dimension on natural cordinate
-		static const int n = 2;					//	Number of shape function
-		static Vector<T> N(Vector<T> _r);		//	Vector of shape function value
-		static Matrix<T> dNdr(Vector<T> _r);	//	Matrix of shape function derivative
+		static const int d = 1;								//	Dimension on natural cordinate
+		static const int n = 2;								//	Number of shape function
+		static const std::vector<Vector<T> > Points;		//	Cordinate values of node point
+		static Vector<T> N(Vector<T> _r);					//	Vector of shape function value
+		static Matrix<T> dNdr(Vector<T> _r);				//	Matrix of shape function derivative
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction2Line<T>::Points = { { -1.0 }, { 1.0 } };
 
 
 	template<class T>
@@ -49,9 +54,14 @@ public:
 public:
 		static const int d = 1;
 		static const int n = 3;
+		static const std::vector<Vector<T> > Points;		//	Cordinate values of node point
 		static Vector<T> N(Vector<T> _r);
 		static Matrix<T> dNdr(Vector<T> _r);
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction3Line<T>::Points = { { -1.0 }, { 1.0 }, { T() } };
 
 
 	template<class T>
@@ -78,9 +88,14 @@ public:
 public:
 		static const int d = 2;
 		static const int n = 3;
+		static const std::vector<Vector<T> > Points;		//	Cordinate values of node point
 		static Vector<T> N(Vector<T> _r);
 		static Matrix<T> dNdr(Vector<T> _r);
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction3Triangle<T>::Points = { { 1.0, T() }, { T(), 1.0 }, { T(), T() } };
 
 
 	template<class T>
@@ -108,9 +123,14 @@ public:
 public:
 		static const int d = 2;
 		static const int n = 6;
+		static const std::vector<Vector<T> > Points;		//	Cordinate values of node point
 		static Vector<T> N(Vector<T> _r);
 		static Matrix<T> dNdr(Vector<T> _r);
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction6Triangle<T>::Points = { { 1.0, T() }, { T(), 1.0 }, { T(), T() }, { 0.5, 0.5 }, { T(), 0.5 }, { 0.5, T() } };
 
 
 	template<class T>
@@ -141,9 +161,14 @@ public:
 public:
 		static const int d = 2;
 		static const int n = 4;
+		static const std::vector<Vector<T> > Points;		//Cordinate values of node point
 		static Vector<T> N(Vector<T> _r);
 		static Matrix<T> dNdr(Vector<T> _r);
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction4Square<T>::Points = { { -1.0, -1.0 }, { 1.0, -1.0 }, { 1.0, 1.0 }, { -1.0, 1.0 } };
 
 
 	template<class T>
@@ -172,9 +197,14 @@ public:
 public:
 		static const int d = 2;
 		static const int n = 8;
+		static const std::vector<Vector<T> > Points;		//	Cordinate values of node point
 		static Vector<T> N(Vector<T> _r);
 		static Matrix<T> dNdr(Vector<T> _r);
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction8Square<T>::Points = { { -1.0, -1.0 }, { 1.0, -1.0 }, { 1.0, 1.0 }, { -1.0, 1.0 }, { T(), -1.0 }, { 1.0, T() }, { T(), 1.0 }, { -1.0, T() } };
 
 
 	template<class T>
@@ -222,9 +252,14 @@ public:
 public:
 		static const int d = 3;
 		static const int n = 4;
+		static const std::vector<Vector<T> > Points;		//	Cordinate values of node point
 		static Vector<T> N(Vector<T> _r);
 		static Matrix<T> dNdr(Vector<T> _r);
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction4Tetrahedron<T>::Points = { { 1.0, T(), T() }, { T(), 1.0, T() }, { T(), T(), 1.0 }, { T(), T(), T() } };
 
 
 	template<class T>
@@ -254,9 +289,14 @@ public:
 public:
 		static const int d = 3;
 		static const int n = 8;
+		static const std::vector<Vector<T> > Points;		//	Cordinate values of node point
 		static Vector<T> N(Vector<T> _r);
 		static Matrix<T> dNdr(Vector<T> _r);
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction8Cubic<T>::Points = { { -1.0, -1.0, -1.0 }, { 1.0, -1.0, -1.0 }, { 1.0, 1.0, -1.0 }, { -1.0, 1.0, -1.0 }, { -1.0, -1.0, 1.0 }, { 1.0, -1.0, 1.0 }, { 1.0, 1.0, 1.0 }, { -1.0, 1.0, 1.0 } };
 
 
 	template<class T>
@@ -295,9 +335,34 @@ public:
 public:
 		static const int d = 3;
 		static const int n = 20;
+		static const std::vector<Vector<T> > Points;		//	Cordinate values of node point
 		static Vector<T> N(Vector<T> _r);
 		static Matrix<T> dNdr(Vector<T> _r);
 	};
+
+
+	template<class T>
+	const std::vector<Vector<T> > ShapeFunction8Cubic<T>::Points = { { -1.0, -1.0, -1.0 }, 
+																	{ 1.0, -1.0, -1.0 }, 
+																	{ 1.0, 1.0, -1.0 }, 
+																	{ -1.0, 1.0, -1.0 }, 
+																	{ -1.0, -1.0, 1.0 }, 
+																	{ 1.0, -1.0, 1.0 }, 
+																	{ 1.0, 1.0, 1.0 }, 
+																	{ -1.0, 1.0, 1.0 },
+																	{ T(), -1.0, -1.0 },
+																	{ 1.0, T(), -1.0 },
+																	{ T(), 1.0, -1.0 },
+																	{ -1.0, T(), -1.0 },
+																	{ -1.0, 1.0, 1.0 },
+																	{ T(), -1.0, 1.0 },
+																	{ 1.0, T(), 1.0 },
+																	{ T(), 1.0, 1.0 },
+																	{ -1.0, T(), 1.0 },
+																	{ -1.0, -1.0, T() },
+																	{ 1.0, -1.0, T() },
+																	{ 1.0, 1.0, T() }, 
+																	{ -1.0, 1.0, T() } };
 
 
 	template<class T>

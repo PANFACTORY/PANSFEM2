@@ -40,8 +40,10 @@ namespace PANSFEM2 {
         Matrix<T> v3 = Matrix<T>(0, 3);
         Matrix<T> v1 = Matrix<T>(0, 3);
         Matrix<T> v2 = Matrix<T>(0, 3);
-        for(auto i : _element){
-            Vector<T> v3i = _v[i].Normal();
+        for(int i = 0; i < _element.size(); i++) {
+            Matrix<T> dXdr = (SF<T>::dNdr(SF<T>::Points[i])*X).Transpose();
+            Vector<T> v3i = VectorProduct(Vector<T>(dXdr.Block(0, 0, 3, 1)), Vector<T>(dXdr.Block(0, 1, 3, 1))).Normal();
+            //Vector<T> v3i = _v[i].Normal();
             v3 = v3.Vstack(v3i.Transpose());
             Vector<T> v1i = VectorProduct(l, v3i).Normal();
             v1 = v1.Vstack(v1i.Transpose());

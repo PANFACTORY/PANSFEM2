@@ -17,7 +17,7 @@
 namespace PANSFEM2 {
     //******************************Get element stiffness matrix******************************
 	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC>
-	void Stokes(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _mu) {
+	void StokesStiffness(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _mu) {
         assert(_doulist.size() == 3);
 
 		int m = _elementu.size();   //  Number of shapefunction for velosity u
@@ -74,9 +74,58 @@ namespace PANSFEM2 {
 	}
 
 
-    //******************************Get element traction vector******************************
+    //******************************Get element mass matrix******************************
+	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC>
+	void StokesMass(Matrix<T>& _Ce, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _rho) {
+		assert(_doulist.size() == 3);
+
+		int m = _elementu.size();   //  Number of shapefunction for velosity u
+        int n = _elementp.size();   //  Number of shapefunction for pressure p
+
+		_Ce = Matrix<T>(2*m + n, 2*m + n);
+		_nodetoelementu = std::vector<std::vector<std::pair<int, int> > >(m, std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < m; i++) {
+			_nodetoelementu[i][0] = std::make_pair(_doulist[0], i);
+			_nodetoelementu[i][1] = std::make_pair(_doulist[1], m + i);
+		}
+        _nodetoelementp = std::vector<std::vector<std::pair<int, int> > >(n, std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < n; i++) {
+			_nodetoelementp[i][0] = std::make_pair(_doulist[2], 2*m + i);
+		}
+
+		 Matrix<T> Xu = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			Xu(i, 0) = _x[_elementu[i]](0); Xu(i, 1) = _x[_elementu[i]](1);
+		}
+
+        Matrix<T> Xp = Matrix<T>(n, 2);
+		for(int i = 0; i < n; i++){
+			Xp(i, 0) = _x[_elementp[i]](0); Xp(i, 1) = _x[_elementp[i]](1);
+		}
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Matrix<T> dNdr = SFP<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*Xp;
+			T J = dXdr.Determinant();
+			
+			Vector<T> M = SFU<T>::N(IC<T>::Points[g]);
+
+            Matrix<T> C = Matrix<T>(2*m + n, 2*m + n);
+            for(int i = 0; i < m; i++){
+                for(int j = 0; j < m; j++){
+                    C(i, j) = _rho*M(i)*M(j);   C(i, j + m) = T();
+                    C(i + m, j) = T();          C(i + m, j + m) = _rho*M(i)*M(j);
+                }
+            }
+			
+			_Ce += C*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
+
+
+	//******************************Get element traction vector******************************
     template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC, class F>
-    void StokesTraction(Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, F _f){
+    void StokesSurfaceForce(Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, F _f){
         assert(_doulist.size() == 3);
 
 		int m = _elementu.size();   //  Number of shapefunction for velosity u
@@ -123,15 +172,15 @@ namespace PANSFEM2 {
     }
 
 
-    //******************************Get element mass matrix******************************
-	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC>
-	void StokesMass(Matrix<T>& _Ce, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, T _rho) {
-		assert(_doulist.size() == 3);
+	//******************************Get element body force vector******************************
+	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC, class F>
+	void StokesBodyForce(Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, F _f) {
+        assert(_doulist.size() == 3);
 
 		int m = _elementu.size();   //  Number of shapefunction for velosity u
         int n = _elementp.size();   //  Number of shapefunction for pressure p
 
-		_Ce = Matrix<T>(2*m + n, 2*m + n);
+		_Fe = Vector<T>(2*m + n);
 		_nodetoelementu = std::vector<std::vector<std::pair<int, int> > >(m, std::vector<std::pair<int, int> >(2));
 		for(int i = 0; i < m; i++) {
 			_nodetoelementu[i][0] = std::make_pair(_doulist[0], i);
@@ -142,32 +191,26 @@ namespace PANSFEM2 {
 			_nodetoelementp[i][0] = std::make_pair(_doulist[2], 2*m + i);
 		}
 
-		 Matrix<T> Xu = Matrix<T>(m, 2);
-		for(int i = 0; i < m; i++){
-			Xu(i, 0) = _x[_elementu[i]](0); Xu(i, 1) = _x[_elementu[i]](1);
-		}
-
         Matrix<T> Xp = Matrix<T>(n, 2);
 		for(int i = 0; i < n; i++){
 			Xp(i, 0) = _x[_elementp[i]](0); Xp(i, 1) = _x[_elementp[i]](1);
 		}
 
 		for (int g = 0; g < IC<T>::N; g++) {
+			Vector<T> N = SFP<T>::N(IC<T>::Points[g]);
 			Matrix<T> dNdr = SFP<T>::dNdr(IC<T>::Points[g]);
 			Matrix<T> dXdr = dNdr*Xp;
 			T J = dXdr.Determinant();
-			
 			Vector<T> M = SFU<T>::N(IC<T>::Points[g]);
+			Vector<T> x = Xp.Transpose()*N;
+			Vector<T> b = _f(x);
 
-            Matrix<T> C = Matrix<T>(2*m + n, 2*m + n);
-            for(int i = 0; i < m; i++){
-                for(int j = 0; j < m; j++){
-                    C(i, j) = _rho*M(i)*M(j);   C(i, j + m) = T();
-                    C(i + m, j) = T();          C(i + m, j + m) = _rho*M(i)*M(j);
-                }
+            Vector<T> Fe = Vector<T>(2*m + n);
+            for(int i = 0; i < m; i++) {
+                Fe(2*i) = b(0)*M(i);	Fe(2*i + 1) = b(1)*M(i);
             }
-			
-			_Ce += C*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+
+			_Fe += Fe*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 }

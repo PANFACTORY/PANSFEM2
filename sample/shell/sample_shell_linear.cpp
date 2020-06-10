@@ -23,7 +23,7 @@ int main() {
 		xi = { xi(0), xi(1), 0.0 };
 	}
     std::vector<std::vector<int> > elements = mesh.GenerateElements();
-    std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1, 2, 3, 4 }, [](Vector<double> _x){
+    std::vector<std::pair<std::pair<int, int>, double> > ufixed = mesh.GenerateFixedlist({ 0, 1, 2, 3, 4, 5 }, [](Vector<double> _x){
         if(abs(_x(0)) < 1.0e-5) {
             return true;
         }
@@ -39,8 +39,8 @@ int main() {
         qfixedi.second = -10.0;
     }
 
-	std::vector<Vector<double> > ur = std::vector<Vector<double> >(x.size(), Vector<double>(5));
-	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(5, 0));
+	std::vector<Vector<double> > ur = std::vector<Vector<double> >(x.size(), Vector<double>(6));
+	std::vector<std::vector<int> > nodetoglobal = std::vector<std::vector<int> >(x.size(), std::vector<int>(6, 0));
 	
     SetDirichlet(ur, nodetoglobal, ufixed);
 	int KDEGREE = Renumbering(nodetoglobal);
@@ -51,18 +51,20 @@ int main() {
 	for (auto element : elements) {
         std::vector<std::vector<std::pair<int, int> > > nodetoelement;
 		Matrix<double> Ke;
-		ShellLinearIsotropicElastic<double, ShapeFunction4Square, Gauss1Square, Gauss2Line>(Ke, nodetoelement, element, { 0, 1, 2, 3, 4 }, x, 210000.0, 0.3, 1.0);
+		ShellLinearIsotropicElastic2<double, ShapeFunction4Square, Gauss1Square, Gauss2Line>(Ke, nodetoelement, element, { 0, 1, 2, 3, 4, 5 }, x, 210000.0, 0.3, 1.0);
         Assembling(K, F, ur, Ke, nodetoglobal, nodetoelement, element);
 	}
     Assembling(F, qfixed, nodetoglobal);
 
 	CSR<double> Kmod = CSR<double>(K);
-	std::vector<double> result = ScalingCG(Kmod, F, 100000, 1.0e-10);
+	std::vector<double> result = CG(Kmod, F, 100000, 1.0e-10);
     Disassembling(ur, result, nodetoglobal);
 
     std::vector<Vector<double> > u = std::vector<Vector<double> >(x.size());
+    std::vector<Vector<double> > theta = std::vector<Vector<double> >(x.size());
     for(int i = 0; i < x.size(); i++){
         u[i] = ur[i].Segment(0, 3);
+        theta[i] = 180.0*ur[i].Segment(3, 6)/M_PI;
     }
 	
 	std::ofstream fout("sample/shell/result.vtk");
@@ -71,6 +73,7 @@ int main() {
 	AddElementToVTK(elements, fout);
 	AddElementTypes(std::vector<int>(elements.size(), 9), fout);
 	AddPointVectors(u, "u", fout, true);
+    AddPointVectors(theta, "theta", fout, false);
 	fout.close();
 
 	return 0;

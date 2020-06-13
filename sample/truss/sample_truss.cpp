@@ -9,7 +9,6 @@
 #include "../../src/FEM/Controller/Assembling.h"
 #include "../../src/LinearAlgebra/Solvers/CG.h"
 #include "../../src/PrePost/Export/ExportToVTK.h"
-#include "../../src/FEM/Equation/General.h"
 
 
 using namespace PANSFEM2;
@@ -17,10 +16,10 @@ using namespace PANSFEM2;
 
 int main() {
     //********************Set design parameters********************
-    double A0 =  0.25;          //  Initial section [mm^2]
-    double E = 200000.0;        //  Young modulus [MPa]
-    double sigmat = 50.0;       //
-    double sigmac = 50.0;       //  
+    double A0 =  0.25;          //  Initial section      [mm^2]
+    double E = 200000.0;        //  Young modulus        [MPa]
+    double sigmat = 50.0;       //  Tensile strength     [MPa]
+    double sigmac = 50.0;       //  Compressive strength [MPa]
 
 	//********************Set model datas********************
 	GrandStructure2D<double> mesh = GrandStructure2D<double>(4000.0, 2000.0, 4, 2, 1500);
@@ -70,7 +69,6 @@ int main() {
         Vector<double> li = x[elements[i][1]] - x[elements[i][0]];
         Vector<double> di = u[elements[i][1]] - u[elements[i][0]];
         double fi = E*A[i]*di*li/pow(li.Norm(), 2.0);
-        std::cout << fi << std::endl;
         if(fi > 0.0) {
             A[i] = fi/sigmat;
         } else {

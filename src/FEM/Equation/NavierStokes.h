@@ -16,6 +16,11 @@
 
 
 namespace PANSFEM2 {
+	//*************************************************************************
+	//	Direct method
+	//*************************************************************************
+
+
 	//******************************Get element tengent matrix for Navier-Stokes equation******************************
 	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC>
 	void NavierStokesTangent(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementu, const std::vector<int>& _elementu, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementp, const std::vector<int>& _elementp, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _up, T _rho, T _mu) {
@@ -477,6 +482,174 @@ namespace PANSFEM2 {
 				}
             }
 			_Ce += tau*C*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
+
+
+	//*************************************************************************
+	//	Decoupled method
+	//*************************************************************************
+
+
+	//******************************Get element matrix and vector to get auxiliary velocity******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void NavierStokesAuxiliaryVelocity(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, T _rho, T _mu, T _dt) {
+		assert(_doulist.size() == 2);
+
+		int m = _element.size();   //  Number of shapefunction for velosity u
+
+		_Ke = Matrix<T>(2*m, 2*m);
+		_Fe = Vector<T>(2*m);
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(m, std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < m; i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], m + i);
+		}
+
+		Matrix<T> X = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			X(i, 0) = _x[_element[i]](0); X(i, 1) = _x[_element[i]](1);
+		}
+
+		Matrix<T> u = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			u(i, 0) = _u[_element[i]](0); u(i, 1) = _u[_element[i]](1);
+		}
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			Vector<T> U = u.Transpose()*N;
+			Matrix<T> dUdX = dNdX*u;
+
+            Matrix<T> K = Matrix<T>(2*m, 2*m);
+            for(int i = 0; i < m; i++){
+                for(int j = 0; j < m; j++){
+                    K(i, j) = _rho*N(i)*N(j);	K(i, j + m) = T();
+                    K(i + m, j) = T();			K(i + m, j + m) = _rho*N(i)*N(j);
+                }
+            }
+			_Ke += K*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+
+			Vector<T> F = Vector<T>(2*m);
+            for(int i = 0; i < m; i++){
+				F(i)     = _rho*N(i)*U(0) - _dt*(_rho*N(i)*(U(0)*dUdX(0, 0) + U(1)*dUdX(1, 0)) + _mu*(dNdX(0, i)*dUdX(0, 0) + dNdX(1, i)*dUdX(1, 0)));
+				F(i + m) = _rho*N(i)*U(1) - _dt*(_rho*N(i)*(U(0)*dUdX(0, 1) + U(1)*dUdX(1, 1)) + _mu*(dNdX(0, i)*dUdX(0, 1) + dNdX(1, i)*dUdX(1, 1)));
+            }
+			_Fe += F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
+
+
+	//******************************Get element matrix and vector of Pressure-Poisson equation******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void NavierStokesPressurePoisson(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, T _rho, T _dt) {
+		assert(_doulist.size() == 1);
+
+		int m = _element.size();   //  Number of shapefunction for velosity u
+
+		_Ke = Matrix<T>(m, m);
+		_Fe = Vector<T>(m);
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(m, std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < m; i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
+		}
+
+		Matrix<T> X = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			X(i, 0) = _x[_element[i]](0); X(i, 1) = _x[_element[i]](1);
+		}
+
+		Matrix<T> u = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			u(i, 0) = _u[_element[i]](0); u(i, 1) = _u[_element[i]](1);
+		}
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			Matrix<T> dUdX = dNdX*u;
+
+            Matrix<T> K = Matrix<T>(m, m);
+            for(int i = 0; i < m; i++){
+                for(int j = 0; j < m; j++){
+                    K(i, j) = dNdX(0, i)*dNdX(0, j) + dNdX(1, i)*dNdX(1, j);
+                }
+            }
+			_Ke += K*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+
+			Vector<T> F = Vector<T>(m);
+            for(int i = 0; i < m; i++){
+				F(i) = -_rho/_dt*N(i)*(dUdX(0, 0) + dUdX(1, 1));
+            }
+			_Fe += F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
+
+
+	//******************************Get element matrix and vector to get next step velocity******************************
+	template<class T, template<class>class SF, template<class>class IC>
+	void NavierStokesNextstepVelocity(Matrix<T>& _Ke, Vector<T>& _Fe, std::vector<std::vector<std::pair<int, int> > >& _nodetoelement, const std::vector<int>& _element, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _u, std::vector<Vector<T> >& _p, T _rho, T _dt) {
+		assert(_doulist.size() == 2);
+
+		int m = _element.size();   //  Number of shapefunction for velosity u
+
+		_Ke = Matrix<T>(2*m, 2*m);
+		_Fe = Vector<T>(2*m);
+		_nodetoelement = std::vector<std::vector<std::pair<int, int> > >(m, std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < m; i++) {
+			_nodetoelement[i][0] = std::make_pair(_doulist[0], i);
+			_nodetoelement[i][1] = std::make_pair(_doulist[1], m + i);
+		}
+
+		Matrix<T> X = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			X(i, 0) = _x[_element[i]](0); X(i, 1) = _x[_element[i]](1);
+		}
+
+		Matrix<T> u = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			u(i, 0) = _u[_element[i]](0); u(i, 1) = _u[_element[i]](1);
+		}
+
+		Vector<T> p = Vector<T>(m);
+		for(int i = 0; i < m; i++){
+			p(i) = _p[_element[i]](0);
+		}
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Vector<T> N = SF<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*X;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			Vector<T> U = u.Transpose()*N;
+			Vector<T> dPdX = dNdX*p;
+
+            Matrix<T> K = Matrix<T>(2*m, 2*m);
+            for(int i = 0; i < m; i++){
+                for(int j = 0; j < m; j++){
+                    K(i, j) = _rho*N(i)*N(j);	K(i, j + m) = T();
+                    K(i + m, j) = T();			K(i + m, j + m) = _rho*N(i)*N(j);
+                }
+            }
+			_Ke += K*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+
+			Vector<T> F = Vector<T>(2*m);
+            for(int i = 0; i < m; i++){
+				F(i)     = N(i)*(_rho*U(0) - _dt*dPdX(0));
+				F(i + m) = N(i)*(_rho*U(1) - _dt*dPdX(1));
+            }
+			_Fe += F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
 }

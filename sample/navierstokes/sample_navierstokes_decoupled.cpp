@@ -80,15 +80,18 @@ int main() {
 
         for (int i = 0; i < elements.size(); i++) {
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
-            Matrix<double> Ke;
+            Matrix<double> Me;
+            NavierStokesDecoupledLumpedMass<double, ShapeFunction4Square, Gauss4Square>(Me, nodetoelement, elements[i], { 0, 1 }, x, rho);
+            Assembling(Kv, Fv, v, Me, nodetoglobalvu, nodetoelement, elements[i]);
             Vector<double> Fe;
-            NavierStokesAuxiliaryVelocity<double, ShapeFunction4Square, Gauss4Square>(Ke, Fe, nodetoelement, elements[i], { 0, 1 }, x, u, rho, mu, dt);
-            Assembling(Kv, Fv, v, Ke, nodetoglobalvu, nodetoelement, elements[i]);
+            NavierStokesAuxiliaryVelocity<double, ShapeFunction4Square, Gauss4Square>(Fe, nodetoelement, elements[i], { 0, 1 }, x, u, rho, mu);
+            Fe = Me*ElementVector(u, nodetoelement, elements[i]) + dt*Fe;
             Assembling(Fv, Fe, nodetoglobalvu, nodetoelement, elements[i]);
         }
 
         CSR<double> Kvmod = CSR<double>(Kv);
-        std::vector<double> resultv = ScalingCG(Kvmod, Fv, 100000, 1.0e-10);
+        std::vector<double> diagonalmassv = GetDiagonal(Kvmod);
+        std::vector<double> resultv = Scaling(diagonalmassv, Fv);
         Disassembling(v, resultv, nodetoglobalvu);
 
 
@@ -116,15 +119,18 @@ int main() {
 
         for (int i = 0; i < elements.size(); i++) {
             std::vector<std::vector<std::pair<int, int> > > nodetoelement;
-            Matrix<double> Ke;
+            Matrix<double> Me;
+            NavierStokesDecoupledLumpedMass<double, ShapeFunction4Square, Gauss4Square>(Me, nodetoelement, elements[i], { 0, 1 }, x, rho);
+            Assembling(Ku, Fu, u, Me, nodetoglobalvu, nodetoelement, elements[i]);
             Vector<double> Fe;
-            NavierStokesNextstepVelocity<double, ShapeFunction4Square, Gauss4Square>(Ke, Fe, nodetoelement, elements[i], { 0, 1 }, x, v, p, rho, dt);
-            Assembling(Ku, Fu, u, Ke, nodetoglobalvu, nodetoelement, elements[i]);
+            NavierStokesNextstepVelocity<double, ShapeFunction4Square, Gauss4Square>(Fe, nodetoelement, elements[i], { 0, 1 }, x, v, p, rho);
+            Fe = Me*ElementVector(v, nodetoelement, elements[i]) + dt*Fe;
             Assembling(Fu, Fe, nodetoglobalvu, nodetoelement, elements[i]);
         }
 
         CSR<double> Kumod = CSR<double>(Ku);
-        std::vector<double> resultu = ScalingCG(Kumod, Fu, 100000, 1.0e-10);
+        std::vector<double> diagonalmassu = GetDiagonal(Kumod);
+        std::vector<double> resultu = Scaling(diagonalmassu, Fu);
         Disassembling(u, resultu, nodetoglobalvu);    
         
 

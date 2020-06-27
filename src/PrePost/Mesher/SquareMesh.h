@@ -32,9 +32,13 @@ public:
         std::vector<std::vector<int> > GenerateEdges();
         std::vector<std::vector<int> > GenerateEdges2();
         template<class F>
+        std::vector<int> GenerateEdgeIdsSelected(F _iscorrespond);
+        template<class F>
         std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist(std::vector<int> _ulist, F _iscorrespond);
         template<class F>
         std::vector<std::pair<std::pair<int, int>, T> > GenerateFixedlist2(std::vector<int> _ulist, F _iscorrespond);
+
+        
 private:
         T x, y;
         int nx, ny;  
@@ -157,6 +161,31 @@ private:
             edges[2*(this->nx + this->ny) - j - 1] = { j + 1, j, j + (this->nx + 1)*(this->ny + 1) };
         }
         return edges;
+    }
+
+
+    template<class T>
+    template<class F>
+    std::vector<int> SquareMesh<T>::GenerateEdgeIdsSelected(F _iscorrespond) {
+        std::vector<Vector<T> > nodes = this->GenerateNodes();
+        std::vector<int> edgeids = std::vector<int>();
+        for(int i = 0; i < this->nx; i++) {
+            if(_iscorrespond(nodes[(this->ny + 1)*i]) && _iscorrespond(nodes[(this->ny + 1)*(i + 1)])) {
+                edgeids.push_back(i);
+            }
+            if(_iscorrespond(nodes[(this->ny + 1)*(i + 1) + this->ny]) && _iscorrespond(nodes[(this->ny + 1)*i  + this->ny])) {
+                edgeids.push_back(2*this->nx + this->ny - i - 1);
+            }
+        }
+        for(int j = 0; j < this->ny; j++) {
+            if(_iscorrespond(nodes[(this->ny + 1)*this->nx + j]) && _iscorrespond(nodes[(this->ny + 1)*this->nx + j + 1])) {
+                edgeids.push_back(j + this->nx);
+            }
+            if(_iscorrespond(nodes[j + 1]) && _iscorrespond(nodes[j])) {
+                edgeids.push_back(2*(this->nx + this->ny) - j - 1);
+            }
+        }
+        return edgeids;
     }
 
 

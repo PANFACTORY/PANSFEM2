@@ -142,7 +142,7 @@ int main() {
 
 
         //----------トポロジカルデリバティブと体積の計算----------
-        std::vector<double> TDN = std::vector<double>(x.size(), 0.0);
+        std::vector<Vector<double> > TDN = std::vector<Vector<double> >(x.size(), Vector<double>(1));
         std::vector<int> NC = std::vector<int>(x.size(), 0);
         for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
@@ -150,7 +150,7 @@ int main() {
             PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*(1.0 - pow(c, 2.0)), c, 1.0);
             Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             for(int j = 0; j < elements[i].size(); j++) {
-                TDN[elements[i][j]] += (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
+                TDN[elements[i][j]](0) += (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
                 NC[elements[i][j]]++;
             }
         }
@@ -159,18 +159,18 @@ int main() {
         }
 
         double ex = Vmax + (volInit - Vmax)*std::max(0.0, 1.0 - (t + 1)/(double)nvol);
-        double lambda = std::accumulate(TDN.begin(), TDN.end(), 0.0)/(double)x.size()*exp(p*((vol - ex)/ex + d));
+        double lambda = std::accumulate(TDN.begin(), TDN.end(), Vector<double>(1))(0)/(double)x.size()*exp(p*((vol - ex)/ex + d));
 
         
         //----------レベルセット関数の更新----------
         double C = 0.0;
         for(int i = 0; i < x.size(); i++) {
-            C += fabs(TDN[i]);
+            C += fabs(TDN[i](0));
         }
         C = elements.size()/C;
 
         for(int i = 0; i < x.size(); i++) {
-            TDN[i] = C*(TDN[i] - lambda);
+            TDN[i](0) = C*(TDN[i](0) - lambda);
         }
 
         std::cout << "t = " << t << "\tCompliance = " << objective[t]/(double)elements.size() << "\tVolume = " << vol << "\tLambda = " << lambda << "\t" << C << std::endl;
@@ -183,11 +183,19 @@ int main() {
         std::vector<double> Y = std::vector<double>(TDEGREE, 0.0);
 
 		for (int i = 0; i < elements.size(); i++) {
-			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
-            Matrix<double> Te;
-            Vector<double> Ye;
-            LevelSet<double, ShapeFunction4Square, Gauss4Square>(Te, Ye, nodetoelement, elements[i], { 0 }, x, dt, tau*elements.size(), TDN, phi);
-            Assembling(T, Y, phi, Te, Ye, nodetoglobal2, nodetoelement, elements[i]);
+            std::vector<std::vector<std::pair<int, int> > > nodetoelement;
+			Matrix<double> Me, Ke;
+            Vector<double> Fe;
+            ReactionDiffusionConsistentMass<double, ShapeFunction4Square, Gauss4Square>(Me, nodetoelement, elements[i], { 0 }, x);
+            ReactionDiffusionStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0 }, x, tau*elements.size());
+            ReactionDiffusionReaction<double, ShapeFunction4Square, Gauss4Square>(Fe, nodetoelement, elements[i], { 0 }, x, TDN, [&](double _u, Vector<double> _dudX) {
+                return _u;
+            });
+			Vector<double> phie = ElementVector(phi, nodetoelement, elements[i]);
+			Matrix<double> Te = Me/dt + Ke;
+			Vector<double> Ye = Me/dt*phie + Fe; 
+			Assembling(T, Y, phi, Te, nodetoglobal2, nodetoelement, elements[i]);
+            Assembling(Y, Ye, nodetoglobal2, nodetoelement, elements[i]);
 		}
 
         CSR<double> Tmod = CSR<double>(T);	

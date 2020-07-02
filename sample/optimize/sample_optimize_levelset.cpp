@@ -192,8 +192,8 @@ int main() {
                 return _u;
             });
 			Vector<double> phie = ElementVector(phi, nodetoelement, elements[i]);
-			Matrix<double> Te = Me/dt;
-			Vector<double> Ye = (Me/dt - Ke)*phie + Fe; 
+			Matrix<double> Te = Me/dt + Ke;
+			Vector<double> Ye = Me/dt*phie + Fe; 
 			Assembling(T, Y, phi, Te, nodetoglobal2, nodetoelement, elements[i]);
             Assembling(Y, Ye, nodetoglobal2, nodetoelement, elements[i]);
 		}

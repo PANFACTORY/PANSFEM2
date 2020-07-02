@@ -110,7 +110,7 @@ int main() {
 
 
         //----------トポロジカルデリバティブと体積の計算----------
-        std::vector<Vector<double> > TDN = std::vector<Vector<double> >(x.size(), Vector<double>(1));
+        std::vector<Vector<double> > TD = std::vector<Vector<double> >(elements.size(), Vector<double>(1));
         std::vector<int> NC = std::vector<int>(x.size(), 0);
         for (int i = 0; i < elements.size(); i++) {
 			std::vector<std::vector<std::pair<int, int> > > nodetoelement;
@@ -119,15 +119,10 @@ int main() {
             Vector<double> ue = ElementVector(u, nodetoelement, elements[i]);
             objective[t] += ue*(Ke*ue);
             PlaneStressStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0, 1 }, x, (A1 + 2.0*A2)*(1.0 - pow(c, 2.0)), c, 1.0);
-            for(int j = 0; j < elements[i].size(); j++) {
-                TDN[elements[i][j]](0) += (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
-                NC[elements[i][j]]++;
-            }
+            TD[i](0) = (1.0e-4 + str[i]*(1.0 - 1.0e-4))*ue*(Ke*ue);
         }
-        for(int i = 0; i < x.size(); i++) {
-            TDN[i] /= (double)NC[i];
-        }
-
+        std::vector<Vector<double> > TDN = InterpolateNodalFromElemental<double, Vector>(x.size(), Vector<double>(1), TD, elements);
+        
         double vol = std::accumulate(str.begin(), str.end(), 0.0)/(double)elements.size();
         double ex = Vmax + (volInit - Vmax)*std::max(0.0, 1.0 - (t + 1)/(double)nvol);
         double lambda = std::accumulate(TDN.begin(), TDN.end(), Vector<double>(1))(0)/(double)x.size()*exp(p*((vol - ex)/ex + d));
@@ -155,10 +150,6 @@ int main() {
         }
         C = elements.size()/C;
 
-        for(int i = 0; i < x.size(); i++) {
-            TDN[i](0) = C*(TDN[i](0) - lambda);
-        }
-
         std::vector<std::vector<int> > nodetoglobal2 = std::vector<std::vector<int> >(x.size(), std::vector<int>(1, 0));
         SetDirichlet(phi, nodetoglobal2, phifixed);
         int TDEGREE = Renumbering(nodetoglobal2);
@@ -173,7 +164,7 @@ int main() {
             ReactionDiffusionConsistentMass<double, ShapeFunction4Square, Gauss4Square>(Me, nodetoelement, elements[i], { 0 }, x);
             ReactionDiffusionStiffness<double, ShapeFunction4Square, Gauss4Square>(Ke, nodetoelement, elements[i], { 0 }, x, tau*elements.size());
             ReactionDiffusionReaction<double, ShapeFunction4Square, Gauss4Square>(Fe, nodetoelement, elements[i], { 0 }, x, TDN, [&](double _u, Vector<double> _dudX) {
-                return _u;
+                return C*(_u - lambda);
             });
 			Vector<double> phie = ElementVector(phi, nodetoelement, elements[i]);
 			Matrix<double> Te = Me/dt + Ke;
@@ -190,14 +181,9 @@ int main() {
             phi[i](0) = std::max(std::min(1.0, phi[i](0)), -1.0);
         }
 
+        std::vector<Vector<double> > phie = InterpolateElementalFromNodal<double, Vector>(Vector<double>(1), phi, elements);
         for(int i = 0; i < elements.size(); i++) {
-            double phie = 0.0;
-            for(int j = 0; j < elements[i].size(); j++) {
-                phie += phi[elements[i][j]](0);
-            }
-            phie /= (double)elements[i].size();
-
-            if(phie < 0.0) {
+            if(phie[i](0) < 0.0) {
                 str[i] = 0.0;
             } else {
                 str[i] = 1.0;

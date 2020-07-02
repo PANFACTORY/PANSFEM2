@@ -146,4 +146,68 @@ namespace PANSFEM2 {
         }
         return dNdr;
     }
+
+
+    //********************Interpolate nodal value from elemental value********************
+    template<class T>
+    std::vector<T> InterpolateNodalFromElemental(int _nodesize, T _un0, std::vector<T> _ue, std::vector<std::vector<int> > _elements) {
+        std::vector<T> un = std::vector<T>(_nodesize, _un0);
+        std::vector<int> count = std::vector<int>(_nodesize, 0);
+        for(int i = 0; i < _elements.size(); i++) {
+            for(int j = 0; j < _elements[i].size(); j++) {
+                un[_elements[i][j]] += _ue[i];
+                count[_elements[i][j]]++;
+            }
+        }
+        for(int i = 0; i < _nodesize; i++) {
+            un[i] /= (T)count[i];
+        }
+        return un;
+    }
+
+
+    //********************Interpolate nodal value from elemental value********************
+    template<class T, template<class>class U>
+    std::vector<U<T> > InterpolateNodalFromElemental(int _nodesize, U<T> _un0, std::vector<U<T> > _ue, std::vector<std::vector<int> > _elements) {
+        std::vector<U<T> > un = std::vector<U<T> >(_nodesize, _un0);
+        std::vector<int> count = std::vector<int>(_nodesize, 0);
+        for(int i = 0; i < _elements.size(); i++) {
+            for(int j = 0; j < _elements[i].size(); j++) {
+                un[_elements[i][j]] += _ue[i];
+                count[_elements[i][j]]++;
+            }
+        }
+        for(int i = 0; i < _nodesize; i++) {
+            un[i] /= (T)count[i];
+        }
+        return un;
+    }
+
+
+    //********************Interpolate elemental value from nodal value********************
+    template<class T>
+    std::vector<T> InterpolateElementalFromNodal(T _ue0, std::vector<T> _un, std::vector<std::vector<int> > _elements) {
+        std::vector<T> ue = std::vector<T>(_elements.size(), _ue0);
+        for(int i = 0; i < _elements.size(); i++) {
+            for(int j = 0; j < _elements[i].size(); j++) {
+                ue[i] += _un[_elements[i][j]];
+            }
+            ue[i] /= (T)_elements[i].size();
+        }
+        return ue;
+    }
+
+
+    //********************Interpolate elemental value from nodal value********************
+    template<class T, template<class>class U>
+    std::vector<U<T> > InterpolateElementalFromNodal(U<T> _ue0, std::vector<U<T> > _un, std::vector<std::vector<int> > _elements) {
+        std::vector<U<T> > ue = std::vector<U<T> >(_elements.size(), _ue0);
+        for(int i = 0; i < _elements.size(); i++) {
+            for(int j = 0; j < _elements[i].size(); j++) {
+                ue[i] += _un[_elements[i][j]];
+            }
+            ue[i] /= (T)_elements[i].size();
+        }
+        return ue;
+    }
 }

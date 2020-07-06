@@ -704,4 +704,86 @@ namespace PANSFEM2 {
 			_Fe -= F*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
 		}
 	}
+
+
+	//*************************************************************************
+	//	Adjoint equation
+	//*************************************************************************
+
+
+	//******************************Get element matrix of adjoint equation for NS******************************
+	template<class T, template<class>class SFU, template<class>class SFP, template<class>class IC>
+	void NavierStokesAdjoint(Matrix<T>& _Ke, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementv, const std::vector<int>& _elementv, std::vector<std::vector<std::pair<int, int> > >& _nodetoelementq, const std::vector<int>& _elementq, const std::vector<int>& _doulist, std::vector<Vector<T> >& _x, std::vector<Vector<T> >& _up, T _rho, T _mu){
+		assert(_doulist.size() == 3);
+
+		int m = _elementv.size();   //  Number of shapefunction for velosity u
+        int n = _elementq.size();   //  Number of shapefunction for pressure p
+
+		_Ke = Matrix<T>(2*m + n, 2*m + n);
+		_Fe = Vector<T>(2*m + n);
+		_nodetoelementv = std::vector<std::vector<std::pair<int, int> > >(m, std::vector<std::pair<int, int> >(2));
+		for(int i = 0; i < m; i++) {
+			_nodetoelementv[i][0] = std::make_pair(_doulist[0], i);
+			_nodetoelementv[i][1] = std::make_pair(_doulist[1], m + i);
+		}
+        _nodetoelementq = std::vector<std::vector<std::pair<int, int> > >(n, std::vector<std::pair<int, int> >(1));
+		for(int i = 0; i < n; i++) {
+			_nodetoelementq[i][0] = std::make_pair(_doulist[2], 2*m + i);
+		}
+
+		Matrix<T> Xv = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			Xv(i, 0) = _x[_elementv[i]](0); Xv(i, 1) = _x[_elementv[i]](1);
+		}
+
+        Matrix<T> Xq = Matrix<T>(n, 2);
+		for(int i = 0; i < n; i++){
+			Xq(i, 0) = _x[_elementq[i]](0); Xq(i, 1) = _x[_elementq[i]](1);
+		}
+
+		Matrix<T> u = Matrix<T>(m, 2);
+		for(int i = 0; i < m; i++){
+			u(i, 0) = _up[_elementv[i]](0); u(i, 1) = _up[_elementv[i]](1);
+		}
+
+		Vector<T> p = Vector<T>(n);
+		for(int i = 0; i < n; i++){
+			p(i) = _up[_elementq[i]](2);
+		}
+
+		for (int g = 0; g < IC<T>::N; g++) {
+			Vector<T> N = SFP<T>::N(IC<T>::Points[g]);
+			Matrix<T> dNdr = SFP<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dXdr = dNdr*Xq;
+			T J = dXdr.Determinant();
+			Matrix<T> dNdX = dXdr.Inverse()*dNdr;
+
+			Vector<T> M = SFU<T>::N(IC<T>::Points[g]);
+			Matrix<T> dMdr = SFU<T>::dNdr(IC<T>::Points[g]);
+			Matrix<T> dMdX = dXdr.Inverse()*dMdr;
+
+			Vector<T> U = u.Transpose()*M;
+			Matrix<T> dUdX = dMdX*u;
+
+			T P = p*N;
+			Vector<T> dpdX = dNdX*p;
+
+            Matrix<T> K = Matrix<T>(2*m + n, 2*m + n);
+            for(int i = 0; i < m; i++){
+                for(int j = 0; j < m; j++){
+                    K(i, j) = _rho*(M(i)*M(j)*dUdX(0, 0) + dMdX(0, i)*U(0)*M(j) + dMdX(1, i)*U(1)*M(j)) + _mu*(2.0*dMdX(0, i)*dMdX(0, j) + dMdX(1, i)*dMdX(1, j));
+					K(i, j + m) = _rho*M(i)*M(j)*dUdX(0, 1) + _mu*dMdX(1, i)*dMdX(0, j);
+                    K(i + m, j) = _rho*M(i)*M(j)*dUdX(1, 0) + _mu*dMdX(0, i)*dMdX(1, j);
+					K(i + m, j + m) = _rho*(dMdX(0, i)*U(0)*M(j) + M(i)*M(j)*dUdX(1, 1) + dMdX(1, i)*U(1)*M(j)) + _mu*(dMdX(0, i)*dMdX(0, j) + 2.0*dMdX(1, i)*dMdX(1, j));	
+                }
+                for(int j = 0; j < n; j++){
+					K(i, j + 2*m) = -dMdX(0, i)*N(j);
+					K(i + m, j + 2*m) = -dMdX(1, i)*N(j);
+                    K(j + 2*m, i) = N(j)*dMdX(0, i);                                         						
+					K(j + 2*m, i + m) = N(j)*dMdX(1, i);
+                }
+            }
+			_Ke += K*J*IC<T>::Weights[g][0]*IC<T>::Weights[g][1];
+		}
+	}
 }

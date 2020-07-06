@@ -763,7 +763,6 @@ namespace PANSFEM2 {
         int n = _elementq.size();   //  Number of shapefunction for pressure p
 
 		_Ke = Matrix<T>(2*m + n, 2*m + n);
-		_Fe = Vector<T>(2*m + n);
 		_nodetoelementv = std::vector<std::vector<std::pair<int, int> > >(m, std::vector<std::pair<int, int> >(2));
 		for(int i = 0; i < m; i++) {
 			_nodetoelementv[i][0] = std::make_pair(_doulist[0], i);

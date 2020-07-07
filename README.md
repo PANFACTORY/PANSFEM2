@@ -30,6 +30,10 @@ This library has 3 advantages:
 *  Optimization  
 → This program is originaly developed for Topology Optimization. 
 
+## Samples
+
+![Navier-Stokes](https://github.com/PANFACTORY/PANSFEM2/blob/images/img/NS_Decouple.JPG)
+
 ## Author
 Tanabe Yuta([@Bena43754971](https://twitter.com/Bena43754971))
 

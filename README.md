@@ -32,14 +32,15 @@ This library has 3 advantages:
 
 ## Samples
 
-<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/PlaneStrain.JPG" height="50%">
 Topology optimization about Plane Strain
+<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/PlaneStrain.JPG" height="50%">
 
-<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/HeatTransfer.JPG" height="50%">
 Topology optimization about Heat Transfer
+<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/HeatTransfer.JPG" height="50%">
 
-<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/Stokes.JPG" height="50%">
 Topology optimization about Stokes
+<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/Stokes.JPG" height="50%">
+
 
 ## Author
 Tanabe Yuta([@Bena43754971](https://twitter.com/Bena43754971))

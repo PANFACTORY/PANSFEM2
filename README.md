@@ -32,7 +32,14 @@ This library has 3 advantages:
 
 ## Samples
 
-![Navier-Stokes](https://github.com/PANFACTORY/PANSFEM2/blob/images/img/NS_Decouple.JPG)
+![PlaneStrain](https://github.com/PANFACTORY/PANSFEM2/blob/images/img/PlaneStrain.JPG)
+Topology optimization about Plane Strain
+
+![HeatTransfer](https://github.com/PANFACTORY/PANSFEM2/blob/images/img/HeatTransfer.JPG)
+Topology optimization about Heat Transfer
+
+![Stokes](https://github.com/PANFACTORY/PANSFEM2/blob/images/img/Stokes.JPG)
+Topology optimization about Stokes
 
 ## Author
 Tanabe Yuta([@Bena43754971](https://twitter.com/Bena43754971))

@@ -32,13 +32,13 @@ This library has 3 advantages:
 
 ## Samples
 
-![PlaneStrain](https://github.com/PANFACTORY/PANSFEM2/blob/images/img/PlaneStrain.JPG)
+<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/PlaneStrain.JPG" height="50%">
 Topology optimization about Plane Strain
 
-![HeatTransfer](https://github.com/PANFACTORY/PANSFEM2/blob/images/img/HeatTransfer.JPG)
+<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/HeatTransfer.JPG" height="50%">
 Topology optimization about Heat Transfer
 
-![Stokes](https://github.com/PANFACTORY/PANSFEM2/blob/images/img/Stokes.JPG)
+<img src="https://github.com/PANFACTORY/PANSFEM2/blob/images/img/Stokes.JPG" height="50%">
 Topology optimization about Stokes
 
 ## Author

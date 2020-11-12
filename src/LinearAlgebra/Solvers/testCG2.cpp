@@ -9,7 +9,7 @@ int main() {
     vector<double> b = { 5, 3 };
     vector<double> x(2, 0.0);
 
-    BiCGSTAB2(A.data(), b.data(), x.data(), 2, 1000, 1.0e-5, true);
+    ScalingBiCGSTAB2(A.data(), b.data(), x.data(), 2, 1000, 1.0e-5, true);
 
     for (auto xi : x) {
         std::cout << xi << std::endl;

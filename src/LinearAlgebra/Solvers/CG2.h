@@ -277,6 +277,12 @@ namespace PANSFEM2 {
         delete[] skm1;
     }
 
+    //********************GPBi-CG solver for dense matrix********************
+    template<class T>
+    void GPBiCG(T *_A, T *_b, T *_x, int _n, int _itrmax, T _eps, bool _isdebug = false, T _bbmin = 1.0e-20) {
+        
+    }
+
     //  Solve [D]{x} = {b}
     template<class T>
     inline void SolveDxey(T *_D, T *_x, T *_y, int _n, T _eps = 1.0e-20) {
@@ -389,7 +395,7 @@ namespace PANSFEM2 {
                     AMs[i] += _A[_n*i + j]*Ms[j];
                 }
             }   //  [A][M]{s}
-            T omega = innerproduct(AMs, s, _n)/innerproduct(AMs, AMs, _n);  //  分子はs? Msじゃなくて？
+            T omega = innerproduct(AMs, s, _n)/innerproduct(AMs, AMs, _n);
             weaxpbypcz(_x, 1.0, _x, alpha, Mp, omega, Ms, _n);
             xeaypbz(r, 1.0, s, -omega, AMs, _n);
             T rdashrkp1 = innerproduct(rdash, r, _n);
@@ -428,5 +434,105 @@ namespace PANSFEM2 {
     }
 
     //********************Scaling preconditioned BiCGSTAB2 solver for dense matrix********************
-    
+    template<class T>
+    void ScalingBiCGSTAB2(T *_A, T *_b, T *_x, int _n, int _itrmax, T _eps, bool _isdebug = false, T _bbmin = 1.0e-20, T _scalingmin = 1.0e-20) {
+        assert(0 < _n && 0 < _itrmax && T() < _eps);
+
+        //----------Initialize----------
+        T *r = new T[_n], *rdash = new T[_n], *p = new T[_n], *Mp = new T[_n], *AMp = new T[_n], *s = new T[_n], *Ms = new T[_n], *AMs = new T[_n], *u = new T[_n], *w = new T[_n], *y = new T[_n], *z = new T[_n], *Mz = new T[_n], *skm1 = new T[_n], *D = new T[_n];
+        for (int i = 0; i < _n; ++i) {
+            r[i] = _b[i];
+            for (int j = 0; j < _n; ++j) {
+                r[i] -= _A[_n*i + j]*_x[j];
+            }
+            D[i] = _A[_n*i + i];
+            rdash[i] = r[i];
+            p[i] = r[i];
+            u[i] = T();
+            w[i] = T();
+            z[i] = T();
+            skm1[i] = T();
+        }
+        T beta = T();
+        T rdashrk = innerproduct(rdash, r, _n);
+        T bb = innerproduct(_b, _b, _n);
+        T epsepsbb = _eps*_eps*std::max(bb, _bbmin);
+        
+        //----------Iteration----------
+	    int k = 0;
+        for(; k < _itrmax; k++) {
+            SolveDxey(D, Mp, p, _n, _scalingmin);
+            for (int i = 0; i < _n; ++i) {
+                AMp[i] = T();
+                for (int j = 0; j < _n; ++j) {
+                    AMp[i] += _A[_n*i + j]*Mp[j];
+                }
+            }   //  [A][M]{p}
+            T alpha = rdashrk/innerproduct(rdash, AMp, _n);
+            veawpbxpcypdz(y, 1.0, skm1, -1.0, r, -alpha, w, alpha, AMp, _n);
+            xeaypbz(s, 1.0, r, -alpha, AMp, _n);
+            SolveDxey(D, Ms, s, _n, _scalingmin);
+            for (int i = 0; i < _n; ++i) {
+                AMs[i] = T();
+                for (int j = 0; j < _n; ++j) {
+                    AMs[i] += _A[_n*i + j]*Ms[j];
+                }
+            }   //  [A][M]{s}
+            T AMss = innerproduct(AMs, s, _n);
+            T AMsAMs = innerproduct(AMs, AMs, _n);
+            T omega = AMss/AMsAMs, ita = T();
+            if (k%2 != 0) {
+                T yy = innerproduct(y, y, _n);
+                T ys = innerproduct(y, s, _n);
+                T AMsy = innerproduct(AMs, y, _n);
+                omega = (yy*AMss - ys*AMsy)/(AMsAMs*yy - AMsy*AMsy);
+			    ita = (AMsAMs*ys - AMsy*AMss)/(AMsAMs*yy - AMsy*AMsy);
+            }
+            veawpbxpcypdz(u, omega, AMp, ita, skm1, -ita, r, beta*ita, u, _n);
+            weaxpbypcz(z, ita, z, omega, r, -alpha, u, _n);
+            SolveDxey(D, Mz, z, _n, _scalingmin);
+            weaxpbypcz(_x, 1.0, _x, alpha, Mp, 1.0, Mz, _n);
+            weaxpbypcz(r, 1.0, s, -omega, AMs, -ita, y, _n);
+            T rdashrkp1 = innerproduct(rdash, r, _n);
+            beta = alpha/omega*rdashrkp1/rdashrk;
+            xeaypbz(w, 1.0, AMs, beta, AMp, _n);
+            weaxpbypcz(p, beta, p, 1.0, r, -beta, u, _n);
+            rdashrk = rdashrkp1;
+            xeay(skm1, 1.0, s, _n);
+
+            //----------Check convergence----------
+            T rkrk = innerproduct(r, r, _n);
+            if (_isdebug) {
+                std::cout << "k = " << k << "\teps = " << sqrt(rkrk/bb) << std::endl;    
+            }
+            if (rkrk < epsepsbb) {
+                break;
+            }
+        }    
+
+        //----------Show result----------
+        if (_isdebug) {
+            if (k < _itrmax) {
+                std::cout << "\tConvergence:" << k << std::endl;
+            } else {
+                std::cout << "\nConvergence:faild" << std::endl;
+            }
+        }
+
+        delete[] r;
+        delete[] rdash;
+        delete[] p;
+        delete[] Mp;
+        delete[] AMp;
+        delete[] s;
+        delete[] Ms;
+        delete[] AMs;
+        delete[] u;
+        delete[] w;
+        delete[] y;
+        delete[] z;
+        delete[] Mz;
+        delete[] skm1;
+        delete[] D;
+    }
 }

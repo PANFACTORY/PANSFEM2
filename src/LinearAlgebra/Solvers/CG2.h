@@ -625,7 +625,7 @@ namespace PANSFEM2 {
         delete[] D;
     }
 
-    //********************Scaling preconditioned BiCGSTAB2 solver for dense matrix********************
+    //********************Scaling preconditioned GPBi-CG solver for dense matrix********************
     template<class T>
     void ScalingGPBiCG(T *_A, T *_x, T *_b, int _n, int _itrmax, T _eps, bool _isdebug = false, T _bbmin = 1.0e-20, T _scalingmin = 1.0e-20) {
         assert(0 < _n && 0 < _itrmax && T() < _eps);

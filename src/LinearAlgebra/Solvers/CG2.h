@@ -188,18 +188,18 @@ namespace PANSFEM2 {
         assert(0 < _n && 0 < _itrmax && T() < _eps);
 
         //----------Initialize----------
-        T *r = new T[_n], *rdash = new T[_n], *p = new T[_n], *Ap = new T[_n], *t = new T[_n], *At = new T[_n], *u = new T[_n], *w = new T[_n], *y = new T[_n], *z = new T[_n], *tkm1 = new T[_n];
+        T *r = new T[_n], *rdash = new T[_n], *p = new T[_n], *Ap = new T[_n], *s = new T[_n], *As = new T[_n], *u = new T[_n], *w = new T[_n], *y = new T[_n], *z = new T[_n], *skm1 = new T[_n];
         for (int i = 0; i < _n; ++i) {
             r[i] = _b[i];
             for (int j = 0; j < _n; ++j) {
                 r[i] -= _A[_n*i + j]*_x[j];
             }
             rdash[i] = r[i];
-            p[i] = T();
+            p[i] = r[i];
             u[i] = T();
             w[i] = T();
             z[i] = T();
-            tkm1[i] = T();
+            skm1[i] = T();
         }
         T beta = T();
         T rdashrk = innerproduct(rdash, r, _n);
@@ -209,7 +209,6 @@ namespace PANSFEM2 {
         //----------Iteration----------
 	    int k = 0;
         for(; k < _itrmax; k++) {
-            weaxpbypcz(p, beta, p, 1.0, r, -beta, u, _n);
             for (int i = 0; i < _n; ++i) {
                 Ap[i] = T();
                 for (int j = 0; j < _n; ++j) {
@@ -217,36 +216,34 @@ namespace PANSFEM2 {
                 }
             }   //  [A]{p}
             T alpha = rdashrk/innerproduct(rdash, Ap, _n);
-            veawpbxpcypdz(y, 1.0, tkm1, -1.0, r, -alpha, w, alpha, Ap, _n);
-            xeaypbz(t, 1.0, r, -alpha, Ap, _n);
-            T zeta, ita;
+            veawpbxpcypdz(y, 1.0, skm1, -1.0, r, -alpha, w, alpha, Ap, _n);
+            xeaypbz(s, 1.0, r, -alpha, Ap, _n);
             for (int i = 0; i < _n; ++i) {
-                At[i] = T();
+                As[i] = T();
                 for (int j = 0; j < _n; ++j) {
-                    At[i] += _A[_n*i + j]*t[j];
+                    As[i] += _A[_n*i + j]*s[j];
                 }
-            }   //  [A]{t}
-            T Att = innerproduct(At, t, _n);
-            T AtAt = innerproduct(At, At, _n);
-            if (k%2 == 0) {
-                zeta = Att/AtAt;
-                ita = T();
-            } else {
+            }   //  [A]{s}
+            T Ass = innerproduct(As, s, _n);
+            T AsAs = innerproduct(As, As, _n);
+            T omega = Ass/AsAs, ita = T();
+            if (k%2 != 0) {
                 T yy = innerproduct(y, y, _n);
-                T yt = innerproduct(y, t, _n);
-                T Aty = innerproduct(At, y, _n);
-                zeta = (yy*Att - yt*Aty)/(AtAt*yy - Aty*Aty);
-			    ita = (AtAt*yt - Aty*Att)/(AtAt*yy - Aty*Aty);
+                T ys = innerproduct(y, s, _n);
+                T Asy = innerproduct(As, y, _n);
+                omega = (yy*Ass - ys*Asy)/(AsAs*yy - Asy*Asy);
+			    ita = (AsAs*ys - Asy*Ass)/(AsAs*yy - Asy*Asy);
             }
-            veawpbxpcypdz(u, zeta, Ap, ita, tkm1, -ita, r, beta*ita, u, _n);
-            weaxpbypcz(z, ita, z, zeta, r, -alpha, u, _n);
+            veawpbxpcypdz(u, omega, Ap, ita, skm1, -ita, r, beta*ita, u, _n);
+            weaxpbypcz(z, ita, z, omega, r, -alpha, u, _n);
             weaxpbypcz(_x, 1.0, _x, alpha, p, 1.0, z, _n);
-            weaxpbypcz(r, 1.0, t, -ita, y, -zeta, At, _n);
+            weaxpbypcz(r, 1.0, s, -omega, As, -ita, y, _n);
             T rdashrkp1 = innerproduct(rdash, r, _n);
-            beta = alpha*rdashrkp1/(zeta*rdashrk);
-            xeaypbz(w, 1.0, At, beta, Ap, _n);
+            beta = alpha/omega*rdashrkp1/rdashrk;
+            xeaypbz(w, 1.0, As, beta, Ap, _n);
+            weaxpbypcz(p, beta, p, 1.0, r, -beta, u, _n);
             rdashrk = rdashrkp1;
-            xeay(tkm1, 1.0, t, _n);
+            xeay(skm1, 1.0, s, _n);
 
             //----------Check convergence----------
             T rkrk = innerproduct(r, r, _n);
@@ -271,12 +268,165 @@ namespace PANSFEM2 {
         delete[] rdash;
         delete[] p;
         delete[] Ap;
-        delete[] t;
-        delete[] At;
+        delete[] s;
+        delete[] As;
         delete[] u;
         delete[] w;
         delete[] y;
         delete[] z;
-        delete[] tkm1;
+        delete[] skm1;
     }
+
+    //  Solve [D]{x} = {b}
+    template<class T>
+    inline void SolveDxey(T *_D, T *_x, T *_y, int _n, T _eps = 1.0e-20) {
+        assert(0 < _n && T() < _eps);
+        for (int i = 0; i < _n; i++) {
+            _x[i] = _eps < fabs(_D[i]) ? _y[i]/_D[i] : _y[i];
+        }
+    }
+
+    //********************Scaling preconditioned CG solver for dense matrix********************
+    template<class T>
+    void ScalingCG(T *_A, T *_b, T *_x, int _n, int _itrmax, T _eps, bool _isdebug = false, T _bbmin = 1.0e-20, T _scalingmin = 1.0e-20) {
+        assert(0 < _n && 0 < _itrmax && T() < _eps);
+
+        //----------Initialize----------
+        T *r = new T[_n], *p = new T[_n], *Ap = new T[_n], *D = new T[_n], *Mr = new T[_n];
+        for (int i = 0; i < _n; ++i) {
+            r[i] = _b[i];
+            for (int j = 0; j < _n; ++j) {
+                r[i] -= _A[_n*i + j]*_x[j];
+            }
+            D[i] = _A[_n*i + i];
+            Mr[i] = _scalingmin < fabs(D[i]) ? r[i]/D[i] : r[i];
+            p[i] = Mr[i];
+        }
+        T Mrkrk = innerproduct(Mr, r, _n);
+        T bb = innerproduct(_b, _b, _n);
+        T epsepsbb = _eps*_eps*std::max(bb, _bbmin);
+
+        //----------Iteration----------
+        int k = 0;
+        for (; k < _itrmax; ++k) {
+            for (int i = 0; i < _n; ++i) {
+                Ap[i] = T();
+                for (int j = 0; j < _n; ++j) {
+                    Ap[i] += _A[_n*i + j]*p[j];
+                }
+            }   //  [A]{p}
+            T alpha = Mrkrk/innerproduct(p, Ap, _n);
+            xeaypbz(_x, 1.0, _x, alpha, p, _n);
+            xeaypbz(r, 1.0, r, -alpha, Ap, _n);
+            SolveDxey(D, Mr, r, _n, _scalingmin);
+            T Mrkp1rkp1 = innerproduct(Mr, r, _n);
+            T beta = Mrkp1rkp1/Mrkrk;
+            xeaypbz(p, beta, p, 1.0, Mr, _n);
+            Mrkrk = Mrkp1rkp1;
+
+            //----------Check convergence----------
+            T rkrk = innerproduct(r, r, _n);
+            if (_isdebug) {
+                std::cout << "k = " << k << "\teps = " << sqrt(rkrk/bb) << std::endl;    
+            }
+            if (rkrk < epsepsbb) {
+                break;
+            }		
+        }
+
+        //----------Show result----------
+        if (_isdebug) {
+            if (k < _itrmax) {
+                std::cout << "\tConvergence:" << k << std::endl;
+            } else {
+                std::cout << "\nConvergence:faild" << std::endl;
+            }
+        }
+        
+        delete[] r;
+        delete[] p;
+        delete[] Ap;
+        delete[] D;
+        delete[] Mr;
+    }
+
+    //********************Scaling preconditioned BiCGSTAB solver for dense matrix********************
+    template<class T>
+    void ScalingBiCGSTAB(T *_A, T *_b, T *_x, int _n, int _itrmax, T _eps, bool _isdebug = false, T _bbmin = 1.0e-20, T _scalingmin = 1.0e-20) {
+        assert(0 < _n && 0 < _itrmax && T() < _eps);
+
+        //----------Initialize----------
+        T *r = new T[_n], *rdash = new T[_n], *p = new T[_n], *Mp = new T[_n], *AMp = new T[_n], *s = new T[_n], *Ms = new T[_n], *AMs = new T[_n], *D = new T[_n];
+        for (int i = 0; i < _n; ++i) {
+            r[i] = _b[i];
+            for (int j = 0; j < _n; ++j) {
+                r[i] -= _A[_n*i + j]*_x[j];
+            }
+            D[i] = _A[_n*i + i];
+            rdash[i] = r[i];
+            p[i] = r[i];
+        }
+        T rdashrk = innerproduct(rdash, r, _n);
+        T bb = innerproduct(_b, _b, _n);
+        T epsepsbb = _eps*_eps*std::max(bb, _bbmin);
+
+        //----------Iteration----------
+        int k = 0;
+        for (; k < _itrmax; ++k) {
+            SolveDxey(D, Mp, p, _n, _scalingmin);
+            for (int i = 0; i < _n; ++i) {
+                AMp[i] = T();
+                for (int j = 0; j < _n; ++j) {
+                    AMp[i] += _A[_n*i + j]*Mp[j];
+                }
+            }   //  [A][M]{p}
+            T alpha = rdashrk/innerproduct(rdash, AMp, _n);
+            xeaypbz(s, 1.0, r, -alpha, AMp, _n);
+            SolveDxey(D, Ms, s, _n, _scalingmin);
+            for (int i = 0; i < _n; ++i) {
+                AMs[i] = T();
+                for (int j = 0; j < _n; ++j) {
+                    AMs[i] += _A[_n*i + j]*Ms[j];
+                }
+            }   //  [A][M]{s}
+            T omega = innerproduct(AMs, s, _n)/innerproduct(AMs, AMs, _n);  //  分子はs? Msじゃなくて？
+            weaxpbypcz(_x, 1.0, _x, alpha, Mp, omega, Ms, _n);
+            xeaypbz(r, 1.0, s, -omega, AMs, _n);
+            T rdashrkp1 = innerproduct(rdash, r, _n);
+            T beta = alpha/omega*rdashrkp1/rdashrk;
+            weaxpbypcz(p, beta, p, 1.0, r, -beta*omega, AMp, _n);
+            rdashrk = rdashrkp1;
+
+            //----------Check convergence----------
+            T rkrk = innerproduct(r, r, _n);
+            if (_isdebug) {
+                std::cout << "k = " << k << "\teps = " << sqrt(rkrk/bb) << std::endl;    
+            }
+            if (rkrk < epsepsbb) {
+                break;
+            }	
+        }
+
+        //----------Show result----------
+        if (_isdebug) {
+            if (k < _itrmax) {
+                std::cout << "\tConvergence:" << k << std::endl;
+            } else {
+                std::cout << "\nConvergence:faild" << std::endl;
+            }
+        }
+
+        delete[] r;
+        delete[] rdash;
+        delete[] p;
+        delete[] Mp;
+        delete[] AMp;
+        delete[] s;
+        delete[] Ms;
+        delete[] AMs;
+        delete[] D;
+    }
+
+    //********************Scaling preconditioned BiCGSTAB2 solver for dense matrix********************
+    
 }

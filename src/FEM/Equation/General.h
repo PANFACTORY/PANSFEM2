@@ -41,10 +41,35 @@ namespace PANSFEM2 {
     }
 
 
+    //**********Get element's volume**********
+    template<class T, template<class>class SF, template<class>class IC>
+    T Volume(std::vector<Vector<T> >& _x, std::vector<int>& _element) {
+        T volume = T();
+
+        //----------Generate cordinate matrix X----------
+		Matrix<T> X = Matrix<T>(0, 3);
+		for(int i = 0; i < _element.size(); i++){
+			X = X.Vstack(_x[_element[i]].Transpose());
+		}
+
+        //----------Loop of Gauss Integration----------
+        for (int g = 0; g < IC<T>::N; g++) {
+			//----------Get shape function and difference of shape function----------
+			Matrix<T> dNdr = SF<T>::dNdr(IC<T>::Points[g]);
+
+			//----------Get difference of shape function----------
+			Matrix<T> dXdr = dNdr*X;
+			volume += dXdr.Determinant()*IC<T>::Weights[g][0]*IC<T>::Weights[g][1]*IC<T>::Weights[g][2];
+        }
+
+        return volume;
+    }
+
+
     //**********Get element's center of gravity**********
     template<class T>
     Vector<T> CenterOfGravity(std::vector<Vector<T> >& _x, std::vector<int>& _element) {
-        Vector<double> center = Vector<double>(2);
+        Vector<double> center = Vector<double>(_x[0].SIZE());
         for(auto i : _element){
             center += _x[i];
         }
